@@ -6,7 +6,7 @@
 ## Epic 和 Story 概览
 
 ### Epic 1: 项目创建和 BMad-Method 集成
-**文件**: `epic1-project-creation-stories.md`  
+**文件**: [epic1-project-creation-stories.md](epic1-project-creation-stories.md)  
 **优先级**: P0 (最高)  
 **预计工时**: 6-8 周  
 **Story 数量**: 10 个
@@ -19,16 +19,16 @@
 - 文档自动生成（PRD、架构设计、UX设计、Epic和Story）
 
 **关键 Story**:
-- Story 1.1: 项目初始化
-- Story 1.2: BMad-Method 安装和配置
-- Story 1.3: cursor.cli 集成
-- Story 1.4: claude code 集成
-- Story 1.5: 提示词模板管理
+- [Story 1.1: 项目初始化](epic1-project-creation-stories.md#story-11-项目初始化)
+- [Story 1.2: BMad-Method 安装和配置](epic1-project-creation-stories.md#story-12-bmad-method-安装和配置)
+- [Story 1.3: cursor.cli 集成](epic1-project-creation-stories.md#story-13-cursorcli-集成)
+- [Story 1.4: claude code 集成](epic1-project-creation-stories.md#story-14-claude-code-集成)
+- [Story 1.5: 提示词模板管理](epic1-project-creation-stories.md#story-15-提示词模板管理)
 
 ---
 
 ### Epic 2: 前端用户界面系统
-**文件**: `epic2-frontend-ui-stories.md`  
+**文件**: [epic2-frontend-ui-stories.md](epic2-frontend-ui-stories.md)  
 **优先级**: P0 (最高)  
 **预计工时**: 8-10 周  
 **Story 数量**: 9 个
@@ -41,15 +41,15 @@
 - 用户认证和权限管理
 
 **关键 Story**:
-- Story 2.1: 项目基础架构搭建
-- Story 2.2: 网站主页开发
-- Story 2.4: 创建项目页面（多Agent协作对话界面）
-- Story 2.6: 用户认证和权限管理
+- [Story 2.1: 项目基础架构搭建](epic2-frontend-ui-stories.md#story-21-项目基础架构搭建)
+- [Story 2.2: 网站主页开发](epic2-frontend-ui-stories.md#story-22-网站主页开发)
+- [Story 2.4: 创建项目页面（多Agent协作对话界面）](epic2-frontend-ui-stories.md#story-24-创建项目页面多agent协作对话界面)
+- [Story 2.6: 用户认证和权限管理](epic2-frontend-ui-stories.md#story-26-用户认证和权限管理)
 
 ---
 
 ### Epic 3: 后端服务和数据存储系统
-**文件**: `epic3-backend-services-stories.md`  
+**文件**: [epic3-backend-services-stories.md](epic3-backend-services-stories.md)  
 **优先级**: P1 (高)  
 **预计工时**: 8-10 周  
 **Story 数量**: 7 个
@@ -62,16 +62,16 @@
 - 测试和部署
 
 **关键 Story**:
-- Story 3.1: 项目基础架构搭建
-- Story 3.2: 数据库设计和初始化
-- Story 3.3: Redis 缓存系统集成
-- Story 3.5: 用户管理服务
-- Story 3.6: 项目管理服务
+- [Story 3.1: 项目基础架构搭建](epic3-backend-services-stories.md#story-31-项目基础架构搭建)
+- [Story 3.2: 数据库设计和初始化](epic3-backend-services-stories.md#story-32-数据库设计和初始化)
+- [Story 3.3: Redis 缓存系统集成](epic3-backend-services-stories.md#story-33-redis-缓存系统集成)
+- [Story 3.5: 用户管理服务](epic3-backend-services-stories.md#story-35-用户管理服务)
+- [Story 3.6: 项目管理服务](epic3-backend-services-stories.md#story-36-项目管理服务)
 
 ---
 
 ### Epic 4: 后台任务执行和监控系统
-**文件**: `epic4-task-execution-stories.md`  
+**文件**: [epic4-task-execution-stories.md](epic4-task-execution-stories.md)  
 **优先级**: P1 (高)  
 **预计工时**: 6-8 周  
 **Story 数量**: 8 个
@@ -84,16 +84,16 @@
 - 简化的任务执行流程
 
 **关键 Story**:
-- Story 4.1: 任务队列基础架构
-- Story 4.2: 任务池和并发控制
-- Story 4.3: 任务排队机制
-- Story 4.5: cursor.cli 任务执行器
-- Story 4.6: claude code 任务执行器
+- [Story 4.1: 任务队列基础架构](epic4-task-execution-stories.md#story-41-任务队列基础架构)
+- [Story 4.2: 任务池和并发控制](epic4-task-execution-stories.md#story-42-任务池和并发控制)
+- [Story 4.3: 任务排队机制](epic4-task-execution-stories.md#story-43-任务排队机制)
+- [Story 4.5: cursor.cli 任务执行器](epic4-task-execution-stories.md#story-45-cursorcli-任务执行器)
+- [Story 4.6: claude code 任务执行器](epic4-task-execution-stories.md#story-46-claude-code-任务执行器)
 
 ---
 
 ### Epic 5: 部署和运维系统
-**文件**: `epic5-deployment-ops-stories.md`  
+**文件**: [epic5-deployment-ops-stories.md](epic5-deployment-ops-stories.md)  
 **优先级**: P2 (中)  
 **预计工时**: 2-3 周  
 **Story 数量**: 4 个
@@ -105,10 +105,10 @@
 - 运维文档和操作手册
 
 **关键 Story**:
-- Story 5.1: Docker 容器化配置
-- Story 5.2: Docker Compose 环境配置
-- Story 5.3: Nginx 反向代理配置
-- Story 5.4: 运维文档和培训
+- [Story 5.1: Docker 容器化配置](epic5-deployment-ops-stories.md#story-51-docker-容器化配置)
+- [Story 5.2: Docker Compose 环境配置](epic5-deployment-ops-stories.md#story-52-docker-compose-环境配置)
+- [Story 5.3: Nginx 反向代理配置](epic5-deployment-ops-stories.md#story-53-nginx-反向代理配置)
+- [Story 5.4: 运维文档和培训](epic5-deployment-ops-stories.md#story-54-运维文档和培训)
 
 ---
 
