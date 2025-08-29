@@ -282,12 +282,12 @@
 作为系统管理员，我希望能够管理用户账户和权限，以便确保系统安全和用户数据隔离。
 
 #### 验收标准
-- [ ] 实现用户注册和登录功能
-- [ ] 支持 JWT 令牌认证
-- [ ] 实现简单的权限控制（admin 和 user 角色）
-- [ ] 支持用户信息的 CRUD 操作
-- [ ] 实现密码加密和验证
-- [ ] 支持用户会话管理
+- [x] 实现用户注册和登录功能
+- [x] 支持 JWT 令牌认证
+- [x] 实现简单的权限控制（admin 和 user 角色）
+- [x] 支持用户信息的 CRUD 操作
+- [x] 实现密码加密和验证
+- [x] 支持用户会话管理
 
 #### 技术要点
 - 使用 bcrypt 进行密码加密
@@ -297,6 +297,54 @@
 
 #### 依赖关系
 - 依赖 Story 3.4 (配置管理系统)
+
+---
+
+#### Dev Agent Record
+
+**Agent Model Used**: DEV Agent (James)
+
+**Debug Log References**:
+- 实现了完整的用户管理服务，包括用户注册、登录、权限控制等功能
+- 创建了分层架构：handlers -> services -> repositories -> models
+- 实现了用户和用户会话的数据模型，支持 UUID 主键和软删除
+- 集成了 bcrypt 密码加密和 JWT 令牌认证
+- 实现了完整的 Swagger 注释，支持 API 文档生成
+- 更新了数据库初始化脚本，包含用户表和会话表结构
+- 修复了配置字段不一致问题（JWT.Expire vs JWT.ExpireHours）
+
+**Completion Notes List**:
+- ✅ 创建了 `internal/models/user.go` - 用户和用户会话数据模型
+- ✅ 创建了 `internal/models/common.go` - 通用响应结构和请求模型
+- ✅ 创建了 `internal/repositories/user_repository.go` - 用户数据访问层
+- ✅ 创建了 `internal/repositories/user_session_repository.go` - 用户会话数据访问层
+- ✅ 创建了 `internal/services/user_service.go` - 用户业务逻辑层
+- ✅ 创建了 `internal/api/handlers/user_handler.go` - 用户 HTTP 处理器
+- ✅ 创建了 `internal/api/routes/user_routes.go` - 用户路由配置
+- ✅ 更新了 `internal/api/routes/routes.go` - 集成用户路由
+- ✅ 更新了 `cmd/server/main.go` - 传递数据库连接给路由
+- ✅ 更新了 `scripts/init-db.sql` - 添加用户表和会话表结构
+- ✅ 修复了配置字段引用问题，确保代码编译通过
+
+**File List**:
+- `backend/internal/models/user.go` - 用户数据模型
+- `backend/internal/models/common.go` - 通用模型和响应结构
+- `backend/internal/repositories/user_repository.go` - 用户仓库接口和实现
+- `backend/internal/repositories/user_session_repository.go` - 用户会话仓库接口和实现
+- `backend/internal/services/user_service.go` - 用户服务接口和实现
+- `backend/internal/api/handlers/user_handler.go` - 用户处理器，包含完整 Swagger 注释
+- `backend/internal/api/routes/user_routes.go` - 用户路由配置
+- `backend/internal/api/routes/routes.go` - 主路由文件，集成用户管理
+- `backend/cmd/server/main.go` - 主程序，传递数据库连接
+- `backend/scripts/init-db.sql` - 数据库初始化脚本，包含用户表结构
+
+**Change Log**:
+- 2025-08-29: 完成用户管理服务实现，包括完整的分层架构设计
+- 实现了用户注册、登录、权限控制、档案管理等核心功能
+- 创建了用户会话管理，支持 JWT 令牌认证和刷新
+- 实现了完整的 Swagger 注释，支持 API 文档生成和调试
+- 更新了数据库结构，支持用户管理和会话存储
+- 修复了配置字段不一致问题，确保系统正常运行
 
 ---
 

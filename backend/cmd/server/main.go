@@ -30,13 +30,18 @@ import (
 	"syscall"
 	"time"
 
+	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/api/routes"
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/database"
 	"autocodeweb-backend/pkg/cache"
 	"autocodeweb-backend/pkg/logger"
 
+	_ "autocodeweb-backend/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -109,10 +114,16 @@ func main() {
 	engine := gin.New()
 
 	// 注册中间件
-	engine.Use(gin.Logger(), gin.Recovery())
+	engine.Use(gin.Logger())
+	engine.Use(gin.Recovery())
+	engine.Use(middleware.CORS(cfg.CORS))
+	engine.Use(middleware.RequestID())
+	engine.Use(gin.Recovery())
 
+	// 添加Swagger文档路由
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// 注册路由
-	routes.Register(engine, cfg, cacheInstance, monitor)
+	routes.Register(engine, cfg, cacheInstance, monitor, database.GetDB())
 
 	// 创建HTTP服务器
 	srv := &http.Server{

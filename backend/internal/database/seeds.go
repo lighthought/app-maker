@@ -69,7 +69,7 @@ func createDefaultAdmin(db *gorm.DB) error {
 		adminUser := models.User{
 			Email:    "admin@autocodeweb.com",
 			Password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-			Name:     "系统管理员",
+			Username: "系统管理员",
 			Role:     "admin",
 			Status:   "active",
 		}

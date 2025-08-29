@@ -11,6 +11,7 @@ type Config struct {
 	App      AppConfig      `mapstructure:"app"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Redis    RedisConfig    `mapstructure:"redis"`
+	CORS     CORSConfig     `mapstructure:"cors"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	BMad     BMadConfig     `mapstructure:"bmad"`
 	Log      LogConfig      `mapstructure:"log"`
@@ -44,6 +45,15 @@ type RedisConfig struct {
 type JWTConfig struct {
 	SecretKey string `mapstructure:"secret_key"`
 	Expire    int    `mapstructure:"expire_hours"`
+}
+
+// CORSConfig CORS配置
+type CORSConfig struct {
+	AllowedOrigins   []string `mapstructure:"allowed_origins"`
+	AllowedMethods   []string `mapstructure:"allowed_methods"`
+	AllowedHeaders   []string `mapstructure:"allowed_headers"`
+	AllowCredentials bool     `mapstructure:"allow_credentials"`
+	MaxAge           int      `mapstructure:"max_age"`
 }
 
 type BMadConfig struct {
@@ -124,6 +134,13 @@ func setDefaults() {
 
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.file", "./logs/app.log")
+
+	// CORS 默认配置
+	viper.SetDefault("cors.allowed_origins", []string{"*"})
+	viper.SetDefault("cors.allowed_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	viper.SetDefault("cors.allowed_headers", []string{"*"})
+	viper.SetDefault("cors.allow_credentials", false)
+	viper.SetDefault("cors.max_age", 86400)
 }
 
 func validateConfig(config *Config) error {
