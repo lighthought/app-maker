@@ -4,17 +4,29 @@ import (
 	"autocodeweb-backend/internal/api/handlers"
 	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/config"
+	"autocodeweb-backend/pkg/cache"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Register 注册所有路由
-func Register(engine *gin.Engine, cfg *config.Config) {
+func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache, monitor *cache.Monitor) {
 	// API v1 路由组
 	v1 := engine.Group("/api/v1")
 	{
 		// 健康检查
 		v1.GET("/health", handlers.HealthCheck)
+
+		// 缓存相关路由
+		cacheHandler := handlers.NewCacheHandler(cacheInstance, monitor)
+		cache := v1.Group("/cache")
+		{
+			cache.GET("/health", cacheHandler.HealthCheck)
+			cache.GET("/stats", cacheHandler.GetStats)
+			cache.GET("/memory", cacheHandler.GetMemoryUsage)
+			cache.GET("/keyspace", cacheHandler.GetKeyspaceStats)
+			cache.GET("/performance", cacheHandler.GetPerformanceMetrics)
+		}
 
 		// 认证相关路由
 		auth := v1.Group("/auth")

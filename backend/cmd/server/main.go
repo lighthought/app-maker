@@ -33,6 +33,7 @@ import (
 	"autocodeweb-backend/internal/api/routes"
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/database"
+	"autocodeweb-backend/pkg/cache"
 	"autocodeweb-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -68,6 +69,37 @@ func main() {
 		defer database.CloseRedis()
 	}
 
+	// 初始化缓存系统
+	var cacheInstance cache.Cache
+	var monitor *cache.Monitor
+
+	if database.GetRedis() != nil {
+		// 创建缓存配置
+		cacheConfig := cache.Config{
+			Type:     cache.CacheTypeRedis,
+			Host:     cfg.Redis.Host,
+			Port:     cfg.Redis.Port,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+			PoolSize: 10,
+			MinIdle:  5,
+		}
+
+		// 创建缓存实例
+		if cacheInstance, err = cache.NewCache(cacheConfig); err != nil {
+			logger.Warn("创建缓存实例失败，将使用内存缓存", logger.String("error", err.Error()))
+		} else {
+			logger.Info("缓存系统初始化成功")
+			// 创建监控实例
+			monitor = cache.NewMonitor(database.GetRedis())
+		}
+	}
+
+	// 如果缓存初始化失败，设置为 nil
+	if cacheInstance == nil {
+		logger.Warn("缓存系统不可用，相关功能将受限")
+	}
+
 	// 设置Gin模式
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -80,7 +112,7 @@ func main() {
 	engine.Use(gin.Logger(), gin.Recovery())
 
 	// 注册路由
-	routes.Register(engine, cfg)
+	routes.Register(engine, cfg, cacheInstance, monitor)
 
 	// 创建HTTP服务器
 	srv := &http.Server{
