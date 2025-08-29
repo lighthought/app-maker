@@ -38,5 +38,16 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 
 		// 注册用户路由
 		RegisterUserRoutes(v1, userHandler)
+
+		// 初始化项目和标签相关依赖
+		projectRepo := repositories.NewProjectRepository(db)
+		tagRepo := repositories.NewTagRepository(db)
+		projectService := services.NewProjectService(projectRepo, tagRepo)
+		tagService := services.NewTagService(tagRepo)
+		projectHandler := handlers.NewProjectHandler(projectService, tagService)
+		tagHandler := handlers.NewTagHandler(tagService)
+
+		// 注册项目和标签路由
+		RegisterProjectRoutes(v1, projectHandler, tagHandler)
 	}
 }

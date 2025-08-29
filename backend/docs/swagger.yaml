@@ -12,6 +12,44 @@ definitions:
     - new_password
     - old_password
     type: object
+  models.CreateProjectRequest:
+    properties:
+      description:
+        example: 项目描述
+        maxLength: 500
+        type: string
+      name:
+        example: 我的项目
+        maxLength: 100
+        minLength: 1
+        type: string
+      requirements:
+        example: 项目需求描述
+        type: string
+      tag_ids:
+        example:
+        - '[''tag1'''
+        - ' ''tag2'']'
+        items:
+          type: string
+        type: array
+    required:
+    - name
+    - requirements
+    type: object
+  models.CreateTagRequest:
+    properties:
+      color:
+        example: '#666666'
+        type: string
+      name:
+        example: 标签名称
+        maxLength: 50
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
   models.ErrorResponse:
     properties:
       code:
@@ -71,6 +109,40 @@ definitions:
         example: 10
         type: integer
     type: object
+  models.ProjectInfo:
+    properties:
+      created_at:
+        type: string
+      description:
+        example: 项目描述
+        type: string
+      id:
+        example: uuid
+        type: string
+      name:
+        example: 项目名称
+        type: string
+      project_path:
+        example: /path/to/project
+        type: string
+      requirements:
+        example: 项目需求
+        type: string
+      status:
+        example: in_progress
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/models.TagInfo'
+        type: array
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.UserInfo'
+      user_id:
+        example: uuid
+        type: string
+    type: object
   models.RegisterRequest:
     properties:
       email:
@@ -103,6 +175,18 @@ definitions:
         example: "2025-08-29T10:00:00Z"
         type: string
     type: object
+  models.TagInfo:
+    properties:
+      color:
+        example: '#666666'
+        type: string
+      id:
+        example: uuid
+        type: string
+      name:
+        example: 标签名称
+        type: string
+    type: object
   models.UpdateProfileRequest:
     properties:
       email:
@@ -112,6 +196,47 @@ definitions:
         example: newusername
         maxLength: 20
         minLength: 3
+        type: string
+    type: object
+  models.UpdateProjectRequest:
+    properties:
+      description:
+        example: 更新后的项目描述
+        maxLength: 500
+        type: string
+      name:
+        example: 更新后的项目名
+        maxLength: 100
+        minLength: 1
+        type: string
+      requirements:
+        example: 更新后的项目需求
+        type: string
+      status:
+        enum:
+        - draft
+        - in_progress
+        - completed
+        - failed
+        example: in_progress
+        type: string
+      tag_ids:
+        example:
+        - '[''tag1'''
+        - ' ''tag2'']'
+        items:
+          type: string
+        type: array
+    type: object
+  models.UpdateTagRequest:
+    properties:
+      color:
+        example: '#FF0000'
+        type: string
+      name:
+        example: 更新后的标签名称
+        maxLength: 50
+        minLength: 1
         type: string
     type: object
   models.UserInfo:
@@ -262,6 +387,675 @@ paths:
       summary: 用户注册
       tags:
       - 用户管理
+  /api/v1/projects:
+    get:
+      consumes:
+      - application/json
+      description: 获取项目列表，支持分页和筛选
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 项目状态
+        enum:
+        - draft
+        - in_progress
+        - completed
+        - failed
+        in: query
+        name: status
+        type: string
+      - description: 搜索关键词
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取项目列表成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  allOf:
+                  - $ref: '#/definitions/models.PaginationResponse'
+                  - properties:
+                      data:
+                        items:
+                          $ref: '#/definitions/models.ProjectInfo'
+                        type: array
+                    type: object
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取项目列表
+      tags:
+      - 项目管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新项目
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目创建请求
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 项目创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProjectInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 创建项目
+      tags:
+      - 项目管理
+  /api/v1/projects/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定项目
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 项目删除成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 访问被拒绝
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 删除项目
+      tags:
+      - 项目管理
+    get:
+      consumes:
+      - application/json
+      description: 根据项目ID获取项目详细信息
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取项目成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProjectInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 项目不存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取项目信息
+      tags:
+      - 项目管理
+    put:
+      consumes:
+      - application/json
+      description: 更新项目信息
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 项目更新请求
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 项目更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ProjectInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 访问被拒绝
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 项目不存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 更新项目
+      tags:
+      - 项目管理
+  /api/v1/projects/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: 更新项目状态
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 项目状态
+        enum:
+        - draft
+        - in_progress
+        - completed
+        - failed
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 状态更新成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 访问被拒绝
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 更新项目状态
+      tags:
+      - 项目管理
+  /api/v1/projects/{id}/tags:
+    get:
+      consumes:
+      - application/json
+      description: 获取项目的所有标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取项目标签成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.TagInfo'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 访问被拒绝
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取项目标签
+      tags:
+      - 项目管理
+  /api/v1/tags:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有标签列表
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取标签列表成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.TagInfo'
+                  type: array
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取标签列表
+      tags:
+      - 标签管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 标签创建请求
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 标签创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.TagInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: 标签名称已存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 创建标签
+      tags:
+      - 标签管理
+  /api/v1/tags/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 标签ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 标签删除成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: 标签正在被使用
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 删除标签
+      tags:
+      - 标签管理
+    get:
+      consumes:
+      - application/json
+      description: 根据标签ID获取标签详细信息
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 标签ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取标签成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.TagInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 标签不存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取标签信息
+      tags:
+      - 标签管理
+    put:
+      consumes:
+      - application/json
+      description: 更新标签信息
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 标签ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 标签更新请求
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 标签更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.TagInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: 标签不存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: 标签名称已存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 更新标签
+      tags:
+      - 标签管理
+  /api/v1/tags/popular:
+    get:
+      consumes:
+      - application/json
+      description: 获取使用频率最高的标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 10
+        description: 标签数量限制
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取热门标签成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.TagInfo'
+                  type: array
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取热门标签
+      tags:
+      - 标签管理
+  /api/v1/tags/project:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定项目的所有标签
+      parameters:
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 项目ID
+        in: query
+        name: project_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取项目标签成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.TagInfo'
+                  type: array
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取项目标签
+      tags:
+      - 标签管理
   /api/v1/users:
     get:
       consumes:

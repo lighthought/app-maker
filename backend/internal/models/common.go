@@ -86,3 +86,63 @@ type UpdateProfileRequest struct {
 	Username string `json:"username" binding:"omitempty,min=3,max=20" example:"newusername"`
 	Email    string `json:"email" binding:"omitempty,email" example:"newemail@example.com"`
 }
+
+// CreateProjectRequest 创建项目请求
+type CreateProjectRequest struct {
+	Name         string   `json:"name" binding:"required,min=1,max=100" example:"我的项目"`
+	Description  string   `json:"description" binding:"omitempty,max=500" example:"项目描述"`
+	Requirements string   `json:"requirements" binding:"required" example:"项目需求描述"`
+	TagIDs       []string `json:"tag_ids,omitempty" example:"['tag1', 'tag2']"`
+}
+
+// UpdateProjectRequest 更新项目请求
+type UpdateProjectRequest struct {
+	Name         string   `json:"name" binding:"omitempty,min=1,max=100" example:"更新后的项目名"`
+	Description  string   `json:"description" binding:"omitempty,max=500" example:"更新后的项目描述"`
+	Requirements string   `json:"requirements" binding:"omitempty" example:"更新后的项目需求"`
+	Status       string   `json:"status" binding:"omitempty,oneof=draft in_progress completed failed" example:"in_progress"`
+	TagIDs       []string `json:"tag_ids,omitempty" example:"['tag1', 'tag2']"`
+}
+
+// ProjectListRequest 项目列表请求
+type ProjectListRequest struct {
+	PaginationRequest
+	Status string   `json:"status" form:"status" binding:"omitempty,oneof=draft in_progress completed failed" example:"in_progress"`
+	TagIDs []string `json:"tag_ids" form:"tag_ids" example:"['tag1', 'tag2']"`
+	UserID string   `json:"user_id" form:"user_id" example:"uuid"`
+	Search string   `json:"search" form:"search" example:"项目名称关键词"`
+}
+
+// ProjectInfo 项目信息（用于响应）
+type ProjectInfo struct {
+	ID           string    `json:"id" example:"uuid"`
+	Name         string    `json:"name" example:"项目名称"`
+	Description  string    `json:"description" example:"项目描述"`
+	Status       string    `json:"status" example:"in_progress"`
+	Requirements string    `json:"requirements" example:"项目需求"`
+	ProjectPath  string    `json:"project_path" example:"/path/to/project"`
+	UserID       string    `json:"user_id" example:"uuid"`
+	User         UserInfo  `json:"user,omitempty"`
+	Tags         []TagInfo `json:"tags,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// TagInfo 标签信息（用于响应）
+type TagInfo struct {
+	ID    string `json:"id" example:"uuid"`
+	Name  string `json:"name" example:"标签名称"`
+	Color string `json:"color" example:"#666666"`
+}
+
+// CreateTagRequest 创建标签请求
+type CreateTagRequest struct {
+	Name  string `json:"name" binding:"required,min=1,max=50" example:"标签名称"`
+	Color string `json:"color" binding:"omitempty,hexcolor" example:"#666666"`
+}
+
+// UpdateTagRequest 更新标签请求
+type UpdateTagRequest struct {
+	Name  string `json:"name" binding:"omitempty,min=1,max=50" example:"更新后的标签名称"`
+	Color string `json:"color" binding:"omitempty,hexcolor" example:"#FF0000"`
+}
