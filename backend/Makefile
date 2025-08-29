@@ -10,7 +10,8 @@ help:
 	@echo "  run-dev       - 启动开发环境"
 	@echo "  run-prod      - 启动生产环境"
 	@echo "  test          - 运行测试"
-	@echo "  clean         - 清理构建文件"
+	@echo "  clean         - 清理构建文件（⚠️ 会清理所有未使用的Docker资源）"
+	@echo "  clean-safe    - 安全清理（只清理当前项目）"
 	@echo "  validate-config - 验证配置文件"
 
 # 构建开发环境镜像
@@ -63,6 +64,13 @@ clean:
 	docker-compose down -v
 	docker system prune -f
 	docker image prune -f
+
+# 安全清理（只清理当前项目）
+clean-safe:
+	@echo "🧹 安全清理当前项目..."
+	docker-compose down -v
+	@echo "⚠️  注意：只清理了当前项目的数据卷和容器"
+	@echo "💡 如需清理镜像，请手动执行: docker rmi backend-backend"
 
 # 测试
 test:
