@@ -11,24 +11,7 @@ services:
       - "8098:8080"
     environment:
       - APP_ENVIRONMENT=development
-      - APP_PORT=8080
-      - APP_SECRET_KEY=dev-secret-key-change-in-production
-      - DATABASE_HOST=autocodeweb-postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USER=autocodeweb
-      - DATABASE_PASSWORD=AutoCodeWeb2024!@#
-      - DATABASE_NAME=autocodeweb
-      - DATABASE_SSL_MODE=disable
-      - REDIS_HOST=autocodeweb-redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-      - JWT_SECRET_KEY=dev-jwt-secret-key-change-in-production
-      - JWT_EXPIRE_HOURS=24
-      - BMAD_NPM_PACKAGE=bmad-method
-      - BMAD_CONFIG_PATH=./bmad-config
       - LOG_LEVEL=debug
-      - LOG_FILE=./logs/app.log
     volumes:
       - ./configs:/app/configs:ro
       - ./logs:/app/logs

@@ -219,9 +219,9 @@
 作为运维工程师，我希望能够通过配置文件管理系统配置，以便在不同环境中灵活部署系统。
 
 #### 验收标准
-- [ ] 支持 dev 和 prod 两套环境配置
-- [ ] 实现环境变量覆盖配置
-- [ ] 实现配置验证和默认值
+- [x] 支持 dev 和 prod 两套环境配置
+- [x] 实现环境变量覆盖配置
+- [x] 实现配置验证和默认值
 
 #### 技术要点
 - 实现配置结构体定义
@@ -231,6 +231,47 @@
 - 依赖 Story 3.3 (Redis 缓存系统集成)
 
 ---
+
+#### Dev Agent Record
+
+**Agent Model Used**: DEV Agent (James)
+
+**Debug Log References**:
+- 实现了完整的配置管理系统，支持开发和生产两套环境配置
+- 创建了环境特定的配置文件（config.yaml, config.prod.yaml）
+- 实现了 Docker 环境分离（Dockerfile, Dockerfile.prod, docker-compose.yml, docker-compose.prod.yml）
+- 建立了环境变量模板和配置验证机制
+- 创建了 Makefile 来管理不同环境的构建和部署
+
+**Completion Notes List**:
+- ✅ 创建了 `config.yaml` - 开发环境配置文件
+- ✅ 创建了 `config.prod.yaml` - 生产环境配置文件
+- ✅ 更新了 `docker-compose.yml` - 开发环境配置，移除硬编码环境变量
+- ✅ 创建了 `docker-compose.prod.yml` - 生产环境配置
+- ✅ 创建了 `Dockerfile.prod` - 生产环境 Dockerfile，包含安全最佳实践
+- ✅ 创建了 `env.example` - 环境变量模板文件
+- ✅ 创建了 `Makefile` - 多环境构建和部署管理
+- ✅ 创建了 `scripts/config-validator.go` - 配置验证工具
+- ✅ 更新了 `internal/config/config.go` - 配置加载和验证逻辑
+- ✅ 实现了环境变量覆盖和配置验证功能
+
+**File List**:
+- `backend/configs/config.yaml` - 开发环境配置
+- `backend/configs/config.prod.yaml` - 生产环境配置
+- `backend/docker-compose.yml` - 开发环境 Docker Compose
+- `backend/docker-compose.prod.yml` - 生产环境 Docker Compose
+- `backend/Dockerfile.prod` - 生产环境 Dockerfile
+- `backend/env.example` - 环境变量模板
+- `backend/Makefile` - 构建和部署管理
+- `backend/scripts/config-validator.go` - 配置验证工具
+- `backend/internal/config/config.go` - 配置管理核心代码
+
+**Change Log**:
+- 2025-08-29: 完成配置管理系统，实现了开发和生产环境的完全分离
+- 建立了基于配置文件的配置管理，支持环境变量覆盖
+- 实现了 Docker 环境分离，支持不同环境的容器化部署
+- 创建了完整的构建工具链，支持 Makefile 管理多环境构建
+- 实现了配置验证机制，确保配置的正确性和完整性
 
 ### Story 3.5: 用户管理服务
 **优先级**: P0  

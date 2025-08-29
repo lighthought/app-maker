@@ -1,0 +1,33 @@
+app:
+  environment: "production"
+  port: "8080"
+  secret_key: "${APP_SECRET_KEY}"
+
+database:
+  host: "${DATABASE_HOST}"
+  port: 5432
+  user: "${DATABASE_USER}"
+  password: "${DATABASE_PASSWORD}"
+  name: "${DATABASE_NAME}"
+  ssl_mode: "require"
+  connect_timeout: 30
+  auto_migrate: false
+  seed_data: false
+
+redis:
+  host: "${REDIS_HOST}"
+  port: 6379
+  password: "${REDIS_PASSWORD}"
+  db: 0
+
+jwt:
+  secret_key: "${JWT_SECRET_KEY}"
+  expire_hours: 24
+
+bmad:
+  npm_package: "bmad-method"
+  config_path: "./bmad-config"
+
+log:
+  level: "warn"
+  file: "/var/log/autocodeweb/app.log"
