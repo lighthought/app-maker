@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # AutoCodeWeb 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autocodeweb-backend-dev
+    ports:
+      - "8098:8080"
+    environment:
+      - APP_ENVIRONMENT=development
+      - APP_PORT=8080
+      - APP_SECRET_KEY=dev-secret-key-change-in-production
+      - DATABASE_HOST=autocodeweb-postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=autocodeweb
+      - DATABASE_PASSWORD=AutoCodeWeb2024!@#
+      - DATABASE_NAME=autocodeweb
+      - DATABASE_SSL_MODE=disable
+      - REDIS_HOST=autocodeweb-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - JWT_SECRET_KEY=dev-jwt-secret-key-change-in-production
+      - JWT_EXPIRE_HOURS=24
+      - BMAD_NPM_PACKAGE=bmad-method
+      - BMAD_CONFIG_PATH=./bmad-config
+      - LOG_LEVEL=debug
+      - LOG_FILE=./logs/app.log
+    volumes:
+      - ./configs:/app/configs:ro
+      - ./logs:/app/logs
+      - ./bmad-config:/app/bmad-config
+    depends_on:
+      autocodeweb-postgres:
+        condition: service_healthy
+      autocodeweb-redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - autocodeweb-dev-network
+
+  # PostgreSQL 数据库
+  autocodeweb-postgres:
+    image: postgres:15-alpine
+    container_name: autocodeweb-postgres-dev
+    environment:
+      POSTGRES_DB: autocodeweb
+      POSTGRES_USER: autocodeweb
+      POSTGRES_PASSWORD: AutoCodeWeb2024!@#
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autocodeweb -d autocodeweb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - autocodeweb-dev-network
+
+  # Redis 缓存
+  autocodeweb-redis:
+    image: redis:7-alpine
+    container_name: autocodeweb-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - autocodeweb-dev-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  autocodeweb-dev-network:
+    driver: bridge

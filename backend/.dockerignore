@@ -1,0 +1,42 @@
+# Git 相关
+.git
+.gitignore
+
+# 构建产物
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 日志文件
+logs/
+*.log
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# IDE 相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 测试文件
+*_test.go
+test_*
+
+# 文档
+README.md
+docs/
+*.md
+
+# 配置文件（开发环境）
+configs/config.local.yaml
+
+# 其他
+.DS_Store
+Thumbs.db
