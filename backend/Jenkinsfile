@@ -1,0 +1,275 @@
+pipeline {
+    agent any
+    
+    environment {
+        // 项目配置
+        PROJECT_NAME = 'autocodeweb-backend'
+        REGISTRY = 'localhost:5000'
+        
+        // 构建配置
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        GIT_COMMIT = "${env.GIT_COMMIT}"
+        GIT_BRANCH = "${env.GIT_BRANCH}"
+        
+        // 镜像标签
+        DEV_TAG = "dev-${env.BUILD_NUMBER}"
+        PROD_TAG = "prod-${env.BUILD_NUMBER}"
+        
+        // 工作目录
+        WORKSPACE_DIR = "${env.WORKSPACE}"
+    }
+    
+    parameters {
+        choice(
+            name: 'BUILD_ENVIRONMENT',
+            choices: ['dev', 'prod'],
+            description: '选择构建环境'
+        )
+        string(
+            name: 'IMAGE_TAG',
+            defaultValue: '',
+            description: '镜像标签 (留空使用默认标签)'
+        )
+        booleanParam(
+            name: 'PUSH_IMAGE',
+            defaultValue: false,
+            description: '是否推送镜像到仓库'
+        )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: '是否运行测试'
+        )
+        booleanParam(
+            name: 'CLEAN_BUILD',
+            defaultValue: false,
+            description: '是否清理构建缓存'
+        )
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "开始检出代码..."
+                    checkout scm
+                }
+            }
+        }
+        
+        stage('Setup Environment') {
+            steps {
+                script {
+                    echo "设置构建环境..."
+                    
+                    // 设置镜像标签
+                    if (params.IMAGE_TAG) {
+                        env.CUSTOM_TAG = params.IMAGE_TAG
+                    } else {
+                        if (params.BUILD_ENVIRONMENT == 'prod') {
+                            env.CUSTOM_TAG = PROD_TAG
+                        } else {
+                            env.CUSTOM_TAG = DEV_TAG
+                        }
+                    }
+                    
+                    echo "构建环境: ${params.BUILD_ENVIRONMENT}"
+                    echo "镜像标签: ${env.CUSTOM_TAG}"
+                    echo "推送镜像: ${params.PUSH_IMAGE}"
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    echo "安装构建依赖..."
+                    
+                    // 安装Go依赖
+                    sh 'go mod download'
+                    
+                    // 安装swag工具
+                    sh 'go install github.com/swaggo/swag/cmd/swag@latest'
+                }
+            }
+        }
+        
+        stage('Generate Documentation') {
+            steps {
+                script {
+                    echo "生成API文档..."
+                    sh 'swag init -g cmd/server/main.go -o docs'
+                }
+            }
+        }
+        
+        stage('Run Tests') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            steps {
+                script {
+                    echo "运行测试..."
+                    sh 'go test -v ./...'
+                }
+            }
+        }
+        
+        stage('Code Quality Check') {
+            steps {
+                script {
+                    echo "代码质量检查..."
+                    
+                    // 格式化检查
+                    sh 'go fmt ./...'
+                    
+                    // 代码检查 (如果安装了golangci-lint)
+                    try {
+                        sh 'golangci-lint run'
+                    } catch (Exception e) {
+                        echo "警告: golangci-lint 未安装或检查失败"
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "构建Docker镜像..."
+                    
+                    // 清理构建缓存（如果需要）
+                    if (params.CLEAN_BUILD) {
+                        sh 'docker system prune -f'
+                        sh 'docker builder prune -f'
+                    }
+                    
+                    // 选择Dockerfile
+                    def dockerfile = params.BUILD_ENVIRONMENT == 'prod' ? 'Dockerfile.prod' : 'Dockerfile'
+                    
+                    // 构建镜像
+                    sh """
+                        docker build -f ${dockerfile} \
+                            -t ${REGISTRY}/${PROJECT_NAME}-${params.BUILD_ENVIRONMENT}:${env.CUSTOM_TAG} \
+                            -t ${REGISTRY}/${PROJECT_NAME}-${params.BUILD_ENVIRONMENT}:latest \
+                            .
+                    """
+                }
+            }
+        }
+        
+        stage('Health Check') {
+            when {
+                expression { params.BUILD_ENVIRONMENT == 'dev' }
+            }
+            steps {
+                script {
+                    echo "运行健康检查..."
+                    
+                    // 启动开发环境
+                    sh 'docker-compose down || true'
+                    sh 'docker-compose up -d'
+                    
+                    // 等待服务启动
+                    sleep 30
+                    
+                    // 检查健康状态
+                    sh '''
+                        if docker-compose ps | grep -q "healthy"; then
+                            echo "✅ 服务健康检查通过"
+                        else
+                            echo "❌ 服务健康检查失败"
+                            docker-compose logs backend
+                            exit 1
+                        fi
+                    '''
+                    
+                    // 停止服务
+                    sh 'docker-compose down'
+                }
+            }
+        }
+        
+        stage('Push Image') {
+            when {
+                expression { params.PUSH_IMAGE }
+            }
+            steps {
+                script {
+                    echo "推送镜像到仓库..."
+                    
+                    sh """
+                        docker push ${REGISTRY}/${PROJECT_NAME}-${params.BUILD_ENVIRONMENT}:${env.CUSTOM_TAG}
+                        docker push ${REGISTRY}/${PROJECT_NAME}-${params.BUILD_ENVIRONMENT}:latest
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            when {
+                expression { params.BUILD_ENVIRONMENT == 'prod' && params.PUSH_IMAGE }
+            }
+            steps {
+                script {
+                    echo "部署到生产环境..."
+                    
+                    // 这里可以添加生产环境部署逻辑
+                    // 例如：更新Kubernetes配置、触发部署脚本等
+                    
+                    echo "生产环境部署完成"
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                echo "清理工作空间..."
+                
+                // 显示构建信息
+                echo """
+                ========================================
+                构建完成
+                ========================================
+                项目: ${PROJECT_NAME}
+                环境: ${params.BUILD_ENVIRONMENT}
+                标签: ${env.CUSTOM_TAG}
+                分支: ${GIT_BRANCH}
+                提交: ${GIT_COMMIT}
+                构建号: ${BUILD_NUMBER}
+                ========================================
+                """
+                
+                // 清理Docker资源
+                sh 'docker-compose down || true'
+                sh 'docker system prune -f || true'
+            }
+        }
+        
+        success {
+            script {
+                echo "✅ 构建成功！"
+                
+                // 显示镜像信息
+                sh """
+                    echo "镜像信息:"
+                    docker images ${REGISTRY}/${PROJECT_NAME}-${params.BUILD_ENVIRONMENT}:${env.CUSTOM_TAG}
+                """
+            }
+        }
+        
+        failure {
+            script {
+                echo "❌ 构建失败！"
+                
+                // 保存日志
+                archiveArtifacts artifacts: '**/logs/*.log', allowEmptyArchive: true
+                
+                // 显示错误信息
+                sh 'docker-compose logs backend || true'
+            }
+        }
+    }
+}

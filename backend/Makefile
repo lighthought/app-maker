@@ -14,6 +14,9 @@ help:
 	@echo "  clean-safe    - 安全清理（只清理当前项目）"
 	@echo "  validate-config - 验证配置文件"
 	@echo "  swagger       - 生成Swagger文档"
+	@echo "  jenkins-build - Jenkins自动化构建"
+	@echo "  deploy        - 部署服务"
+	@echo "  health-check  - 健康检查"
 
 # 生成Swagger文档
 swagger:
@@ -102,3 +105,42 @@ build-bin:
 run-bin:
 	@echo "🚀 运行二进制文件..."
 	./bin/server
+
+# Jenkins自动化构建
+jenkins-build:
+	@echo "🔧 Jenkins自动化构建..."
+	@echo "用法: make jenkins-build ENV=dev TAG=v1.0.0 PUSH=true"
+	@if [ "$(ENV)" = "" ]; then \
+		echo "错误: 请指定环境 (ENV=dev 或 ENV=prod)"; \
+		exit 1; \
+	fi
+	@chmod +x scripts/jenkins-build.sh
+	@./scripts/jenkins-build.sh -e $(ENV) -t $(TAG) $(if $(PUSH),-p,)
+
+# 部署服务
+deploy:
+	@echo "🚀 部署服务..."
+	@echo "用法: make deploy ENV=dev TAG=latest FORCE=false"
+	@if [ "$(ENV)" = "" ]; then \
+		echo "错误: 请指定环境 (ENV=dev 或 ENV=prod)"; \
+		exit 1; \
+	fi
+	@chmod +x scripts/deploy.sh
+	@./scripts/deploy.sh -e $(ENV) -t $(TAG) $(if $(FORCE),-f,)
+
+# 健康检查
+health-check:
+	@echo "🏥 执行健康检查..."
+	@if [ "$(ENV)" = "prod" ]; then \
+		docker-compose -f docker-compose.prod.yml ps; \
+	else \
+		docker-compose ps; \
+	fi
+	@echo "健康检查端点:"
+	@if [ "$(ENV)" = "prod" ]; then \
+		echo "  - http://localhost:8080/api/v1/health"; \
+		echo "  - http://localhost:8080/api/v1/cache/health"; \
+	else \
+		echo "  - http://localhost:8098/api/v1/health"; \
+		echo "  - http://localhost:8098/api/v1/cache/health"; \
+	fi
