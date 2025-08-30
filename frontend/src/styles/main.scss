@@ -1,0 +1,44 @@
+@import './variables.scss';
+@import './mixins.scss';
+
+// 全局样式重置
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-primary);
+}
+
+// 通用工具类
+.flex-center {
+  @include flex-center;
+}
+
+.glassmorphism {
+  @include glassmorphism;
+}
+
+// 响应式工具类
+@media (max-width: 767px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tablet-hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .desktop-hidden {
+    display: none !important;
+  }
+}

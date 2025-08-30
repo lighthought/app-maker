@@ -1,0 +1,31 @@
+{
+  "name": "autocodeweb-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@iconify/vue": "^5.0.0",
+    "@rollup/rollup-win32-x64-msvc": "^4.49.0",
+    "@vueuse/core": "^13.5.0",
+    "axios": "^1.6.0",
+    "pinia": "^2.1.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "naive-ui": "^2.38.0",
+    "sass": "^1.91.0",
+    "typescript": "^5.2.0",
+    "vfonts": "^0.0.3",
+    "vite": "^5.0.0",
+    "vue-tsc": "^1.8.0"
+  }
+}

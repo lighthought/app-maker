@@ -1,0 +1,37 @@
+:root {
+  // 颜色系统
+  --primary-color: #2D3748;
+  --primary-hover: #4A5568;
+  --accent-color: #3182CE;
+  --success-color: #38A169;
+  --warning-color: #D69E2E;
+  --error-color: #E53E3E;
+  
+  // 中性色
+  --text-primary: #2D3748;
+  --text-secondary: #4A5568;
+  --text-disabled: #A0AEC0;
+  --border-color: #E2E8F0;
+  --background-color: #F7FAFC;
+  --card-color: #FFFFFF;
+  
+  // 间距系统
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  
+  // 圆角系统
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  
+  // 阴影系统
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+}
