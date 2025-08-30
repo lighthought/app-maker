@@ -125,7 +125,7 @@
           >
             <n-input
               v-model:value="formData.email"
-              type="email"
+              type="text"
               placeholder="请输入邮箱"
               size="large"
               clearable
@@ -229,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
@@ -237,17 +237,19 @@ import {
   NForm, NFormItem, NInput, NButton, NCheckbox, NIcon, NModal
 } from 'naive-ui'
 
-// 图标组件
-const CodeIcon = () => '💻'
-const UserIcon = () => '👤'
-const LockIcon = () => '🔒'
-const MailIcon = () => '📧'
-const GithubIcon = () => '🐙'
-const GoogleIcon = () => '🔍'
+// 图标组件 - 使用简单的 emoji 图标，避免外部依赖
+const CodeIcon = () => h('span', { style: 'font-size: 20px;' }, '💻')
+const UserIcon = () => h('span', { style: 'font-size: 16px;' }, '👤')
+const LockIcon = () => h('span', { style: 'font-size: 16px;' }, '🔒')
+const MailIcon = () => h('span', { style: 'font-size: 16px;' }, '📧')
+const GithubIcon = () => h('span', { style: 'font-size: 16px;' }, '🐙')
+const GoogleIcon = () => h('span', { style: 'font-size: 16px;' }, '🔍')
 
 const router = useRouter()
-const message = useMessage()
 const userStore = useUserStore()
+
+// 获取 message 实例
+const message = useMessage()
 
 // 响应式数据
 const isLogin = ref(true)
@@ -302,8 +304,12 @@ const formRules = computed(() => ({
       trigger: 'blur'
     },
     {
-      type: 'email',
-      message: '请输入有效的邮箱地址',
+      validator: (rule: any, value: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) {
+          return new Error('请输入有效的邮箱地址')
+        }
+      },
       trigger: 'blur'
     }
   ],

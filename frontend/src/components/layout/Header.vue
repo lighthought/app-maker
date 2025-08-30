@@ -36,7 +36,7 @@ const Bell = () => '🔔'
 const Settings = () => '⚙️'
 
 defineEmits<{
-  toggleSidebar: []
+  'toggle-sidebar': []
 }>()
 </script>
 

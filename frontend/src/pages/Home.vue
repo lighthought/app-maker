@@ -19,13 +19,11 @@
           >
             {{ currentLanguage === 'zh' ? 'EN' : '中文' }}
           </n-button>
-          <n-button
-            type="primary"
-            @click="handleExperienceClick"
-            class="experience-btn"
-          >
-            {{ isLoggedIn ? '进入控制台' : '立即体验' }}
-          </n-button>
+          <a :href="isLoggedIn ? '/dashboard' : '/auth'" class="experience-btn">
+            <n-button type="primary">
+              {{ isLoggedIn ? '进入控制台' : '立即体验' }}
+            </n-button>
+          </a>
         </div>
       </div>
     </header>
@@ -181,7 +179,7 @@ const projectDescription = ref('')
 const currentStep = ref(0)
 
 // 计算属性
-const isLoggedIn = computed(() => userStore.isLoggedIn)
+const isLoggedIn = computed(() => userStore.isAuthenticated)
 const userProjects = computed(() => projectStore.projects.slice(0, 5))
 
 // 功能特性数据
@@ -287,10 +285,13 @@ const toggleLanguage = () => {
 }
 
 const handleExperienceClick = () => {
+  console.log('!!!!!! handleExperienceClick !!!!!', isLoggedIn.value)
   if (isLoggedIn.value) {
-    router.push('/dashboard')
+    router.replace('/dashboard')
+    console.log('!!!!!! handleExperienceClick !!!!! dashboard')
   } else {
-    router.push('/auth')
+    router.replace('/auth')
+    console.log('!!!!!! handleExperienceClick !!!!! auth')
   }
 }
 
@@ -435,6 +436,11 @@ onUnmounted(() => {
 }
 
 .experience-btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.experience-btn .n-button {
   background: var(--accent-color);
   border: none;
   color: white;

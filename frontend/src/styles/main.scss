@@ -1,5 +1,5 @@
-@import './variables.scss';
-@import './mixins.scss';
+@use 'variables.scss';
+@use 'mixins.scss';
 
 // 全局样式重置
 * {
@@ -17,11 +17,11 @@ html, body {
 
 // 通用工具类
 .flex-center {
-  @include flex-center;
+  @include mixins.flex-center;
 }
 
 .glassmorphism {
-  @include glassmorphism;
+  @include mixins.glassmorphism;
 }
 
 // 响应式工具类

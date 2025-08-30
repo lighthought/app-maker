@@ -26,7 +26,13 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { darkTheme } from 'naive-ui'
+import {
+  NConfigProvider,
+  NMessageProvider,
+  NLoadingBarProvider,
+  NDialogProvider,
+  NNotificationProvider
+} from 'naive-ui'
 
 const route = useRoute()
 

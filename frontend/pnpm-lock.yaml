@@ -37,13 +37,13 @@ importers:
         specifier: ^1.69.5
         version: 1.91.0
       typescript:
-        specifier: ^5.2.2
+        specifier: ^5.9.2
         version: 5.9.2
       vite:
         specifier: ^5.0.8
         version: 5.4.19(@types/node@20.19.11)(sass@1.91.0)
       vue-tsc:
-        specifier: ^1.8.25
+        specifier: ^1.8.27
         version: 1.8.27(typescript@5.9.2)
 
 packages:
