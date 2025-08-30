@@ -1,5 +1,5 @@
 <template>
-  <n-layout has-sider>
+  <n-layout has-sider v-if="!isHomePage">
     <!-- 侧边栏 -->
     <n-layout-sider
       bordered
@@ -29,15 +29,27 @@
       </n-layout-content>
     </n-layout>
   </n-layout>
+  
+  <!-- 主页特殊布局 -->
+  <div v-else>
+    <router-view />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { NLayout, NLayoutSider, NLayoutHeader, NLayoutContent } from 'naive-ui'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
 
+const route = useRoute()
 const collapsed = ref(false)
+
+// 判断是否为主页
+const isHomePage = computed(() => {
+  return route.name === 'Home' || route.path === '/'
+})
 </script>
 
 <style scoped>
