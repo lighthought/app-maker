@@ -137,15 +137,31 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 		return nil, err
 	}
 
-	// 创建用户会话
-	session := &models.UserSession{
-		UserID:    user.ID,
-		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour),
+	// 检查是否已存在会话，如果存在则更新，否则创建新的
+	existingSessions, err := s.userSessionRepo.GetByUserID(ctx, user.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, err
 	}
 
-	if err := s.userSessionRepo.Create(ctx, session); err != nil {
-		return nil, err
+	if len(existingSessions) > 0 {
+		// 更新现有会话
+		session := &existingSessions[0]
+		session.Token = refreshToken
+		session.ExpiresAt = time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour)
+		if err := s.userSessionRepo.Update(ctx, session); err != nil {
+			return nil, err
+		}
+	} else {
+		// 创建新的用户会话
+		session := &models.UserSession{
+			UserID:    user.ID,
+			Token:     refreshToken,
+			ExpiresAt: time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour),
+		}
+
+		if err := s.userSessionRepo.Create(ctx, session); err != nil {
+			return nil, err
+		}
 	}
 
 	return &models.LoginResponse{

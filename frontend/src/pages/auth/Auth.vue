@@ -377,17 +377,9 @@ const handleSubmit = async () => {
       
       const result = await userStore.register(registerData)
       if (result.success) {
-        message.success('注册成功')
-        isLogin.value = true
-        // 清空表单
-        Object.assign(formData, {
-          username: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          rememberMe: false,
-          agreeTerms: false
-        })
+        message.success('注册成功，正在跳转到仪表板...')
+        // 注册成功后直接跳转到仪表板，不需要再次登录
+        router.push('/dashboard')
       } else {
         message.error(result.message || '注册失败')
       }
