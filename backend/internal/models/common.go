@@ -146,3 +146,100 @@ type UpdateTagRequest struct {
 	Name  string `json:"name" binding:"omitempty,min=1,max=50" example:"更新后的标签名称"`
 	Color string `json:"color" binding:"omitempty,hexcolor" example:"#FF0000"`
 }
+
+// TaskInfo 任务信息（用于响应）
+type TaskInfo struct {
+	ID           string     `json:"id" example:"uuid"`
+	ProjectID    string     `json:"project_id" example:"uuid"`
+	UserID       string     `json:"user_id" example:"uuid"`
+	Name         string     `json:"name" example:"任务名称"`
+	Description  string     `json:"description" example:"任务描述"`
+	Status       string     `json:"status" example:"pending"`
+	Priority     int        `json:"priority" example:"2"`
+	Dependencies []string   `json:"dependencies" example:"['task1', 'task2']"`
+	MaxRetries   int        `json:"max_retries" example:"3"`
+	RetryCount   int        `json:"retry_count" example:"0"`
+	RetryDelay   int        `json:"retry_delay" example:"60"`
+	StartedAt    *time.Time `json:"started_at"`
+	CompletedAt  *time.Time `json:"completed_at"`
+	Deadline     *time.Time `json:"deadline"`
+	Result       string     `json:"result" example:"执行结果"`
+	ErrorMessage string     `json:"error_message" example:"错误信息"`
+	Metadata     string     `json:"metadata" example:"元数据"`
+	Tags         []string   `json:"tags" example:"['tag1', 'tag2']"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+// CreateTaskRequest 创建任务请求
+type CreateTaskRequest struct {
+	ProjectID    string     `json:"project_id" binding:"required" example:"uuid"`
+	Name         string     `json:"name" binding:"required,min=1,max=100" example:"任务名称"`
+	Description  string     `json:"description" binding:"omitempty,max=500" example:"任务描述"`
+	Priority     int        `json:"priority" binding:"omitempty,min=1,max=4" example:"2"`
+	Dependencies []string   `json:"dependencies" example:"['task1', 'task2']"`
+	MaxRetries   int        `json:"max_retries" binding:"omitempty,min=0,max=10" example:"3"`
+	RetryDelay   int        `json:"retry_delay" binding:"omitempty,min=0" example:"60"`
+	Deadline     *time.Time `json:"deadline"`
+	Metadata     string     `json:"metadata" example:"元数据"`
+	Tags         []string   `json:"tags" example:"['tag1', 'tag2']"`
+}
+
+// UpdateTaskRequest 更新任务请求
+type UpdateTaskRequest struct {
+	Name         string     `json:"name" binding:"omitempty,min=1,max=100" example:"更新后的任务名"`
+	Description  string     `json:"description" binding:"omitempty,max=500" example:"更新后的任务描述"`
+	Priority     int        `json:"priority" binding:"omitempty,min=1,max=4" example:"3"`
+	Dependencies []string   `json:"dependencies" example:"['task1', 'task2']"`
+	MaxRetries   int        `json:"max_retries" binding:"omitempty,min=0,max=10" example:"5"`
+	RetryDelay   int        `json:"retry_delay" binding:"omitempty,min=0" example:"120"`
+	Deadline     *time.Time `json:"deadline"`
+	Metadata     string     `json:"metadata" example:"元数据"`
+	Tags         []string   `json:"tags" example:"['tag1', 'tag2']"`
+}
+
+// TaskListRequest 任务列表请求
+type TaskListRequest struct {
+	PaginationRequest
+	ProjectID string   `json:"project_id" form:"project_id" example:"uuid"`
+	UserID    string   `json:"user_id" form:"user_id" example:"uuid"`
+	Status    string   `json:"status" form:"status" example:"pending"`
+	Priority  int      `json:"priority" form:"priority" example:"2"`
+	Tags      []string `json:"tags" form:"tags" example:"['tag1', 'tag2']"`
+	Search    string   `json:"search" form:"search" example:"任务名称关键词"`
+}
+
+// TaskLogInfo 任务日志信息（用于响应）
+type TaskLogInfo struct {
+	ID        string    `json:"id" example:"uuid"`
+	TaskID    string    `json:"task_id" example:"uuid"`
+	Level     string    `json:"level" example:"info"`
+	Message   string    `json:"message" example:"日志消息"`
+	Data      string    `json:"data" example:"额外数据"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// CreateTaskLogRequest 创建任务日志请求
+type CreateTaskLogRequest struct {
+	TaskID  string `json:"task_id" binding:"required" example:"uuid"`
+	Level   string `json:"level" binding:"required,oneof=info warn error" example:"info"`
+	Message string `json:"message" binding:"required" example:"日志消息"`
+	Data    string `json:"data" example:"额外数据"`
+}
+
+// TaskStatusUpdateRequest 任务状态更新请求
+type TaskStatusUpdateRequest struct {
+	Status       string `json:"status" binding:"required,oneof=pending running completed failed cancelled retrying rolled_back" example:"running"`
+	ErrorMessage string `json:"error_message" example:"错误信息"`
+	Result       string `json:"result" example:"执行结果"`
+}
+
+// TaskRetryRequest 任务重试请求
+type TaskRetryRequest struct {
+	Force bool `json:"force" example:"false"` // 强制重试，忽略依赖检查
+}
+
+// TaskRollbackRequest 任务回滚请求
+type TaskRollbackRequest struct {
+	Reason string `json:"reason" binding:"required" example:"回滚原因"`
+}

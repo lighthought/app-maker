@@ -49,5 +49,14 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 
 		// 注册项目和标签路由
 		RegisterProjectRoutes(v1, projectHandler, tagHandler)
+
+		// 初始化任务相关依赖
+		taskRepo := repositories.NewTaskRepository(db)
+		taskLogRepo := repositories.NewTaskLogRepository(db)
+		taskService := services.NewTaskService(taskRepo, taskLogRepo, projectRepo)
+		taskHandler := handlers.NewTaskHandler(taskService)
+
+		// 注册任务路由
+		RegisterTaskRoutes(v1, taskHandler, nil) // TODO: 添加认证中间件
 	}
 }

@@ -13,9 +13,15 @@ help:
 	@echo "  clean         - 清理构建文件（⚠️ 会清理所有未使用的Docker资源）"
 	@echo "  clean-safe    - 安全清理（只清理当前项目）"
 	@echo "  validate-config - 验证配置文件"
+	@echo "  swagger       - 生成Swagger文档"
+
+# 生成Swagger文档
+swagger:
+	@echo "📚 生成Swagger文档..."
+	swag init -g cmd/server/main.go -o docs
 
 # 构建开发环境镜像
-build-dev:
+build-dev: swagger
 	@echo "🔨 构建开发环境镜像..."
 	docker-compose build backend
 

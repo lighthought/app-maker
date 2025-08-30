@@ -71,17 +71,23 @@ CREATE TABLE IF NOT EXISTS projects (
 -- 创建任务表
 CREATE TABLE IF NOT EXISTS tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    type VARCHAR(100) NOT NULL CHECK (type IN ('prd_generation', 'architecture_design', 'ux_design', 'epic_story', 'coding', 'testing', 'deployment')),
-    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
-    priority VARCHAR(50) DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
-    progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
-    result TEXT,
-    error TEXT,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+    priority INTEGER DEFAULT 2,
+    dependencies TEXT[],
+    max_retries INTEGER DEFAULT 3,
+    retry_count INTEGER DEFAULT 0,
+    retry_delay INTEGER DEFAULT 60,
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
+    deadline TIMESTAMP,
+    result TEXT,
+    error_message TEXT,
+    metadata TEXT,
+    tags TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -105,6 +111,25 @@ CREATE TABLE IF NOT EXISTS project_tags (
     PRIMARY KEY (project_id, tag_id)
 );
 
+-- 创建任务日志表
+CREATE TABLE IF NOT EXISTS task_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    level VARCHAR(10) NOT NULL,
+    message TEXT NOT NULL,
+    data TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建任务依赖关系表
+CREATE TABLE IF NOT EXISTS task_dependencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    dependency_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(task_id, dependency_id)
+);
+
 -- 插入默认管理员用户
 -- 密码: Admin123!@# (使用 pgcrypto 加密)
 INSERT INTO users (email, username, password, role, status) VALUES 
@@ -126,9 +151,17 @@ CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type);
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
+CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline);
+
+CREATE INDEX IF NOT EXISTS idx_task_logs_task_id ON task_logs(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_logs_level ON task_logs(level);
+CREATE INDEX IF NOT EXISTS idx_task_logs_created_at ON task_logs(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_dependencies_dependency_id ON task_dependencies(dependency_id);
 
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
 
