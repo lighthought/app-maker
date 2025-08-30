@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# 文档
+README.md
+*.md
+
+# 环境文件
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+
+# 构建产物
+dist/
+build/
+bin/
+
+# 依赖
+node_modules/
+vendor/
+
+# 测试
+coverage/
+*.test
+*.spec
+
+# 其他
+.DS_Store
+Thumbs.db

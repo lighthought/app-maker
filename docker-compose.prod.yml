@@ -1,12 +1,23 @@
-version: '3.8'
-
 services:
+  # AutoCodeWeb 前端服务 (生产环境 - Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod # Uses the new prod Dockerfile
+    container_name: app-maker-frontend-prod
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - prod-network
+
   # AutoCodeWeb 后端服务
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile.prod
-    container_name: autocodeweb-backend-prod
+    container_name: app-maker-backend-prod
     ports:
       - "8080:8080"
     environment:
@@ -21,9 +32,9 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - LOG_LEVEL=warn
     volumes:
-      - ./configs:/app/configs:ro
-      - ./logs:/app/logs
-      - ./bmad-config:/app/bmad-config
+      - ./backend/configs:/app/configs:ro
+      - ./backend/logs:/app/logs
+      - ./backend/bmad-config:/app/bmad-config
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,19 +48,19 @@ services:
       start_period: 40s
     restart: unless-stopped
     networks:
-      - autocodeweb-prod-network
+      - prod-network
 
   # PostgreSQL 数据库
   postgres:
     image: postgres:15-alpine
-    container_name: autocodeweb-postgres-prod
+    container_name: app-maker-postgres-prod
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
       interval: 10s
@@ -57,12 +68,12 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - autocodeweb-prod-network
+      - prod-network
 
   # Redis 缓存
   redis:
     image: redis:7-alpine
-    container_name: autocodeweb-redis-prod
+    container_name: app-maker-redis-prod
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
@@ -73,7 +84,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - autocodeweb-prod-network
+      - prod-network
 
 volumes:
   postgres_data:
@@ -82,5 +93,8 @@ volumes:
     driver: local
 
 networks:
-  autocodeweb-prod-network:
+  prod-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

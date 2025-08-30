@@ -606,6 +606,88 @@ make health-check ENV=dev
 
 ---
 
+## Story 3.4: 配置管理系统
+
+**目标**: 实现灵活的环境配置管理，支持开发和生产环境的不同配置。
+
+**验收标准**:
+- [x] 支持开发和生产环境的配置文件分离
+- [x] 支持环境变量覆盖配置
+- [x] 支持 Docker 环境下的配置管理
+- [x] 配置验证和错误处理
+
+**实现细节**:
+
+### 配置文件结构
+```
+backend/
+├── configs/
+│   ├── config.yaml          # 开发环境配置
+│   └── config.prod.yaml     # 生产环境配置
+├── internal/config/
+│   └── config.go           # 配置结构定义
+└── .env                     # 环境变量文件
+```
+
+### 配置管理实现
+1. **Viper 配置管理**: 使用 Viper 库进行配置管理
+2. **环境变量支持**: 支持通过环境变量覆盖配置
+3. **配置文件分离**: 开发和生产环境使用不同的配置文件
+4. **配置验证**: 启动时验证配置的完整性
+
+### Docker 配置
+- 开发环境: 使用 `config.yaml` 和 `.env` 文件
+- 生产环境: 使用 `config.prod.yaml` 和环境变量
+- 支持 Docker Compose 的环境变量注入
+
+### 前端 Nginx 代理配置
+参考 ResourceWeb 项目，修改前端配置使用 Nginx 而不是 Vite 开发服务器：
+
+1. **修改前端 Dockerfile**:
+   - 使用多阶段构建
+   - 构建阶段: Node.js + Vite 构建
+   - 运行阶段: Nginx 服务静态文件
+
+2. **Nginx 配置** (`frontend/nginx.conf`):
+   - 监听端口 3000
+   - 代理 `/api/` 请求到后端服务
+   - 支持 SPA 路由
+   - 静态资源缓存优化
+   - 安全头设置
+
+3. **移除 Vite 代理配置**:
+   - 从 `vite.config.ts` 中移除 `proxy` 配置
+   - API 代理由 Nginx 处理
+
+4. **Docker Compose 更新**:
+   - 前端服务使用 Nginx 容器
+   - 移除开发环境的卷挂载
+   - 简化环境变量配置
+
+**Dev Agent Record**:
+- 参考 ResourceWeb 项目的 Nginx 配置
+- 修改前端 Dockerfile 使用多阶段构建
+- 更新 nginx.conf 配置代理规则
+- 移除 vite.config.ts 中的代理配置
+- 修复数据库初始化脚本中的列名错误
+- 成功实现前端通过 Nginx 代理访问后端 API
+- 修改容器名称前缀：autocodeweb → app-maker
+  - 前端容器：app-maker-frontend-dev/prod
+  - 后端容器：app-maker-backend-dev/prod
+  - 数据库容器：app-maker-postgres-dev/prod
+  - Redis 容器：app-maker-redis-dev/prod
+  - 网络名称：dev-network/prod-network
+  - 服务名：postgres, redis
+  - 保持数据库配置不变（数据库名、用户名、密码等）
+
+**测试结果**:
+- ✅ 前端页面正常访问: http://localhost:3000
+- ✅ API 健康检查通过: http://localhost:3000/api/v1/health
+- ✅ 登录接口正常工作
+- ✅ 所有容器健康状态正常
+- ✅ 容器名称前缀修改成功
+- ✅ 数据库和缓存服务名修改成功
+
 ## 技术架构设计
 
 ### 分层架构

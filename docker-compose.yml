@@ -1,25 +1,38 @@
-version: '3.8'
-
 services:
+  # AutoCodeWeb 前端服务 (开发环境)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile # Uses the new dev Dockerfile
+    container_name: app-maker-frontend-dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - dev-network
+
   # AutoCodeWeb 后端服务
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: autocodeweb-backend-dev
+    container_name: app-maker-backend-dev
     ports:
       - "8098:8080"
     environment:
       - APP_ENVIRONMENT=development
       - LOG_LEVEL=debug
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
     volumes:
-      - ./configs:/app/configs:ro
-      - ./logs:/app/logs
-      - ./bmad-config:/app/bmad-config
+      - ./backend/configs:/app/configs:ro
+      - ./backend/logs:/app/logs
+      - ./backend/bmad-config:/app/bmad-config
     depends_on:
-      autocodeweb-postgres:
+      postgres:
         condition: service_healthy
-      autocodeweb-redis:
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
@@ -29,12 +42,12 @@ services:
       start_period: 40s
     restart: unless-stopped
     networks:
-      - autocodeweb-dev-network
+      - dev-network
 
   # PostgreSQL 数据库
-  autocodeweb-postgres:
+  postgres:
     image: postgres:15-alpine
-    container_name: autocodeweb-postgres-dev
+    container_name: app-maker-postgres-dev
     environment:
       POSTGRES_DB: autocodeweb
       POSTGRES_USER: autocodeweb
@@ -43,7 +56,7 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U autocodeweb -d autocodeweb"]
       interval: 10s
@@ -51,12 +64,12 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - autocodeweb-dev-network
+      - dev-network
 
   # Redis 缓存
-  autocodeweb-redis:
+  redis:
     image: redis:7-alpine
-    container_name: autocodeweb-redis-dev
+    container_name: app-maker-redis-dev
     ports:
       - "6379:6379"
     volumes:
@@ -68,7 +81,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - autocodeweb-dev-network
+      - dev-network
 
 volumes:
   postgres_data:
@@ -77,5 +90,5 @@ volumes:
     driver: local
 
 networks:
-  autocodeweb-dev-network:
+  dev-network:
     driver: bridge

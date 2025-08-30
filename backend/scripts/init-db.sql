@@ -177,11 +177,6 @@ INSERT INTO tags (name, color) VALUES
     ('游戏开发', '#F97316')
 ON CONFLICT (name) DO NOTHING;
 
--- 插入默认管理员用户（密码: password）
-INSERT INTO users (email, password, name, role, status) VALUES 
-    ('admin@autocodeweb.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '系统管理员', 'admin', 'active')
-ON CONFLICT (email) DO NOTHING;
-
 -- 创建更新时间触发器函数
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
