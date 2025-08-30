@@ -3,10 +3,11 @@ export interface Project {
   name: string
   description: string
   status: 'draft' | 'in_progress' | 'completed' | 'failed'
-  userId: string
-  tags: string[]
   createdAt: string
   updatedAt: string
+  userId: string
+  progress: number
+  tags: string[]
 }
 
 export interface CreateProjectData {
@@ -19,5 +20,6 @@ export interface UpdateProjectData {
   name?: string
   description?: string
   status?: Project['status']
+  progress?: number
   tags?: string[]
 }
