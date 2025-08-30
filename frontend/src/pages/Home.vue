@@ -290,7 +290,7 @@ const handleExperienceClick = () => {
   if (isLoggedIn.value) {
     router.push('/dashboard')
   } else {
-    router.push('/auth/login')
+    router.push('/auth')
   }
 }
 
@@ -300,7 +300,7 @@ const handleProjectCreate = async () => {
   if (!isLoggedIn.value) {
     // 未登录用户跳转到登录页面，并保存输入内容
     localStorage.setItem('pendingProjectDescription', projectDescription.value)
-    router.push('/auth/login')
+    router.push('/auth')
     return
   }
   

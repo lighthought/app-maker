@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 测试</title>
+</head>
+<body>
+    <h1>API 连接测试</h1>
+    <button onclick="testHealth()">测试健康检查</button>
+    <button onclick="testRegister()">测试注册</button>
+    <button onclick="testLogin()">测试登录</button>
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8098/api/v1';
+        
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<pre>健康检查: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<pre>错误: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testRegister() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'testuser2',
+                        email: 'test2@example.com',
+                        password: '123456'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<pre>注册: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<pre>错误: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test2@example.com',
+                        password: '123456'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `<pre>登录: ${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<pre>错误: ${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>

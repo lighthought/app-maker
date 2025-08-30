@@ -1,23 +1,37 @@
 <template>
-  <div id="app">
-    <router-view v-slot="{ Component, route }">
-      <transition
-        name="page"
-        mode="out-in"
-        @before-enter="beforeEnter"
-        @enter="enter"
-        @leave="leave"
-      >
-        <component :is="Component" :key="route.path" />
-      </transition>
-    </router-view>
-  </div>
+  <n-config-provider :theme="theme">
+    <n-message-provider>
+      <n-loading-bar-provider>
+        <n-dialog-provider>
+          <n-notification-provider>
+            <div id="app">
+              <router-view v-slot="{ Component, route }">
+                <transition
+                  name="page"
+                  mode="out-in"
+                  @before-enter="beforeEnter"
+                  @enter="enter"
+                  @leave="leave"
+                >
+                  <component :is="Component" :key="route.path" />
+                </transition>
+              </router-view>
+            </div>
+          </n-notification-provider>
+        </n-dialog-provider>
+      </n-loading-bar-provider>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { darkTheme } from 'naive-ui'
 
 const route = useRoute()
+
+// 使用默认主题（浅色主题）
+const theme = null
 
 // 页面过渡动画
 const beforeEnter = (el: Element) => {

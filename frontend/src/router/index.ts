@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -40,21 +41,9 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/auth',
-    component: () => import('@/layouts/AuthLayout.vue'),
-    children: [
-      {
-        path: 'login',
-        name: 'Login',
-        component: () => import('@/pages/auth/Login.vue'),
-        meta: { title: '登录' }
-      },
-      {
-        path: 'register',
-        name: 'Register',
-        component: () => import('@/pages/auth/Register.vue'),
-        meta: { title: '注册' }
-      }
-    ]
+    name: 'Auth',
+    component: () => import('@/pages/auth/Auth.vue'),
+    meta: { title: '登录/注册', requiresAuth: false }
   }
 ]
 
@@ -65,21 +54,19 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
+  const userStore = useUserStore()
+  
   // 设置页面标题
-  if (to.meta.title) {
-    document.title = `${to.meta.title} - AutoCodeWeb`
-  }
+  document.title = to.meta.title ? `${to.meta.title} - 煲应用` : '煲应用'
   
-  // 权限检查
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      next('/auth/login')
-      return
-    }
+  // 检查是否需要认证
+  if (to.meta.requiresAuth && !userStore.isAuthenticated) {
+    next('/auth')
+  } else if (to.path === '/auth' && userStore.isAuthenticated) {
+    next('/dashboard')
+  } else {
+    next()
   }
-  
-  next()
 })
 
 export default router

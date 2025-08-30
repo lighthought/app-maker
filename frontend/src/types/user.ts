@@ -2,26 +2,32 @@ export interface User {
   id: string
   username: string
   email: string
+  name?: string
   avatar?: string
-  role: 'admin' | 'user'
+  role?: string
+  status?: 'active' | 'inactive' | 'suspended'
   createdAt: string
   updatedAt: string
 }
 
 export interface LoginCredentials {
-  username: string
+  email: string
   password: string
 }
 
-export interface RegisterData {
+export interface RegisterCredentials {
   username: string
   email: string
   password: string
-  confirmPassword: string
 }
 
 export interface UserProfile {
-  username?: string
-  email?: string
+  name?: string
   avatar?: string
+  email?: string
+}
+
+export interface ChangePasswordRequest {
+  old_password: string
+  new_password: string
 }
