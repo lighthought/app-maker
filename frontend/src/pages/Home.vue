@@ -19,11 +19,13 @@
           >
             {{ currentLanguage === 'zh' ? 'EN' : '中文' }}
           </n-button>
-          <a :href="isLoggedIn ? '/dashboard' : '/auth'" class="experience-btn">
-            <n-button type="primary">
-              {{ isLoggedIn ? '进入控制台' : '立即体验' }}
-            </n-button>
-          </a>
+          <n-button
+            type="primary"
+            @click="handleExperienceClick"
+            class="experience-btn"
+          >
+            {{ isLoggedIn ? '进入控制台' : '立即体验' }}
+          </n-button>
         </div>
       </div>
     </header>
@@ -285,13 +287,10 @@ const toggleLanguage = () => {
 }
 
 const handleExperienceClick = () => {
-  console.log('!!!!!! handleExperienceClick !!!!!', isLoggedIn.value)
   if (isLoggedIn.value) {
-    router.replace('/dashboard')
-    console.log('!!!!!! handleExperienceClick !!!!! dashboard')
+    router.push('/dashboard')
   } else {
-    router.replace('/auth')
-    console.log('!!!!!! handleExperienceClick !!!!! auth')
+    router.push('/auth')
   }
 }
 
@@ -436,11 +435,6 @@ onUnmounted(() => {
 }
 
 .experience-btn {
-  text-decoration: none;
-  display: inline-block;
-}
-
-.experience-btn .n-button {
   background: var(--accent-color);
   border: none;
   color: white;
