@@ -118,7 +118,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 调用后端登出接口
       if (token.value) {
-        await httpService.post('/auth/logout')
+        await httpService.post('/users/logout')
       }
     } catch (error) {
       console.error('登出请求失败:', error)

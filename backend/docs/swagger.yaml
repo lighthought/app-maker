@@ -542,27 +542,6 @@ paths:
       summary: 用户登录
       tags:
       - 用户管理
-  /api/v1/auth/logout:
-    post:
-      consumes:
-      - application/json
-      description: 用户登出并清除会话
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 用户登出
-      tags:
-      - 用户管理
   /api/v1/auth/refresh:
     post:
       consumes:
@@ -2226,6 +2205,27 @@ paths:
       security:
       - BearerAuth: []
       summary: 修改密码
+      tags:
+      - 用户管理
+  /api/v1/users/logout:
+    post:
+      consumes:
+      - application/json
+      description: 用户登出并清除会话
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 用户登出
       tags:
       - 用户管理
   /api/v1/users/profile:

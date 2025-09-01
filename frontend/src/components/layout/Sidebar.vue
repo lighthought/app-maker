@@ -1,8 +1,8 @@
 <template>
   <div class="sidebar">
     <div class="sidebar-header">
-      <h2 v-if="!collapsed">AutoCodeWeb</h2>
-      <h2 v-else>ACW</h2>
+      <h2 v-if="!collapsed">AutoCode</h2>
+      <h2 v-else>AC</h2>
     </div>
     <div class="sidebar-content">
       <n-menu

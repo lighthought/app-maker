@@ -229,13 +229,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, h } from 'vue'
+import { ref, reactive, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import {
   NForm, NFormItem, NInput, NButton, NCheckbox, NIcon, NModal
 } from 'naive-ui'
+
+// 调试信息
+onMounted(() => {
+  console.log('Auth 页面已挂载')
+  console.log('用户状态:', {
+    isAuthenticated: userStore.isAuthenticated,
+    hasToken: !!userStore.token,
+    hasUser: !!userStore.user
+  })
+  console.log('页面元素检查:', {
+    authPage: document.querySelector('.auth-page'),
+    authContainer: document.querySelector('.auth-container'),
+    authFormContainer: document.querySelector('.auth-form-container')
+  })
+})
 
 // 图标组件 - 使用简单的 emoji 图标，避免外部依赖
 const CodeIcon = () => h('span', { style: 'font-size: 20px;' }, '💻')
@@ -415,7 +430,8 @@ const socialLogin = (provider: string) => {
   align-items: center;
   justify-content: center;
   position: relative;
-  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  /* 使用更丰富的渐变背景 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   overflow: hidden;
 }
 
@@ -426,7 +442,8 @@ const socialLogin = (provider: string) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: url('/images/auth-bg.jpg') center/cover;
+  /* 移除不存在的背景图片，使用纯色渐变 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   z-index: 0;
 }
 

@@ -59,12 +59,28 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 煲应用` : '煲应用'
   
+  console.log('路由守卫检查:', {
+    to: to.path,
+    from: from.path,
+    isAuthenticated: userStore.isAuthenticated,
+    requiresAuth: to.meta.requiresAuth,
+    hasToken: !!userStore.token,
+    hasUser: !!userStore.user
+  })
+  
+  // 如果目标是 auth 页面，直接允许访问（避免循环重定向）
+  if (to.path === '/auth') {
+    console.log('访问登录页，直接允许')
+    next()
+    return
+  }
+  
   // 检查是否需要认证
   if (to.meta.requiresAuth && !userStore.isAuthenticated) {
+    console.log('需要认证但未认证，跳转到登录页')
     next('/auth')
-  } else if (to.path === '/auth' && userStore.isAuthenticated) {
-    next('/dashboard')
   } else {
+    console.log('正常导航')
     next()
   }
 })

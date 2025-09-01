@@ -4,7 +4,7 @@
     <header class="header" :class="{ 'header-scrolled': isScrolled }">
       <div class="header-container">
         <div class="logo">
-          <h1>AutoCodeWeb</h1>
+          <h1>AutoCode</h1>
         </div>
         <nav class="nav">
           <a href="#features" class="nav-link">功能特性</a>
@@ -19,13 +19,11 @@
           >
             {{ currentLanguage === 'zh' ? 'EN' : '中文' }}
           </n-button>
-          <n-button
-            type="primary"
-            @click="handleExperienceClick"
-            class="experience-btn"
-          >
-            {{ isLoggedIn ? '进入控制台' : '立即体验' }}
-          </n-button>
+          <a :href="isLoggedIn ? '/dashboard' : '/auth'" class="experience-btn">
+            <n-button type="primary">
+              {{ isLoggedIn ? '进入控制台' : '立即体验' }}
+            </n-button>
+          </a>
         </div>
       </div>
     </header>
@@ -129,12 +127,12 @@
       <div class="container">
         <div class="footer-content">
           <div class="footer-section">
-            <h3>AutoCodeWeb</h3>
+            <h3>AutoCode</h3>
             <p>{{ t('footer.description') }}</p>
           </div>
           <div class="footer-section">
             <h4>{{ t('footer.contact') }}</h4>
-            <p>邮箱: contact@autocodeweb.com</p>
+            <p>邮箱: qqjack2012@gmail.com</p>
             <p>电话: +86 400-123-4567</p>
           </div>
           <div class="footer-section">
@@ -147,7 +145,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <p>&copy; 2025 AutoCodeWeb. {{ t('footer.rights') }}</p>
+          <p>&copy; 2025 thought-light.com. {{ t('footer.rights') }}</p>
         </div>
       </div>
     </footer>
@@ -287,10 +285,13 @@ const toggleLanguage = () => {
 }
 
 const handleExperienceClick = () => {
+  console.log('!!!!!! handleExperienceClick !!!!!', isLoggedIn.value)
   if (isLoggedIn.value) {
-    router.push('/dashboard')
+    router.replace('/dashboard')
+    console.log('!!!!!! handleExperienceClick !!!!! dashboard')
   } else {
-    router.push('/auth')
+    router.replace('/auth')
+    console.log('!!!!!! handleExperienceClick !!!!! auth')
   }
 }
 
@@ -435,6 +436,11 @@ onUnmounted(() => {
 }
 
 .experience-btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.experience-btn .n-button {
   background: var(--accent-color);
   border: none;
   color: white;

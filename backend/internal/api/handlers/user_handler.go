@@ -122,21 +122,13 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} models.Response
 // @Failure 401 {object} models.ErrorResponse
-// @Router /api/v1/auth/logout [post]
+// @Router /api/v1/users/logout [post]
 func (h *UserHandler) Logout(c *gin.Context) {
 	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	token := c.GetString("token")
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      401,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	err := h.userService.Logout(c.Request.Context(), userID, token)
+	
+	// 调用登出服务（对于纯JWT实现，主要是客户端清除token）
+	err := h.userService.Logout(c.Request.Context(), userID, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Code:      500,
