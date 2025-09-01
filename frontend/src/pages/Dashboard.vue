@@ -109,7 +109,7 @@
         </div>
 
         <!-- 项目列表 -->
-        <div class="projects-grid">
+        <div class="projects-grid" v-if="filteredProjects.length > 0">
           <n-card
             v-for="project in filteredProjects"
             :key="project.id"
@@ -157,12 +157,34 @@
           </n-card>
         </div>
 
+        <!-- 空状态 -->
+        <div v-else class="empty-state">
+          <div class="empty-icon">
+            <n-icon size="64" color="#CBD5E0">
+              <EmptyIcon />
+            </n-icon>
+          </div>
+          <h3>暂无项目</h3>
+          <p>您还没有创建任何项目，开始您的第一个项目吧！</p>
+          <n-button
+            type="primary"
+            size="large"
+            @click="createNewProject"
+            class="create-first-project-btn"
+          >
+            <template #icon>
+              <n-icon><AddIcon /></n-icon>
+            </template>
+            创建第一个项目
+          </n-button>
+        </div>
+
         <!-- 分页 -->
         <div class="pagination-wrapper">
           <n-pagination
             v-model:page="currentPage"
             v-model:page-size="pageSize"
-            :item-count="totalFilteredProjects"
+            :item-count="projectStore.pagination.total"
             :page-sizes="[8, 16, 24]"
             show-size-picker
             show-quick-jumper
@@ -271,23 +293,80 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
 import {
   NButton, NIcon, NCard, NStatistic, NInput, NSelect, NTag, NProgress, NPagination
 } from 'naive-ui'
-import type { Project } from '@/types/project'
+import type { Project, ProjectListRequest } from '@/types/project'
 
-// 图标组件
-const AddIcon = () => '➕'
-const FolderIcon = () => '📁'
-const ClockIcon = () => '⏰'
-const CheckIcon = () => '✅'
-const TrendingUpIcon = () => '📈'
-const SearchIcon = () => '🔍'
-const CloseIcon = () => '❌'
+// 图标组件 - 使用 SVG 图标替代 emoji
+const AddIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z' })
+])
+
+const FolderIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z' })
+])
+
+const ClockIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z' }),
+  h('path', { d: 'M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z' })
+])
+
+const CheckIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' })
+])
+
+const TrendingUpIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z' })
+])
+
+const SearchIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' })
+])
+
+const CloseIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' })
+])
+
+const EmptyIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z' })
+])
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -312,10 +391,10 @@ const statusOptions = [
 
 // 快速操作
 const quickActions = [
-  { key: 'create', label: '创建项目', icon: AddIcon, type: 'primary' },
-  { key: 'import', label: '导入项目', icon: FolderIcon, type: 'default' },
-  { key: 'export', label: '导出数据', icon: TrendingUpIcon, type: 'default' },
-  { key: 'settings', label: '设置', icon: ClockIcon, type: 'default' }
+  { key: 'create', label: '创建项目', icon: AddIcon, type: 'primary' as const },
+  { key: 'import', label: '导入项目', icon: FolderIcon, type: 'default' as const },
+  { key: 'export', label: '导出数据', icon: TrendingUpIcon, type: 'default' as const },
+  { key: 'settings', label: '设置', icon: ClockIcon, type: 'default' as const }
 ]
 
 // 计算属性
@@ -347,42 +426,11 @@ const newThisMonth = computed(() => {
 })
 
 const filteredProjects = computed(() => {
-  let projects = projectStore.projects
-
-  // 搜索过滤
-  if (searchKeyword.value) {
-    projects = projects.filter(p => 
-      p.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchKeyword.value.toLowerCase())
-    )
-  }
-
-  // 状态过滤
-  if (statusFilter.value) {
-    projects = projects.filter(p => p.status === statusFilter.value)
-  }
-
-  // 分页
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return projects.slice(start, end)
+  return projectStore.projects
 })
 
 const totalFilteredProjects = computed(() => {
-  let projects = projectStore.projects
-
-  if (searchKeyword.value) {
-    projects = projects.filter(p => 
-      p.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchKeyword.value.toLowerCase())
-    )
-  }
-
-  if (statusFilter.value) {
-    projects = projects.filter(p => p.status === statusFilter.value)
-  }
-
-  return projects.length
+  return projectStore.pagination.total
 })
 
 // 方法
@@ -402,8 +450,8 @@ const editProject = (projectId: string) => {
   router.push(`/project/${projectId}`)
 }
 
-const getStatusType = (status: string) => {
-  const statusMap: Record<string, string> = {
+const getStatusType = (status: string): 'default' | 'error' | 'warning' | 'success' | 'primary' | 'info' => {
+  const statusMap: Record<string, 'default' | 'error' | 'warning' | 'success' | 'primary' | 'info'> = {
     draft: 'default',
     in_progress: 'warning',
     completed: 'success',
@@ -423,6 +471,7 @@ const getStatusText = (status: string) => {
 }
 
 const getProjectProgress = (project: Project) => {
+  // 根据项目状态计算进度
   const progressMap: Record<string, number> = {
     draft: 10,
     in_progress: 60,
@@ -489,10 +538,32 @@ const stopRealTimeUpdates = () => {
 // 生命周期
 onMounted(() => {
   // 加载项目数据
-  projectStore.fetchProjects()
+  fetchProjectsWithFilters()
   
   // 启动实时更新
   startRealTimeUpdates()
+})
+
+// 获取项目数据（带筛选和分页）
+const fetchProjectsWithFilters = async () => {
+  const params: ProjectListRequest = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    status: statusFilter.value || undefined,
+    search: searchKeyword.value || undefined
+  }
+  await projectStore.fetchProjects(params)
+}
+
+// 监听筛选条件变化
+watch([searchKeyword, statusFilter], () => {
+  currentPage.value = 1 // 重置到第一页
+  fetchProjectsWithFilters()
+})
+
+// 监听分页变化
+watch([currentPage, pageSize], () => {
+  fetchProjectsWithFilters()
 })
 
 onUnmounted(() => {
@@ -555,6 +626,21 @@ onUnmounted(() => {
 
 .stat-card:hover {
   transform: translateY(-4px);
+}
+
+/* 统计卡片图标样式 */
+.stat-card .n-statistic .n-statistic-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.stat-card .n-statistic .n-statistic-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: var(--spacing-sm);
 }
 
 /* 主要内容区域 */
@@ -675,6 +761,50 @@ onUnmounted(() => {
 .project-actions {
   display: flex;
   gap: var(--spacing-sm);
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  text-align: center;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  border: 2px dashed var(--border-color);
+  margin: var(--spacing-lg) 0;
+}
+
+.empty-icon {
+  margin-bottom: var(--spacing-lg);
+}
+
+.empty-state h3 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--primary-color);
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.empty-state p {
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.create-first-project-btn {
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  border: none;
+  font-weight: 600;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.create-first-project-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* 分页 */
