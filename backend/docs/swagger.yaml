@@ -14,10 +14,20 @@ definitions:
     type: object
   models.CreateProjectRequest:
     properties:
+      backend_port:
+        example: 8080
+        maximum: 65535
+        minimum: 1024
+        type: integer
       description:
         example: 项目描述
         maxLength: 500
         type: string
+      frontend_port:
+        example: 3000
+        maximum: 65535
+        minimum: 1024
+        type: integer
       name:
         example: 我的项目
         maxLength: 100
@@ -162,11 +172,17 @@ definitions:
     type: object
   models.ProjectInfo:
     properties:
+      backend_port:
+        example: 8080
+        type: integer
       created_at:
         type: string
       description:
         example: 项目描述
         type: string
+      frontend_port:
+        example: 3000
+        type: integer
       id:
         example: uuid
         type: string
@@ -374,10 +390,20 @@ definitions:
     type: object
   models.UpdateProjectRequest:
     properties:
+      backend_port:
+        example: 8080
+        maximum: 65535
+        minimum: 1024
+        type: integer
       description:
         example: 更新后的项目描述
         maxLength: 500
         type: string
+      frontend_port:
+        example: 3000
+        maximum: 65535
+        minimum: 1024
+        type: integer
       name:
         example: 更新后的项目名
         maxLength: 100

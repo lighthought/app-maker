@@ -92,6 +92,8 @@ type CreateProjectRequest struct {
 	Name         string   `json:"name" binding:"required,min=1,max=100" example:"我的项目"`
 	Description  string   `json:"description" binding:"omitempty,max=500" example:"项目描述"`
 	Requirements string   `json:"requirements" binding:"required" example:"项目需求描述"`
+	BackendPort  int      `json:"backend_port" binding:"omitempty,min=1024,max=65535" example:"8080"`
+	FrontendPort int      `json:"frontend_port" binding:"omitempty,min=1024,max=65535" example:"3000"`
 	TagIDs       []string `json:"tag_ids,omitempty" example:"['tag1', 'tag2']"`
 }
 
@@ -100,6 +102,8 @@ type UpdateProjectRequest struct {
 	Name         string   `json:"name" binding:"omitempty,min=1,max=100" example:"更新后的项目名"`
 	Description  string   `json:"description" binding:"omitempty,max=500" example:"更新后的项目描述"`
 	Requirements string   `json:"requirements" binding:"omitempty" example:"更新后的项目需求"`
+	BackendPort  int      `json:"backend_port" binding:"omitempty,min=1024,max=65535" example:"8080"`
+	FrontendPort int      `json:"frontend_port" binding:"omitempty,min=1024,max=65535" example:"3000"`
 	Status       string   `json:"status" binding:"omitempty,oneof=draft in_progress completed failed" example:"in_progress"`
 	TagIDs       []string `json:"tag_ids,omitempty" example:"['tag1', 'tag2']"`
 }
@@ -121,6 +125,8 @@ type ProjectInfo struct {
 	Status       string    `json:"status" example:"in_progress"`
 	Requirements string    `json:"requirements" example:"项目需求"`
 	ProjectPath  string    `json:"project_path" example:"/path/to/project"`
+	BackendPort  int       `json:"backend_port" example:"8080"`
+	FrontendPort int       `json:"frontend_port" example:"3000"`
 	UserID       string    `json:"user_id" example:"uuid"`
 	User         UserInfo  `json:"user,omitempty"`
 	Tags         []TagInfo `json:"tags,omitempty"`

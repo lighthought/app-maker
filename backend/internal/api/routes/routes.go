@@ -42,7 +42,11 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		// 初始化项目和标签相关依赖
 		projectRepo := repositories.NewProjectRepository(db)
 		tagRepo := repositories.NewTagRepository(db)
-		projectService := services.NewProjectService(projectRepo, tagRepo)
+
+		// 初始化项目模板服务
+		templateService := services.NewProjectTemplateService("./data/template.zip")
+		projectService := services.NewProjectService(projectRepo, tagRepo, templateService)
+
 		tagService := services.NewTagService(tagRepo)
 		projectHandler := handlers.NewProjectHandler(projectService, tagService)
 		tagHandler := handlers.NewTagHandler(tagService)

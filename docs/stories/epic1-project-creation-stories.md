@@ -14,19 +14,116 @@
 作为系统管理员，我希望能够创建新的项目目录结构，以便为后续的开发流程提供基础环境。
 
 #### 验收标准
-- [ ] 支持通过 API 创建新项目
-- [ ] 自动生成标准的项目目录结构
-- [ ] 创建项目配置文件（如 .env, docker-compose.yml 等）
-- [ ] 支持项目名称、描述、类型等基本信息设置
-- [ ] 返回唯一的项目ID和创建状态
+- [x] 支持通过 API 创建新项目
+- [x] 自动生成标准的项目目录结构
+- [x] 创建项目配置文件（如 .env, docker-compose.yml 等）
+- [x] 支持项目名称、描述、类型等基本信息设置
+- [x] 返回唯一的项目ID和创建状态
+- [x] 支持后端端口和前端端口配置
+- [x] 支持模板文件中的占位符替换
 
 #### 技术要点
 - 使用 Go 的 `os` 包创建目录结构
 - 支持模板化的配置文件生成
 - 实现项目元数据存储到数据库
+- 从 `template.zip` 提取项目模板
+- 支持 `${PRODUCT_NAME}`, `${PRODUCT_DESC}`, `${BACKEND_PORT}`, `${FRONTEND_PORT}` 等占位符替换
+- 通过 `replace.txt` 文件定义需要替换的文件列表
 
 #### 依赖关系
 - 无外部依赖
+
+#### Dev Agent Record
+
+**实现状态**: ✅ 已完成  
+**实现时间**: 2025-01-30  
+**实现人员**: Dev Agent  
+
+**核心实现内容**:
+
+1. **数据模型扩展** (`backend/internal/models/project.go`)
+   - 添加 `BackendPort int` 和 `FrontendPort int` 字段
+   - 设置默认值：后端端口 8080，前端端口 3000
+   - 添加端口范围验证约束（1024-65535）
+
+2. **API 接口扩展** (`backend/internal/models/common.go`)
+   - `CreateProjectRequest`: 添加 `BackendPort` 和 `FrontendPort` 字段
+   - `UpdateProjectRequest`: 支持端口字段更新
+   - `ProjectInfo`: 返回端口信息
+   - 添加端口范围验证（1024-65535）
+
+3. **业务逻辑实现** (`backend/internal/services/project_service.go`)
+   - 修改 `CreateProject` 方法，支持端口参数
+   - 集成 `ProjectTemplateService` 进行模板初始化
+   - 更新 `UpdateProject` 方法支持端口修改
+
+4. **模板服务实现** (`backend/internal/services/project_template_service.go`)
+   - `InitializeProject`: 协调模板提取和占位符替换
+   - `ExtractTemplate`: 从 `template.zip` 解压到项目目录
+   - `ReplacePlaceholders`: 根据 `replace.txt` 替换文件中的占位符
+   - 支持的占位符：`${PRODUCT_NAME}`, `${PRODUCT_DESC}`, `${BACKEND_PORT}`, `${FRONTEND_PORT}`, `${PROJECT_ID}`, `${USER_ID}`
+
+5. **数据库设计更新** (`backend/scripts/init-db.sql`)
+   - 在 projects 表中添加 `backend_port` 和 `frontend_port` 字段
+   - 设置默认值：后端端口 8080，前端端口 3000
+   - 添加端口范围检查约束（1024-65535）
+   - 在开发阶段直接集成到初始化脚本中，无需迁移
+
+6. **路由配置更新** (`backend/internal/api/routes/routes.go`)
+   - 注入 `ProjectTemplateService` 到 `ProjectService`
+   - 配置模板路径为 `"./data/template.zip"`
+
+**技术细节**:
+
+- **模板提取**: 使用 `archive/zip` 包从 `template.zip` 解压文件
+- **占位符替换**: 使用 `strings.ReplaceAll` 进行文本替换
+- **文件处理**: 支持 `.txt`, `.md`, `.yml`, `.yaml`, `.json`, `.env`, `.toml`, `.ini`, `.cfg`, `.conf`, `.sh`, `.bat`, `.ps1` 等文件类型
+- **错误处理**: 完善的错误处理和日志记录
+- **并发安全**: 使用 `sync.Mutex` 确保并发安全
+
+**API 使用示例**:
+
+```bash
+# 创建项目（使用默认端口）
+curl -X POST http://localhost:8098/api/v1/projects \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "name": "我的项目",
+    "description": "项目描述",
+    "requirements": "项目需求描述"
+  }'
+
+# 创建项目（指定端口）
+curl -X POST http://localhost:8098/api/v1/projects \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "name": "我的项目",
+    "description": "项目描述",
+    "requirements": "项目需求描述",
+    "backend_port": 8081,
+    "frontend_port": 3001
+  }'
+```
+
+**模板文件结构**:
+```
+template.zip
+├── frontend/
+├── backend/
+├── docs/
+├── docker-compose.yml
+├── .env.example
+└── replace.txt  # 定义需要替换占位符的文件列表
+```
+
+**注意事项**:
+- 模板源文件为 `backend/data/template.zip`，不应手动创建或修改
+- 项目创建后会自动解压模板并替换占位符
+- 端口范围限制为 1024-65535，符合标准端口规范
+- 支持现有项目的端口字段更新
+- 数据库字段直接在 `init-db.sql` 中定义，适合开发阶段使用
 
 ---
 

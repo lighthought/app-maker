@@ -2899,10 +2899,22 @@ const docTemplate = `{
                 "requirements"
             ],
             "properties": {
+                "backend_port": {
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1024,
+                    "example": 8080
+                },
                 "description": {
                     "type": "string",
                     "maxLength": 500,
                     "example": "项目描述"
+                },
+                "frontend_port": {
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1024,
+                    "example": 3000
                 },
                 "name": {
                     "type": "string",
@@ -3098,12 +3110,20 @@ const docTemplate = `{
         "models.ProjectInfo": {
             "type": "object",
             "properties": {
+                "backend_port": {
+                    "type": "integer",
+                    "example": 8080
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string",
                     "example": "项目描述"
+                },
+                "frontend_port": {
+                    "type": "integer",
+                    "example": 3000
                 },
                 "id": {
                     "type": "string",
@@ -3392,10 +3412,22 @@ const docTemplate = `{
         "models.UpdateProjectRequest": {
             "type": "object",
             "properties": {
+                "backend_port": {
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1024,
+                    "example": 8080
+                },
                 "description": {
                     "type": "string",
                     "maxLength": 500,
                     "example": "更新后的项目描述"
+                },
+                "frontend_port": {
+                    "type": "integer",
+                    "maximum": 65535,
+                    "minimum": 1024,
+                    "example": 3000
                 },
                 "name": {
                     "type": "string",

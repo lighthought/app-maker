@@ -15,6 +15,8 @@ type Project struct {
 	Status       string         `json:"status" gorm:"default:'draft';check:status IN ('draft', 'in_progress', 'completed', 'failed')"`
 	Requirements string         `json:"requirements" gorm:"type:text"`
 	ProjectPath  string         `json:"project_path" gorm:"uniqueIndex"`
+	BackendPort  int            `json:"backend_port" gorm:"default:8080"`
+	FrontendPort int            `json:"frontend_port" gorm:"default:3000"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
@@ -34,6 +36,12 @@ func (Project) TableName() string {
 func (p *Project) BeforeCreate(tx *gorm.DB) error {
 	if p.Status == "" {
 		p.Status = "draft"
+	}
+	if p.BackendPort == 0 {
+		p.BackendPort = 8080
+	}
+	if p.FrontendPort == 0 {
+		p.FrontendPort = 3000
 	}
 	return nil
 }

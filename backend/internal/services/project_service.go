@@ -41,15 +41,17 @@ type ProjectService interface {
 
 // projectService 项目服务实现
 type projectService struct {
-	projectRepo repositories.ProjectRepository
-	tagRepo     repositories.TagRepository
+	projectRepo     repositories.ProjectRepository
+	tagRepo         repositories.TagRepository
+	templateService ProjectTemplateService
 }
 
 // NewProjectService 创建项目服务实例
-func NewProjectService(projectRepo repositories.ProjectRepository, tagRepo repositories.TagRepository) ProjectService {
+func NewProjectService(projectRepo repositories.ProjectRepository, tagRepo repositories.TagRepository, templateService ProjectTemplateService) ProjectService {
 	return &projectService{
-		projectRepo: projectRepo,
-		tagRepo:     tagRepo,
+		projectRepo:     projectRepo,
+		tagRepo:         tagRepo,
+		templateService: templateService,
 	}
 }
 
@@ -58,11 +60,23 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	// 生成项目路径
 	projectPath := filepath.Join("/projects", userID, uuid.New().String())
 
+	// 设置默认端口
+	backendPort := req.BackendPort
+	if backendPort == 0 {
+		backendPort = 8080
+	}
+	frontendPort := req.FrontendPort
+	if frontendPort == 0 {
+		frontendPort = 3000
+	}
+
 	// 创建项目
 	project := &models.Project{
 		Name:         req.Name,
 		Description:  req.Description,
 		Requirements: req.Requirements,
+		BackendPort:  backendPort,
+		FrontendPort: frontendPort,
 		UserID:       userID,
 		Status:       "draft",
 		ProjectPath:  projectPath,
@@ -70,6 +84,13 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 
 	if err := s.projectRepo.Create(ctx, project); err != nil {
 		return nil, fmt.Errorf("failed to create project: %w", err)
+	}
+
+	// 初始化项目模板
+	if err := s.templateService.InitializeProject(ctx, project); err != nil {
+		// 模板初始化失败不影响项目创建，但记录错误
+		// 这里可以添加日志记录
+		fmt.Printf("Warning: failed to initialize project template: %v\n", err)
 	}
 
 	// 添加标签
@@ -130,6 +151,12 @@ func (s *projectService) UpdateProject(ctx context.Context, projectID string, re
 	}
 	if req.Requirements != "" {
 		project.Requirements = req.Requirements
+	}
+	if req.BackendPort > 0 {
+		project.BackendPort = req.BackendPort
+	}
+	if req.FrontendPort > 0 {
+		project.FrontendPort = req.FrontendPort
 	}
 	if req.Status != "" {
 		project.Status = req.Status
@@ -395,6 +422,8 @@ func (s *projectService) convertToProjectInfo(project *models.Project) *models.P
 		Status:       project.Status,
 		Requirements: project.Requirements,
 		ProjectPath:  project.ProjectPath,
+		BackendPort:  project.BackendPort,
+		FrontendPort: project.FrontendPort,
 		UserID:       project.UserID,
 		CreatedAt:    project.CreatedAt,
 		UpdatedAt:    project.UpdatedAt,

@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS projects (
     status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'in_progress', 'completed', 'failed')),
     requirements TEXT,
     project_path VARCHAR(500) UNIQUE,
+    backend_port INTEGER DEFAULT 8080 CHECK (backend_port >= 1024 AND backend_port <= 65535),
+    frontend_port INTEGER DEFAULT 3000 CHECK (frontend_port >= 1024 AND frontend_port <= 65535),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
