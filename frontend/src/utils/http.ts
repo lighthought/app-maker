@@ -38,11 +38,13 @@ class HttpService {
     // 响应拦截器
     this.instance.interceptors.response.use(
       (response: AxiosResponse) => {
+        // 直接返回响应数据，让业务层处理成功/失败逻辑
         return response.data
       },
       async (error) => {
         const originalRequest = error.config
         
+        // 如果是401错误且不是刷新token的请求，尝试刷新token
         if (error.response?.status === 401 && !originalRequest._retry) {
           if (this.isRefreshing) {
             // 如果正在刷新，将请求加入队列
@@ -61,6 +63,15 @@ class HttpService {
           const userStore = useUserStore()
           
           try {
+            // 检查是否有刷新令牌，如果没有则直接返回错误响应
+            if (!userStore.refreshToken) {
+              // 没有刷新令牌，直接返回错误响应数据
+              if (error.response?.data) {
+                return Promise.resolve(error.response.data)
+              }
+              return Promise.reject(error)
+            }
+            
             const refreshed = await userStore.refreshAuth()
             if (refreshed) {
               // 处理队列中的请求
@@ -85,6 +96,12 @@ class HttpService {
           } finally {
             this.isRefreshing = false
           }
+        }
+        
+        // 对于其他错误，返回错误响应数据而不是抛出异常
+        // 这样业务层可以统一处理成功和失败的情况
+        if (error.response?.data) {
+          return Promise.resolve(error.response.data)
         }
         
         return Promise.reject(error)

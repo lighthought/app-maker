@@ -43,6 +43,7 @@ export const useUserStore = defineStore('user', () => {
         }
       }>('/auth/login', credentials)
 
+      // 检查响应码
       if (response.code === 0 && response.data) {
         const { access_token, refresh_token, user: userData } = response.data
         
@@ -59,10 +60,12 @@ export const useUserStore = defineStore('user', () => {
 
         return { success: true, message: '登录成功' }
       } else {
+        // 处理业务逻辑错误（如用户不存在、密码错误等）
         return { success: false, message: response.message || '登录失败' }
       }
     } catch (error: any) {
       console.error('登录失败:', error)
+      // 处理网络错误或其他异常
       const message = error.response?.data?.message || '登录失败，请检查网络连接'
       return { success: false, message }
     }
@@ -82,6 +85,7 @@ export const useUserStore = defineStore('user', () => {
         }
       }>('/auth/register', credentials)
 
+      // 检查响应码
       if (response.code === 0 && response.data) {
         const { access_token, refresh_token, user: userData } = response.data
         
@@ -98,10 +102,12 @@ export const useUserStore = defineStore('user', () => {
 
         return { success: true, message: '注册成功' }
       } else {
+        // 处理业务逻辑错误（如邮箱已存在、用户名已存在等）
         return { success: false, message: response.message || '注册失败' }
       }
     } catch (error: any) {
       console.error('注册失败:', error)
+      // 处理网络错误或其他异常
       const message = error.response?.data?.message || '注册失败，请检查网络连接'
       return { success: false, message }
     }
@@ -126,32 +132,41 @@ export const useUserStore = defineStore('user', () => {
   const refreshAuth = async () => {
     try {
       if (!refreshToken.value) {
-        throw new Error('没有刷新令牌')
+        console.warn('没有刷新令牌，无法刷新认证')
+        return false
       }
 
       const response = await httpService.post<{
-        access_token: string
-        refresh_token: string
-        expires_in: number
+        code: number
+        message: string
+        data?: {
+          access_token: string
+          refresh_token: string
+          expires_in: number
+        }
       }>('/auth/refresh', null, {
         params: { refresh_token: refreshToken.value }
       })
 
-      // 直接使用响应数据
-      const { access_token, refresh_token } = response
-      
-      // 更新令牌
-      token.value = access_token
-      refreshToken.value = refresh_token
+      // 检查响应码
+      if (response.code === 0 && response.data) {
+        const { access_token, refresh_token } = response.data
+        
+        // 更新令牌
+        token.value = access_token
+        refreshToken.value = refresh_token
 
-      // 更新 localStorage
-      localStorage.setItem('token', access_token)
-      localStorage.setItem('refreshToken', refresh_token)
+        // 更新 localStorage
+        localStorage.setItem('token', access_token)
+        localStorage.setItem('refreshToken', refresh_token)
 
-      return true
+        return true
+      } else {
+        console.error('刷新令牌失败:', response.message)
+        return false
+      }
     } catch (error) {
       console.error('刷新令牌失败:', error)
-      clearAuth()
       return false
     }
   }
