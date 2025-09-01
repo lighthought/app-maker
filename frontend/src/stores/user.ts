@@ -36,10 +36,10 @@ export const useUserStore = defineStore('user', () => {
         code: number
         message: string
         data?: {
+          user: User
           access_token: string
           refresh_token: string
           expires_in: number
-          user: User
         }
       }>('/auth/login', credentials)
 
@@ -78,10 +78,10 @@ export const useUserStore = defineStore('user', () => {
         code: number
         message: string
         data?: {
+          user: User
           access_token: string
           refresh_token: string
           expires_in: number
-          user: User
         }
       }>('/auth/register', credentials)
 

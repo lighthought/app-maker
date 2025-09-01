@@ -12,28 +12,119 @@
       </n-button>
     </div>
     <div class="header-right">
-      <n-button quaternary circle>
-        <template #icon>
-          <n-icon><BellIcon /></n-icon>
+      <!-- 消息通知 -->
+      <n-popover
+        trigger="click"
+        placement="bottom-end"
+        :show="showNotifications"
+        @clickoutside="showNotifications = false"
+      >
+        <template #trigger>
+          <n-button quaternary circle @click="showNotifications = !showNotifications">
+            <template #icon>
+              <n-icon><BellIcon /></n-icon>
+            </template>
+          </n-button>
         </template>
-      </n-button>
-      <n-button quaternary circle>
-        <template #icon>
-          <n-icon><SettingsIcon /></n-icon>
+        <div class="notification-panel">
+          <div class="notification-header">
+            <h3>消息通知</h3>
+            <n-button text size="small" @click="showNotifications = false">
+              <template #icon>
+                <n-icon><CloseIcon /></n-icon>
+              </template>
+            </n-button>
+          </div>
+          <div class="notification-content">
+            <div class="empty-notification">
+              <n-icon size="48" color="#CBD5E0">
+                <BellIcon />
+              </n-icon>
+              <p>暂无消息</p>
+            </div>
+          </div>
+        </div>
+      </n-popover>
+
+      <!-- 用户菜单 -->
+      <n-popover
+        trigger="click"
+        placement="bottom-end"
+        :show="showUserMenu"
+        @clickoutside="showUserMenu = false"
+      >
+        <template #trigger>
+          <n-button quaternary circle @click="showUserMenu = !showUserMenu">
+            <n-avatar round size="medium">
+              <template #default>
+                <n-icon><UserIcon /></n-icon>
+              </template>
+            </n-avatar>
+          </n-button>
         </template>
-      </n-button>
-      <n-avatar round size="medium">
-        <template #default>
-          <n-icon><UserIcon /></n-icon>
-        </template>
-      </n-avatar>
+        <div class="user-menu-panel">
+          <div class="user-info">
+            <n-avatar round size="medium">
+              <template #default>
+                <n-icon><UserIcon /></n-icon>
+              </template>
+            </n-avatar>
+            <div class="user-details">
+              <div class="username">{{ userStore.user?.username || userStore.user?.name || '用户' }}</div>
+              <div class="user-email">{{ userStore.user?.email || '' }}</div>
+            </div>
+          </div>
+          <n-divider style="margin: 0; height: 1px;" />
+          <div class="menu-items">
+            <n-button
+              quaternary
+              block
+              @click="handleSettings"
+            >
+              <template #icon>
+                <n-icon><SettingsIcon /></n-icon>
+              </template>
+              用户设置
+            </n-button>
+            <n-button
+              quaternary
+              block
+              @click="handleLogout"
+            >
+              <template #icon>
+                <n-icon><LogoutIcon /></n-icon>
+              </template>
+              退出登录
+            </n-button>
+          </div>
+        </div>
+      </n-popover>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'
-import { NButton, NIcon, NAvatar } from 'naive-ui'
+import { ref, h } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { NButton, NIcon, NAvatar, NPopover, NDivider } from 'naive-ui'
+
+interface Props {}
+
+interface Emits {
+  'toggle-sidebar': []
+  'open-settings': []
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+const router = useRouter()
+const userStore = useUserStore()
+
+// 状态管理
+const showNotifications = ref(false)
+const showUserMenu = ref(false)
 
 // SVG 图标组件
 const MenuIcon = () => h('svg', { 
@@ -68,9 +159,39 @@ const UserIcon = () => h('svg', {
   h('path', { d: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' })
 ])
 
-defineEmits<{
-  'toggle-sidebar': []
-}>()
+const LogoutIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z' })
+])
+
+const CloseIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' })
+])
+
+// 事件处理
+const handleSettings = () => {
+  showUserMenu.value = false
+  console.log('open-settings')
+  emit('open-settings')
+}
+
+const handleLogout = async () => {
+  try {
+    await userStore.logout()
+    showUserMenu.value = false
+    // 跳转到登录页面
+    router.push('/auth')
+  } catch (error) {
+    console.error('登出失败:', error)
+  }
+}
 </script>
 
 <style scoped>
@@ -89,4 +210,95 @@ defineEmits<{
   align-items: center;
   gap: var(--spacing-sm);
 }
+
+/* 通知面板样式 */
+.notification-panel {
+  width: 320px;
+  max-height: 400px;
+  background: white;
+  overflow: hidden;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background-color);
+  margin: 0;
+}
+
+.notification-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.notification-content {
+  padding: var(--spacing-lg);
+}
+
+.empty-notification {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-notification p {
+  margin: var(--spacing-sm) 0 0 0;
+  font-size: 0.9rem;
+}
+
+/* 用户菜单面板样式 */
+.user-menu-panel {
+  width: 280px;
+  background: white;
+  overflow: hidden;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--background-color);
+  margin: 0;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.username {
+  font-weight: bold;
+  color: var(--primary-color);
+  font-size: 1rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.user-email {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.menu-items {
+  padding: var(--spacing-sm);
+  margin-top: 0;
+}
+
+.menu-items .n-button {
+  justify-content: flex-start;
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-xs);
+  border-radius: var(--border-radius-md);
+}
+
+.menu-items .n-button:hover {
+  background: var(--background-color);
+}
+
 </style>

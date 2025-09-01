@@ -18,7 +18,7 @@
     <n-layout>
       <!-- 顶部导航 -->
       <n-layout-header bordered>
-        <Header @toggle-sidebar="collapsed = !collapsed" />
+        <Header @toggle-sidebar="collapsed = !collapsed" @open-settings="showSettingsModal = true" />
       </n-layout-header>
       
       <!-- 页面内容 -->
@@ -34,17 +34,27 @@
   <div v-else>
     <router-view />
   </div>
+
+  <!-- 用户设置弹窗 - 始终显示，不受布局条件影响 -->
+  <UserSettingsModal v-model:show="showSettingsModal" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { NLayout, NLayoutSider, NLayoutHeader, NLayoutContent } from 'naive-ui'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
+import UserSettingsModal from '@/components/UserSettingsModal.vue'
 
 const route = useRoute()
 const collapsed = ref(false)
+const showSettingsModal = ref(false)
+
+// 监听 showSettingsModal 变化
+watch(showSettingsModal, (newVal) => {
+  console.log('showSettingsModal changed:', newVal)
+})
 
 // 判断是否为主页
 const isHomePage = computed(() => {

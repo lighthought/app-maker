@@ -15,7 +15,7 @@ COPY . .
 # 构建应用
 RUN pnpm exec vite build
 
-# 生产环境阶段
+# 开发环境阶段
 FROM nginx:alpine
 
 # 复制构建产物到 nginx 目录

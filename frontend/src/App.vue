@@ -4,19 +4,21 @@
       <n-loading-bar-provider>
         <n-dialog-provider>
           <n-notification-provider>
-            <div id="app">
-              <router-view v-slot="{ Component, route }">
-                <transition
-                  name="page"
-                  mode="out-in"
-                  @before-enter="beforeEnter"
-                  @enter="enter"
-                  @leave="leave"
-                >
-                  <component :is="Component" :key="route.path" />
-                </transition>
-              </router-view>
-            </div>
+            <n-modal-provider>
+              <div id="app">
+                <router-view v-slot="{ Component, route }">
+                  <transition
+                    name="page"
+                    mode="out-in"
+                    @before-enter="beforeEnter"
+                    @enter="enter"
+                    @leave="leave"
+                  >
+                    <component :is="Component" :key="route.path" />
+                  </transition>
+                </router-view>
+              </div>
+            </n-modal-provider>
           </n-notification-provider>
         </n-dialog-provider>
       </n-loading-bar-provider>
@@ -31,7 +33,8 @@ import {
   NMessageProvider,
   NLoadingBarProvider,
   NDialogProvider,
-  NNotificationProvider
+  NNotificationProvider,
+  NModalProvider
 } from 'naive-ui'
 
 const route = useRoute()
