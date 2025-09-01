@@ -4,7 +4,7 @@
     <div class="dashboard-header">
       <div class="header-content">
         <div class="welcome-section">
-          <h1>欢迎回来，{{ userStore.user?.name || '用户' }}</h1>
+          <h1>欢迎回来，{{ userStore.user?.username || userStore.user?.name || '用户' }}</h1>
           <p>今天是 {{ currentDate }}，您有 {{ totalProjects }} 个项目</p>
         </div>
         <div class="header-actions">
