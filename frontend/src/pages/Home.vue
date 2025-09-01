@@ -284,17 +284,6 @@ const toggleLanguage = () => {
   currentLanguage.value = currentLanguage.value === 'zh' ? 'en' : 'zh'
 }
 
-const handleExperienceClick = () => {
-  console.log('!!!!!! handleExperienceClick !!!!!', isLoggedIn.value)
-  if (isLoggedIn.value) {
-    router.replace('/dashboard')
-    console.log('!!!!!! handleExperienceClick !!!!! dashboard')
-  } else {
-    router.replace('/auth')
-    console.log('!!!!!! handleExperienceClick !!!!! auth')
-  }
-}
-
 const handleProjectCreate = async () => {
   if (!projectDescription.value.trim()) return
   

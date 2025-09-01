@@ -126,7 +126,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 func (h *UserHandler) Logout(c *gin.Context) {
 	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	
+
 	// 调用登出服务（对于纯JWT实现，主要是客户端清除token）
 	err := h.userService.Logout(c.Request.Context(), userID, "")
 	if err != nil {

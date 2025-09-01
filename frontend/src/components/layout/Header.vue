@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, h, nextTick } from 'vue'
+import { ref, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { NButton, NIcon, NAvatar, NPopover, NDivider } from 'naive-ui'
@@ -186,10 +186,8 @@ const handleLogout = async () => {
   try {
     await userStore.logout()
     showUserMenu.value = false
-    // 确保状态完全清除后再跳转
-    await nextTick()
-    // 跳转到登录页面
-    router.push('/auth')
+    // 跳转到首页并强制刷新，避免残留状态
+    window.location.assign('/')
   } catch (error) {
     console.error('登出失败:', error)
   }

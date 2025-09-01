@@ -8,7 +8,7 @@
       <n-menu
         :collapsed="collapsed"
         :collapsed-width="64"
-        :collapsed-icon-size="20"
+        :collapsed-icon-size="24"
         :options="menuOptions"
         :value="activeKey"
         @update:value="handleMenuUpdate"

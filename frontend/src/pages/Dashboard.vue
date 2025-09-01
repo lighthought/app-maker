@@ -185,7 +185,7 @@
             v-model:page="currentPage"
             v-model:page-size="pageSize"
             :item-count="projectStore.pagination.total"
-            :page-sizes="[8, 16, 24]"
+            :page-sizes="[5, 10, 20]"
             show-size-picker
             show-quick-jumper
           />
