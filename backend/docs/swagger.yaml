@@ -2293,4 +2293,10 @@ paths:
       summary: 更新用户档案
       tags:
       - 用户管理
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

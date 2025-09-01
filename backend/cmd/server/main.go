@@ -44,6 +44,10 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
 func main() {
 	// 加载配置
 	cfg, err := config.Load()

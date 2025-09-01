@@ -9,6 +9,7 @@ import (
 // RegisterTaskRoutes 注册任务相关路由
 func RegisterTaskRoutes(router *gin.RouterGroup, taskHandler *handlers.TaskHandler, authMiddleware gin.HandlerFunc) {
 	tasks := router.Group("/tasks")
+	tasks.Use(authMiddleware) // 应用认证中间件
 	{
 		// 基础CRUD操作
 		tasks.POST("", taskHandler.CreateTask)
@@ -45,6 +46,7 @@ func RegisterTaskRoutes(router *gin.RouterGroup, taskHandler *handlers.TaskHandl
 
 	// 项目任务路由 - 使用与项目路由相同的参数名
 	projects := router.Group("/projects")
+	projects.Use(authMiddleware) // 应用认证中间件
 	{
 		projects.GET("/:id/tasks", taskHandler.GetTasksByProject)
 	}

@@ -1,10 +1,14 @@
 package routes
 
 import (
+	"time"
+
 	"autocodeweb-backend/internal/api/handlers"
+	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/services"
+	"autocodeweb-backend/pkg/auth"
 	"autocodeweb-backend/pkg/cache"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +17,12 @@ import (
 
 // Register 注册所有路由
 func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache, monitor *cache.Monitor, db *gorm.DB) {
+	// 创建 JWT 服务
+	jwtService := auth.NewJWTService(cfg.JWT.SecretKey, time.Duration(cfg.JWT.Expire)*time.Hour)
+
+	// 创建认证中间件
+	authMiddleware := middleware.AuthMiddleware(jwtService)
+
 	// API v1 路由组
 	v1 := engine.Group("/api/v1")
 	{
@@ -32,12 +42,11 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 
 		// 初始化用户相关依赖
 		userRepo := repositories.NewUserRepository(db)
-		userSessionRepo := repositories.NewUserSessionRepository(db)
-		userService := services.NewUserService(userRepo, userSessionRepo, cfg.JWT.SecretKey, cfg.JWT.Expire)
+		userService := services.NewUserService(userRepo, cfg.JWT.SecretKey, cfg.JWT.Expire)
 		userHandler := handlers.NewUserHandler(userService)
 
 		// 注册用户路由
-		RegisterUserRoutes(v1, userHandler)
+		RegisterUserRoutes(v1, userHandler, authMiddleware)
 
 		// 初始化项目和标签相关依赖
 		projectRepo := repositories.NewProjectRepository(db)
@@ -52,7 +61,7 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		tagHandler := handlers.NewTagHandler(tagService)
 
 		// 注册项目和标签路由
-		RegisterProjectRoutes(v1, projectHandler, tagHandler)
+		RegisterProjectRoutes(v1, projectHandler, tagHandler, authMiddleware)
 
 		// 初始化任务相关依赖
 		taskRepo := repositories.NewTaskRepository(db)
@@ -61,6 +70,6 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		taskHandler := handlers.NewTaskHandler(taskService)
 
 		// 注册任务路由
-		RegisterTaskRoutes(v1, taskHandler, nil) // TODO: 添加认证中间件
+		RegisterTaskRoutes(v1, taskHandler, authMiddleware)
 	}
 }

@@ -124,10 +124,10 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Failure 401 {object} models.ErrorResponse
 // @Router /api/v1/auth/logout [post]
 func (h *UserHandler) Logout(c *gin.Context) {
-	// 从JWT中获取用户ID（这里简化处理，实际应该从JWT中解析）
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
 	token := c.GetString("token")
-	if userID == "" || token == "" {
+	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.Response{
 			Code:      401,
 			Message:   "未授权",
@@ -165,16 +165,8 @@ func (h *UserHandler) Logout(c *gin.Context) {
 // @Failure 404 {object} models.ErrorResponse
 // @Router /api/v1/users/profile [get]
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
-	// 从JWT中获取用户ID（这里简化处理，实际应该从JWT中解析）
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      401,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	response, err := h.userService.GetUserProfile(c.Request.Context(), userID)
 	if err != nil {
@@ -222,16 +214,8 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	// 从JWT中获取用户ID（这里简化处理，实际应该从JWT中解析）
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      401,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	err := h.userService.UpdateUserProfile(c.Request.Context(), userID, &req)
 	if err != nil {
@@ -277,16 +261,8 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	// 从JWT中获取用户ID（这里简化处理，实际应该从JWT中解析）
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      401,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	err := h.userService.ChangePassword(c.Request.Context(), userID, &req)
 	if err != nil {
@@ -380,17 +356,9 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 // @Failure 403 {object} models.ErrorResponse
 // @Router /api/v1/users/{user_id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-	// 从JWT中获取用户ID和角色（这里简化处理，实际应该从JWT中解析）
+	// 从中间件获取用户ID和角色
 	currentUserID := c.GetString("user_id")
 	userRole := c.GetString("user_role")
-	if currentUserID == "" {
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      401,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	// 检查权限
 	if userRole != "admin" {

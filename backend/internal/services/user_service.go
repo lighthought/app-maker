@@ -7,6 +7,7 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
+	"autocodeweb-backend/pkg/auth"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,19 +27,17 @@ type UserService interface {
 
 // userService 用户服务实现
 type userService struct {
-	userRepo        repositories.UserRepository
-	userSessionRepo repositories.UserSessionRepository
-	jwtSecret       string
-	jwtExpireHours  int
+	userRepo       repositories.UserRepository
+	jwtSecret      string
+	jwtExpireHours int
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService(userRepo repositories.UserRepository, userSessionRepo repositories.UserSessionRepository, jwtSecret string, jwtExpireHours int) UserService {
+func NewUserService(userRepo repositories.UserRepository, jwtSecret string, jwtExpireHours int) UserService {
 	return &userService{
-		userRepo:        userRepo,
-		userSessionRepo: userSessionRepo,
-		jwtSecret:       jwtSecret,
-		jwtExpireHours:  jwtExpireHours,
+		userRepo:       userRepo,
+		jwtSecret:      jwtSecret,
+		jwtExpireHours: jwtExpireHours,
 	}
 }
 
@@ -87,17 +86,6 @@ func (s *userService) Register(ctx context.Context, req *models.RegisterRequest)
 		return nil, err
 	}
 
-	// 创建用户会话
-	session := &models.UserSession{
-		UserID:    user.ID,
-		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour), // 刷新令牌有效期更长
-	}
-
-	if err := s.userSessionRepo.Create(ctx, session); err != nil {
-		return nil, err
-	}
-
 	return &models.LoginResponse{
 		User: models.UserInfo{
 			ID:        user.ID,
@@ -137,33 +125,6 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 		return nil, err
 	}
 
-	// 检查是否已存在会话，如果存在则更新，否则创建新的
-	existingSessions, err := s.userSessionRepo.GetByUserID(ctx, user.ID)
-	if err != nil && err.Error() != "record not found" {
-		return nil, err
-	}
-
-	if len(existingSessions) > 0 {
-		// 更新现有会话
-		session := &existingSessions[0]
-		session.Token = refreshToken
-		session.ExpiresAt = time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour)
-		if err := s.userSessionRepo.Update(ctx, session); err != nil {
-			return nil, err
-		}
-	} else {
-		// 创建新的用户会话
-		session := &models.UserSession{
-			UserID:    user.ID,
-			Token:     refreshToken,
-			ExpiresAt: time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour),
-		}
-
-		if err := s.userSessionRepo.Create(ctx, session); err != nil {
-			return nil, err
-		}
-	}
-
 	return &models.LoginResponse{
 		User: models.UserInfo{
 			ID:        user.ID,
@@ -181,8 +142,9 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 
 // Logout 用户登出
 func (s *userService) Logout(ctx context.Context, userID, token string) error {
-	// 删除当前会话
-	return s.userSessionRepo.Delete(ctx, token)
+	// 对于纯JWT实现，登出只需要客户端清除token
+	// 这里可以添加token黑名单逻辑，但为了简化，暂时不实现
+	return nil
 }
 
 // GetUserProfile 获取用户档案
@@ -299,25 +261,23 @@ func (s *userService) GetUserList(ctx context.Context, page, pageSize int) (*mod
 
 // DeleteUser 删除用户
 func (s *userService) DeleteUser(ctx context.Context, userID string) error {
-	// 删除用户的所有会话
-	if err := s.userSessionRepo.DeleteByUserID(ctx, userID); err != nil {
-		return err
-	}
-
 	// 删除用户
 	return s.userRepo.Delete(ctx, userID)
 }
 
 // RefreshToken 刷新令牌
 func (s *userService) RefreshToken(ctx context.Context, refreshToken string) (*models.LoginResponse, error) {
+	// 创建 JWT 服务来验证刷新令牌
+	jwtService := auth.NewJWTService(s.jwtSecret, time.Duration(s.jwtExpireHours)*time.Hour)
+
 	// 验证刷新令牌
-	session, err := s.userSessionRepo.GetByToken(ctx, refreshToken)
+	userID, err := jwtService.ValidateRefreshToken(refreshToken)
 	if err != nil {
 		return nil, errors.New("无效的刷新令牌")
 	}
 
 	// 获取用户信息
-	user, err := s.userRepo.GetByID(ctx, session.UserID)
+	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, errors.New("用户不存在")
 	}
@@ -330,13 +290,6 @@ func (s *userService) RefreshToken(ctx context.Context, refreshToken string) (*m
 	// 生成新的令牌
 	accessToken, newRefreshToken, err := s.generateTokens(user.ID)
 	if err != nil {
-		return nil, err
-	}
-
-	// 更新会话令牌
-	session.Token = newRefreshToken
-	session.ExpiresAt = time.Now().Add(time.Duration(s.jwtExpireHours*2) * time.Hour)
-	if err := s.userSessionRepo.Update(ctx, session); err != nil {
 		return nil, err
 	}
 
@@ -357,9 +310,15 @@ func (s *userService) RefreshToken(ctx context.Context, refreshToken string) (*m
 
 // generateTokens 生成JWT令牌
 func (s *userService) generateTokens(userID string) (string, string, error) {
-	// 这里应该实现JWT令牌生成逻辑
-	// 为了简化，暂时返回模拟的令牌
-	accessToken := "access_token_" + userID
-	refreshToken := "refresh_token_" + userID
-	return accessToken, refreshToken, nil
+	// 获取用户信息用于生成 JWT
+	user, err := s.userRepo.GetByID(context.Background(), userID)
+	if err != nil {
+		return "", "", err
+	}
+
+	// 创建 JWT 服务
+	jwtService := auth.NewJWTService(s.jwtSecret, time.Duration(s.jwtExpireHours)*time.Hour)
+
+	// 使用 JWT 服务生成令牌
+	return jwtService.GenerateTokens(user.ID, user.Email, user.Username)
 }

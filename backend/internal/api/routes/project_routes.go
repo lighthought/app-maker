@@ -7,9 +7,10 @@ import (
 )
 
 // RegisterProjectRoutes 注册项目相关路由
-func RegisterProjectRoutes(router *gin.RouterGroup, projectHandler *handlers.ProjectHandler, tagHandler *handlers.TagHandler) {
+func RegisterProjectRoutes(router *gin.RouterGroup, projectHandler *handlers.ProjectHandler, tagHandler *handlers.TagHandler, authMiddleware gin.HandlerFunc) {
 	// 项目路由组
 	projects := router.Group("/projects")
+	projects.Use(authMiddleware) // 应用认证中间件
 	{
 		// 项目CRUD操作
 		projects.POST("/", projectHandler.CreateProject)      // 创建项目
@@ -27,6 +28,7 @@ func RegisterProjectRoutes(router *gin.RouterGroup, projectHandler *handlers.Pro
 
 	// 标签路由组
 	tags := router.Group("/tags")
+	tags.Use(authMiddleware) // 应用认证中间件
 	{
 		// 标签CRUD操作
 		tags.POST("/", tagHandler.CreateTag)      // 创建标签

@@ -49,16 +49,8 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	// 从JWT中获取用户ID（这里简化处理，实际应该从中间件获取）
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	project, err := h.projectService.CreateProject(c.Request.Context(), &req, userID)
 	if err != nil {
@@ -103,15 +95,8 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 		return
 	}
 
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	project, err := h.projectService.GetProject(c.Request.Context(), projectID, userID)
 	if err != nil {
@@ -176,15 +161,8 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		return
 	}
 
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	project, err := h.projectService.UpdateProject(c.Request.Context(), projectID, &req, userID)
 	if err != nil {
@@ -237,15 +215,8 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 		return
 	}
 
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	err := h.projectService.DeleteProject(c.Request.Context(), projectID, userID)
 	if err != nil {
@@ -308,15 +279,8 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	req.Status = c.Query("status")
 	req.Search = c.Query("search")
 
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	projects, pagination, err := h.projectService.GetUserProjects(c.Request.Context(), userID, &req)
 	if err != nil {
@@ -367,15 +331,8 @@ func (h *ProjectHandler) UpdateProjectStatus(c *gin.Context) {
 		return
 	}
 
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	err := h.projectService.UpdateProjectStatus(c.Request.Context(), projectID, status, userID)
 	if err != nil {
@@ -428,15 +385,8 @@ func (h *ProjectHandler) GetProjectTags(c *gin.Context) {
 		return
 	}
 
+	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      http.StatusUnauthorized,
-			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
 
 	tags, err := h.projectService.GetProjectTags(c.Request.Context(), projectID, userID)
 	if err != nil {
