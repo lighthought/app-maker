@@ -8,8 +8,8 @@
           <h1>AutoCode</h1>
         </div>
         <nav class="nav">
-          <a href="#features" class="nav-link">功能特性</a>
           <a href="#process" class="nav-link">使用流程</a>
+          <a href="#features" class="nav-link">功能特性</a>          
           <a href="#about" class="nav-link">关于我们</a>
         </nav>
         <div class="header-actions">
@@ -83,7 +83,6 @@
             v-for="(step, index) in processSteps"
             :key="step.id"
             class="process-step"
-            :class="{ 'active': currentStep === index }"
           >
             <div class="step-number">{{ index + 1 }}</div>
             <div class="step-content">
@@ -102,9 +101,7 @@
         <div class="features-grid">
           <div class="feature-card" v-for="feature in features" :key="feature.id">
             <div class="feature-icon">
-              <n-icon size="48">
-                <component :is="feature.icon" />
-              </n-icon>
+              <component :is="feature.icon" />
             </div>
             <h3>{{ feature.title }}</h3>
             <p>{{ feature.description }}</p>
@@ -144,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
@@ -152,13 +149,25 @@ import { NButton, NIcon, NTag } from 'naive-ui'
 import SmartInput from '@/components/common/SmartInput.vue'
 import type { Project } from '@/types/project'
 
-// 图标组件（临时使用 emoji，后续可替换为真实图标）
-const CodeIcon = () => '💻'
-const RobotIcon = () => '🤖'
-const RocketIcon = () => '🚀'
-const ShieldIcon = () => '🛡️'
-const UsersIcon = () => '👥'
-const ZapIcon = () => '⚡'
+// 图标组件（使用 div 标签避免倾斜）
+const CodeIcon = () => h('div', { 
+  style: 'font-size: 48px; line-height: 1; text-align: center;'
+}, '💻')
+const RobotIcon = () => h('div', { 
+  style: 'font-size: 48px; line-height: 1; text-align: center;'
+}, '🤖')
+const RocketIcon = () => h('div', { 
+  style: 'font-size: 48px; line-height: 1; text-align: center;'
+}, '🚀')
+const ShieldIcon = () => h('div', { 
+  style: 'font-size: 48px; line-height: 1; text-align: center;'
+}, '🛡️')
+const UsersIcon = () => h('div', { 
+  style: 'font-size: 48px; line-height: 1; text-align: center;'
+}, '👥')
+const ZapIcon = () => h('div', { 
+  style: 'font-size: 48px; line-height: 1; text-align: center;'
+}, '⚡')
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -572,7 +581,13 @@ onUnmounted(() => {
 }
 
 .feature-icon .n-icon {
-  transform: none;
+  transform: none !important;
+  font-style: normal !important;
+}
+
+.feature-icon .n-icon i {
+  transform: none !important;
+  font-style: normal !important;
 }
 
 .feature-card h3 {
@@ -616,11 +631,6 @@ onUnmounted(() => {
   flex: 1;
   min-width: 200px;
   max-width: 280px;
-}
-
-.process-step.active {
-  border-left: 4px solid var(--accent-color);
-  box-shadow: var(--shadow-md);
 }
 
 .step-number {
