@@ -1,5 +1,6 @@
 <template>
-  <div class="dashboard">
+  <PageLayout>
+    <div class="dashboard">
     <!-- 页面头部 -->
     <div class="dashboard-header">
       <div class="header-content">
@@ -288,8 +289,9 @@
           </div>
         </n-card>
       </div>
+          </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
@@ -300,6 +302,7 @@ import { useProjectStore } from '@/stores/project'
 import {
   NButton, NIcon, NCard, NStatistic, NInput, NSelect, NTag, NProgress, NPagination
 } from 'naive-ui'
+import PageLayout from '@/components/layout/PageLayout.vue'
 import type { Project, ProjectListRequest } from '@/types/project'
 
 // 图标组件 - 使用 SVG 图标替代 emoji
@@ -376,7 +379,7 @@ const projectStore = useProjectStore()
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const currentPage = ref(1)
-const pageSize = ref(8)
+const pageSize = ref(10)
 const currentProject = ref<Project | null>(null)
 const updateInterval = ref<number | null>(null)
 
@@ -572,6 +575,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 布局相关样式 */
+.content-wrapper {
+  padding: var(--spacing-lg);
+  min-height: calc(100vh - 64px);
+}
+
 .dashboard {
   padding: var(--spacing-lg);
   background: var(--background-color);

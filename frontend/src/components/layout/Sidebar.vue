@@ -1,6 +1,6 @@
 <template>
   <div class="sidebar">
-    <div class="sidebar-header">
+    <div class="sidebar-header" @click="goToHome">
       <h2 v-if="!collapsed">AutoCode</h2>
       <h2 v-else>AC</h2>
     </div>
@@ -63,11 +63,6 @@ const AddIcon = () => h('svg', {
 
 const menuOptions: MenuOption[] = [
   {
-    label: '首页',
-    key: 'Home',
-    icon: renderIcon(HomeIcon)
-  },
-  {
     label: '控制台',
     key: 'Dashboard',
     icon: renderIcon(DashboardIcon)
@@ -86,6 +81,10 @@ function renderIcon(icon: any) {
 const handleMenuUpdate = (key: string) => {
   router.push({ name: key })
 }
+
+const goToHome = () => {
+  router.push('/')
+}
 </script>
 
 <style scoped>
@@ -103,6 +102,13 @@ const handleMenuUpdate = (key: string) => {
   padding: 0 var(--spacing-md);
   border-bottom: 1px solid var(--border-color);
   background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar-header:hover {
+  background: var(--background-color);
+  transform: scale(1.02);
 }
 
 .sidebar-header h2 {

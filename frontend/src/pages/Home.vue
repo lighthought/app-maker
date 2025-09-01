@@ -133,14 +133,14 @@
           <div class="footer-section">
             <h4>{{ t('footer.contact') }}</h4>
             <p>邮箱: qqjack2012@gmail.com</p>
-            <p>电话: +86 400-123-4567</p>
+            <p>账号: AI 探趣星船长</p>
           </div>
           <div class="footer-section">
             <h4>{{ t('footer.follow') }}</h4>
             <div class="social-links">
-              <a href="#" class="social-link">GitHub</a>
-              <a href="#" class="social-link">Twitter</a>
-              <a href="#" class="social-link">LinkedIn</a>
+              <a href="https://github.com/lighthought" class="social-link">GitHub</a>
+              <a href="https://www.xiaohongshu.com/user/profile/62033e59000000001000aa0d" class="social-link">小红书</a>
+              <a href="https://space.bilibili.com/44060402" class="social-link">B站</a>
             </div>
           </div>
         </div>

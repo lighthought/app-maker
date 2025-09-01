@@ -7,15 +7,7 @@
             <n-modal-provider>
               <div id="app">
                 <router-view v-slot="{ Component, route }">
-                  <transition
-                    name="page"
-                    mode="out-in"
-                    @before-enter="beforeEnter"
-                    @enter="enter"
-                    @leave="leave"
-                  >
-                    <component :is="Component" :key="route.path" />
-                  </transition>
+                  <component :is="Component" />
                 </router-view>
               </div>
             </n-modal-provider>

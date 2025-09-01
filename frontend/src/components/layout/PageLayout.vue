@@ -1,5 +1,5 @@
 <template>
-  <n-layout has-sider v-if="!isHomePage">
+  <n-layout has-sider>
     <!-- 侧边栏 -->
     <n-layout-sider
       bordered
@@ -24,42 +24,26 @@
       <!-- 页面内容 -->
       <n-layout-content>
         <div class="content-wrapper">
-          <router-view />
+          <slot />
         </div>
       </n-layout-content>
     </n-layout>
   </n-layout>
-  
-  <!-- 主页特殊布局 -->
-  <div v-else>
-    <router-view />
-  </div>
 
-  <!-- 用户设置弹窗 - 始终显示，不受布局条件影响 -->
+  <!-- 用户设置弹窗 -->
   <UserSettingsModal v-model:show="showSettingsModal" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref } from 'vue'
 import { NLayout, NLayoutSider, NLayoutHeader, NLayoutContent } from 'naive-ui'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
 import UserSettingsModal from '@/components/UserSettingsModal.vue'
 
-const route = useRoute()
+// 布局相关状态
 const collapsed = ref(false)
 const showSettingsModal = ref(false)
-
-// 监听 showSettingsModal 变化
-watch(showSettingsModal, (newVal) => {
-  console.log('showSettingsModal changed:', newVal)
-})
-
-// 判断是否为主页
-const isHomePage = computed(() => {
-  return route.name === 'Home' || route.path === '/'
-})
 </script>
 
 <style scoped>

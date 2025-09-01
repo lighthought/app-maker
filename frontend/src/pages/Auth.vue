@@ -15,7 +15,7 @@
               <CodeIcon />
             </n-icon>
           </div>
-          <h1 class="logo-text">煲应用 - AutoCode</h1>
+          <h1 class="logo-text">AutoCode</h1>
         </div>
       </div>
 
@@ -211,8 +211,8 @@
     <n-modal v-model:show="showTermsModal" preset="card" title="用户协议" style="width: 600px">
       <div class="terms-content">
         <h3>用户协议</h3>
-        <p>欢迎使用煲应用 - AutoCode！</p>
-        <p>本协议是您与煲应用平台之间的法律协议，请您仔细阅读。</p>
+        <p>欢迎使用 AutoCode！</p>
+        <p>本协议是您与 AutoCode 平台之间的法律协议，请您仔细阅读。</p>
         <!-- 更多协议内容 -->
       </div>
     </n-modal>
