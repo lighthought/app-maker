@@ -7,7 +7,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'Home',
     component: () => import('@/pages/Home.vue'),
-    meta: { title: '首页', requiresAuth: false }
+    meta: { title: 'AutoCode', requiresAuth: false }
   },
   {
     path: '/dashboard',

@@ -42,22 +42,12 @@
           
           <!-- 智能输入框 -->
           <div class="hero-input">
-            <n-input-group>
-              <n-input
-                v-model:value="projectDescription"
-                :placeholder="t('hero.inputPlaceholder')"
-                size="large"
-                @keydown.enter="handleProjectCreate"
-              />
-              <n-button
-                type="primary"
-                size="large"
-                :disabled="!projectDescription.trim()"
-                @click="handleProjectCreate"
-              >
-                {{ t('hero.createButton') }}
-              </n-button>
-            </n-input-group>
+            <SmartInput
+              v-model="projectDescription"
+              :placeholder="t('hero.inputPlaceholder')"
+              size="large"
+              @send="handleProjectCreate"
+            />
           </div>
 
           <!-- 用户项目展示 -->
@@ -84,24 +74,6 @@
       </div>
     </section>
 
-    <!-- 功能特性展示 -->
-    <section id="features" class="features">
-      <div class="container">
-        <h2 class="section-title">{{ t('features.title') }}</h2>
-        <div class="features-grid">
-          <div class="feature-card" v-for="feature in features" :key="feature.id">
-            <div class="feature-icon">
-              <n-icon size="48">
-                <component :is="feature.icon" />
-              </n-icon>
-            </div>
-            <h3>{{ feature.title }}</h3>
-            <p>{{ feature.description }}</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- 使用流程说明 -->
     <section id="process" class="process">
       <div class="container">
@@ -118,6 +90,24 @@
               <h3>{{ step.title }}</h3>
               <p>{{ step.description }}</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 功能特性展示 -->
+    <section id="features" class="features">
+      <div class="container">
+        <h2 class="section-title">{{ t('features.title') }}</h2>
+        <div class="features-grid">
+          <div class="feature-card" v-for="feature in features" :key="feature.id">
+            <div class="feature-icon">
+              <n-icon size="48">
+                <component :is="feature.icon" />
+              </n-icon>
+            </div>
+            <h3>{{ feature.title }}</h3>
+            <p>{{ feature.description }}</p>
           </div>
         </div>
       </div>
@@ -158,7 +148,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
-import { NButton, NInputGroup, NInput, NIcon, NTag } from 'naive-ui'
+import { NButton, NIcon, NTag } from 'naive-ui'
+import SmartInput from '@/components/common/SmartInput.vue'
 import type { Project } from '@/types/project'
 
 // 图标组件（临时使用 emoji，后续可替换为真实图标）
@@ -435,6 +426,13 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
+  transition: all 0.3s ease;
+}
+
+.header-scrolled .language-btn {
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .experience-btn {
@@ -568,6 +566,13 @@ onUnmounted(() => {
 .feature-icon {
   margin-bottom: var(--spacing-lg);
   color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-icon .n-icon {
+  transform: none;
 }
 
 .feature-card h3 {
@@ -589,21 +594,28 @@ onUnmounted(() => {
 
 .process-timeline {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xl);
-  max-width: 800px;
+  flex-direction: row;
+  gap: var(--spacing-lg);
+  max-width: 1200px;
   margin: 0 auto;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .process-step {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-lg);
+  text-align: center;
+  gap: var(--spacing-md);
   padding: var(--spacing-lg);
   background: white;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
 }
 
 .process-step.active {
@@ -705,6 +717,8 @@ onUnmounted(() => {
   .process-step {
     flex-direction: column;
     text-align: center;
+    min-width: 150px;
+    max-width: 200px;
   }
   
   .header-container {
