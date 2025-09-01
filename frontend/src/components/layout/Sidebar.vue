@@ -1,6 +1,7 @@
 <template>
   <div class="sidebar">
     <div class="sidebar-header" @click="goToHome">
+      <img src="@/assets/logo.svg" alt="AutoCode Logo" class="sidebar-logo" />
       <h2 v-if="!collapsed">AutoCode</h2>
       <h2 v-else>AC</h2>
     </div>
@@ -104,6 +105,13 @@ const goToHome = () => {
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  gap: var(--spacing-sm);
+}
+
+.sidebar-logo {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
 .sidebar-header:hover {

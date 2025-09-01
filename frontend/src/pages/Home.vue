@@ -4,6 +4,7 @@
     <header class="header" :class="{ 'header-scrolled': isScrolled }">
       <div class="header-container">
         <div class="logo">
+          <img src="@/assets/logo.svg" alt="AutoCode Logo" class="logo-icon" />
           <h1>AutoCode</h1>
         </div>
         <nav class="nav">
@@ -138,9 +139,9 @@
           <div class="footer-section">
             <h4>{{ t('footer.follow') }}</h4>
             <div class="social-links">
-              <a href="https://github.com/lighthought" class="social-link">GitHub</a>
-              <a href="https://www.xiaohongshu.com/user/profile/62033e59000000001000aa0d" class="social-link">小红书</a>
-              <a href="https://space.bilibili.com/44060402" class="social-link">B站</a>
+              <a href="https://github.com/lighthought" target="_blank" rel="noopener noreferrer" class="social-link">GitHub</a>
+              <a href="https://www.xiaohongshu.com/user/profile/62033e59000000001000aa0d" target="_blank" rel="noopener noreferrer" class="social-link">小红书</a>
+              <a href="https://space.bilibili.com/44060402" target="_blank" rel="noopener noreferrer" class="social-link">B站</a>
             </div>
           </div>
         </div>
@@ -379,6 +380,18 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   height: 64px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .logo h1 {
