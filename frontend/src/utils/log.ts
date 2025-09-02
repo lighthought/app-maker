@@ -70,7 +70,7 @@ Request: ${JSON.stringify(request, null, 2)}`
   setEnabled(enabled: boolean): void {
     this.enabled = enabled
     // 同步更新配置工具
-    apiLogConfig.setEnabled(enabled)
+    AppConfig.getInstance().setApiLogEnabled(enabled)
   }
 
   // 获取当前状态
