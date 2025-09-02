@@ -30,12 +30,7 @@ export interface TagInfo {
 }
 
 export interface CreateProjectData {
-  name: string
-  description: string
   requirements: string
-  backendPort?: number
-  frontendPort?: number
-  tagIds?: string[]
 }
 
 export interface UpdateProjectData {

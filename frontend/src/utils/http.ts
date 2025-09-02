@@ -1,6 +1,8 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { useUserStore } from '@/stores/user'
+import { apiLogger } from './log'
+import { AppConfig } from './config'
 
 class HttpService {
   private instance: AxiosInstance
@@ -12,7 +14,7 @@ class HttpService {
   
   constructor() {
     this.instance = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+      baseURL: AppConfig.getInstance().getApiBaseUrl(),
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json'
@@ -26,22 +28,35 @@ class HttpService {
     // 请求拦截器
     this.instance.interceptors.request.use(
       (config) => {
+        // 记录请求日志
+        apiLogger.logRequest(config)
+        
         const userStore = useUserStore()
         if (userStore.token) {
           config.headers.Authorization = `Bearer ${userStore.token}`
         }
         return config
       },
-      (error) => Promise.reject(error)
+      (error) => {
+        // 记录请求错误日志
+        apiLogger.logError(error)
+        return Promise.reject(error)
+      }
     )
     
     // 响应拦截器
     this.instance.interceptors.response.use(
       (response: AxiosResponse) => {
+        // 记录响应日志
+        apiLogger.logResponse(response)
+        
         // 直接返回响应数据，让业务层处理成功/失败逻辑
         return response.data
       },
       async (error) => {
+        // 记录响应错误日志
+        apiLogger.logError(error)
+        
         const originalRequest = error.config
         
         // 如果是401错误且不是刷新token的请求，尝试刷新token
@@ -127,6 +142,15 @@ class HttpService {
   
   public patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     return this.instance.patch(url, data, config)
+  }
+  
+  // 日志控制方法
+  public setLogEnabled(enabled: boolean): void {
+    apiLogger.setEnabled(enabled)
+  }
+  
+  public isLogEnabled(): boolean {
+    return apiLogger.isEnabled()
   }
 }
 
