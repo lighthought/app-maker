@@ -25,22 +25,22 @@ help:
 
 # 生成Swagger文档
 swagger:
-	@echo "📚 Generating Swagger documentation..."
+	@echo "Generating Swagger documentation..."
 	cd backend && swag init -g cmd/server/main.go -o docs
 
 # 构建开发环境镜像
 build-dev: swagger
-	@echo "🔨 Building development environment images..."
+	@echo "Building development environment images..."
 	docker-compose build
 
 # 构建生产环境镜像
 build-prod: swagger
-	@echo "🔨 Building production environment images..."
+	@echo "Building production environment images..."
 	docker-compose -f docker-compose.prod.yml build
 
 # 启动开发环境
 run-dev:
-	@echo "🚀 Starting development environment..."
+	@echo "Starting development environment..."
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend API: http://localhost:8098"
 	@echo "Swagger Docs: http://localhost:8098/swagger/index.html"
@@ -48,7 +48,7 @@ run-dev:
 
 # 启动生产环境
 run-prod:
-	@echo "🚀 Starting production environment..."
+	@echo "Starting production environment..."
 	@echo "Frontend: http://localhost"
 	@echo "Backend API: http://localhost:8080"
 	@echo "Swagger Docs: http://localhost:8080/swagger/index.html"
@@ -56,21 +56,21 @@ run-prod:
 
 # 停止开发环境
 stop-dev:
-	@echo "🛑 Stopping development environment..."
+	@echo "Stopping development environment..."
 	docker-compose down
 
 # 停止生产环境
 stop-prod:
-	@echo "🛑 Stopping production environment..."
+	@echo "Stopping production environment..."
 	docker-compose -f docker-compose.prod.yml down
 
 # 查看日志
 logs-dev:
-	@echo "📋 Development environment logs..."
+	@echo "Development environment logs..."
 	docker-compose logs -f
 
 logs-prod:
-	@echo "📋 Production environment logs..."
+	@echo "Production environment logs..."
 	docker-compose -f docker-compose.prod.yml logs -f
 
 # 查看前端日志
@@ -89,14 +89,14 @@ logs-backend-prod:
 
 # 验证配置
 validate-config:
-	@echo "🔍 Validating development environment configuration..."
+	@echo "Validating development environment configuration..."
 	cd backend && APP_ENVIRONMENT=development go run cmd/server/main.go --validate-only
-	@echo "🔍 Validating production environment configuration..."
+	@echo "Validating production environment configuration..."
 	cd backend && APP_ENVIRONMENT=production go run cmd/server/main.go --validate-only
 
 # 清理
 clean:
-	@echo "🧹 Cleaning build files..."
+	@echo "Cleaning build files..."
 	docker-compose down -v
 	docker-compose -f docker-compose.prod.yml down -v
 	docker system prune -f
@@ -104,45 +104,45 @@ clean:
 
 # 安全清理（只清理当前项目）
 clean-safe:
-	@echo "🧹 Safe cleanup for current project..."
+	@echo "Safe cleanup for current project..."
 	docker-compose down -v
-	@echo "⚠️  Note: Only cleaned current project data volumes and containers"
-	@echo "💡 To clean images, manually run: docker rmi app-maker-backend app-maker-frontend"
+	@echo "Note: Only cleaned current project data volumes and containers"
+	@echo "To clean images, manually run: docker rmi app-maker-backend app-maker-frontend"
 
 # 测试
 test:
-	@echo "🧪 Running backend tests..."
+	@echo "Running backend tests..."
 	cd backend && go test ./...
-	@echo "🧪 Running frontend tests..."
+	@echo "Running frontend tests..."
 	cd frontend && pnpm run test
 
 # 格式化代码
 fmt:
-	@echo "✨ Formatting backend code..."
+	@echo "Formatting backend code..."
 	cd backend && go fmt ./...
-	@echo "✨ Formatting frontend code..."
+	@echo "Formatting frontend code..."
 	cd frontend && pnpm run format
 
 # 代码检查
 lint:
-	@echo "🔍 Backend code linting..."
+	@echo "Backend code linting..."
 	cd backend && golangci-lint run
-	@echo "🔍 Frontend code linting..."
+	@echo "Frontend code linting..."
 	cd frontend && pnpm run lint
 
 # 构建二进制文件
 build-bin:
-	@echo "🔨 Building backend binary..."
+	@echo "Building backend binary..."
 	cd backend && go build -o bin/server ./cmd/server
 
 # 运行二进制文件
 run-bin:
-	@echo "🚀 Running backend binary..."
+	@echo "Running backend binary..."
 	cd backend && ./bin/server
 
 # Jenkins自动化构建
 jenkins-build:
-	@echo "🔧 Jenkins automated build..."
+	@echo "Jenkins automated build..."
 	@echo "Usage: make jenkins-build ENV=dev TAG=v1.0.0 PUSH=true"
 	@if [ "$(ENV)" = "" ]; then \
 		echo "Error: Please specify environment (ENV=dev or ENV=prod)"; \
@@ -153,7 +153,7 @@ jenkins-build:
 
 # 部署服务
 deploy:
-	@echo "🚀 Deploying services..."
+	@echo "Deploying services..."
 	@echo "Usage: make deploy ENV=dev TAG=latest FORCE=false"
 	@if [ "$(ENV)" = "" ]; then \
 		echo "Error: Please specify environment (ENV=dev or ENV=prod)"; \
@@ -164,7 +164,7 @@ deploy:
 
 # 健康检查
 health-check:
-	@echo "🏥 Performing health check..."
+	@echo "Performing health check..."
 	@if [ "$(ENV)" = "prod" ]; then \
 		docker-compose -f docker-compose.prod.yml ps; \
 		echo "Health check endpoints:"; \
@@ -180,26 +180,32 @@ health-check:
 
 # 重启服务
 restart-dev:
-	@echo "🔄 Restarting development environment..."
+	@echo "Restarting development environment..."
 	docker-compose restart
 
 restart-prod:
-	@echo "🔄 Restarting production environment..."
+	@echo "Restarting production environment..."
 	docker-compose -f docker-compose.prod.yml restart
 
 # 重启前端开发环境（重新编译）
 restart-front-dev:
-	@echo "🔄 Restarting frontend development environment..."
-	@echo "1️⃣ Stopping frontend container..."
+	@echo "Restarting frontend development environment..."
+	@echo "1.Stopping frontend container..."
 	docker-compose stop frontend
-	@echo "2️⃣ Removing frontend container..."
+	@echo "2.Removing frontend container..."
 	docker-compose rm -f frontend
-	@echo "3️⃣ Rebuilding frontend image..."
+	@echo "3.Rebuilding frontend image..."
 	docker-compose build frontend
-	@echo "4️⃣ Starting frontend container..."
+	@echo "4.Starting frontend container..."
 	docker-compose up -d frontend
-	@echo "✅ Frontend restart completed!"
-	@echo "🌐 Frontend URL: http://localhost:3000"
+	@echo "Frontend restart completed!"
+	@echo "Frontend URL: http://localhost:3000"
+
+# 重启前端生产环境（重新编译）
+restart-front-prod:
+	@echo "Restarting frontend production environment..."
+	@echo "1.Stopping frontend container..."
+	@echo "Frontend URL: http://localhost:3000"
 
 # 进入容器
 shell-frontend-dev:
@@ -216,18 +222,18 @@ shell-backend-prod:
 
 # 数据库操作
 db-migrate:
-	@echo "🗄️  Database migration..."
+	@echo "Database migration..."
 	cd backend && go run cmd/server/main.go --migrate
 
 db-seed:
-	@echo "🌱 Database seed data..."
+	@echo "Database seed data..."
 	cd backend && go run cmd/server/main.go --seed
 
 # 缓存操作
 cache-clear:
-	@echo "🗑️  Clearing cache..."
+	@echo "Clearing cache..."
 	docker-compose exec redis redis-cli FLUSHALL
 
 cache-info:
-	@echo "📊 Cache information..."
+	@echo "Cache information..."
 	docker-compose exec redis redis-cli INFO
