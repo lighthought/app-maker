@@ -14,37 +14,10 @@ definitions:
     type: object
   models.CreateProjectRequest:
     properties:
-      backend_port:
-        example: 8080
-        maximum: 65535
-        minimum: 1024
-        type: integer
-      description:
-        example: 项目描述
-        maxLength: 500
-        type: string
-      frontend_port:
-        example: 3000
-        maximum: 65535
-        minimum: 1024
-        type: integer
-      name:
-        example: 我的项目
-        maxLength: 100
-        minLength: 1
-        type: string
       requirements:
         example: 项目需求描述
         type: string
-      tag_ids:
-        example:
-        - '[''tag1'''
-        - ' ''tag2'']'
-        items:
-          type: string
-        type: array
     required:
-    - name
     - requirements
     type: object
   models.CreateTagRequest:

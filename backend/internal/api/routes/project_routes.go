@@ -24,9 +24,6 @@ func RegisterProjectRoutes(router *gin.RouterGroup, projectHandler *handlers.Pro
 
 		// 项目标签管理
 		projects.GET("/:id/tags", projectHandler.GetProjectTags) // 获取项目标签
-
-		// 端口管理
-		projects.GET("/ports/next", projectHandler.GetNextAvailablePorts) // 获取下一个可用端口
 	}
 
 	// 标签路由组

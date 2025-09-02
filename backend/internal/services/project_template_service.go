@@ -204,6 +204,9 @@ func (s *projectTemplateService) ReplacePlaceholders(ctx context.Context, projec
 			continue
 		}
 
+		// 将 Windows 路径分隔符转换为 Linux 路径分隔符
+		filePath = strings.ReplaceAll(filePath, "\\", "/")
+
 		fullPath := filepath.Join(projectPath, filePath)
 		if err := s.replaceInFile(fullPath, project); err != nil {
 			return fmt.Errorf("failed to replace in file %s: %w", filePath, err)

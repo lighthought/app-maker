@@ -2895,46 +2895,12 @@ const docTemplate = `{
         "models.CreateProjectRequest": {
             "type": "object",
             "required": [
-                "name",
                 "requirements"
             ],
             "properties": {
-                "backend_port": {
-                    "type": "integer",
-                    "maximum": 65535,
-                    "minimum": 1024,
-                    "example": 8080
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 500,
-                    "example": "项目描述"
-                },
-                "frontend_port": {
-                    "type": "integer",
-                    "maximum": 65535,
-                    "minimum": 1024,
-                    "example": 3000
-                },
-                "name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "example": "我的项目"
-                },
                 "requirements": {
                     "type": "string",
                     "example": "项目需求描述"
-                },
-                "tag_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "['tag1'",
-                        " 'tag2']"
-                    ]
                 }
             }
         },

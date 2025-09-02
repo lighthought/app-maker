@@ -61,10 +61,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	logger.Info("请求参数验证通过",
-		logger.String("projectName", req.Name),
 		logger.String("requirements", req.Requirements),
-		logger.Int("backendPort", req.BackendPort),
-		logger.Int("frontendPort", req.FrontendPort),
 	)
 
 	// 从中间件获取用户ID
@@ -76,7 +73,6 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		logger.Error("创建项目失败",
 			logger.String("error", err.Error()),
 			logger.String("userID", userID),
-			logger.String("projectName", req.Name),
 		)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      http.StatusInternalServerError,
@@ -440,49 +436,6 @@ func (h *ProjectHandler) GetProjectTags(c *gin.Context) {
 		Code:      0,
 		Message:   "获取项目标签成功",
 		Data:      tags,
-		Timestamp: time.Now().Format(time.RFC3339),
-	})
-}
-
-// GetNextAvailablePorts godoc
-// @Summary 获取下一个可用端口
-// @Description 获取下一个可用的前端端口和后端端口
-// @Tags 项目管理
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
-// @Success 200 {object} models.Response{data=map[string]int} "获取可用端口成功"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/ports/next [get]
-func (h *ProjectHandler) GetNextAvailablePorts(c *gin.Context) {
-	logger.Info("收到获取下一个可用端口请求")
-
-	backendPort, frontendPort, err := h.projectService.GetNextAvailablePorts(c.Request.Context())
-	if err != nil {
-		logger.Error("获取下一个可用端口失败", logger.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "获取下一个可用端口失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	data := map[string]int{
-		"backend_port":  backendPort,
-		"frontend_port": frontendPort,
-	}
-
-	logger.Info("下一个可用端口获取成功",
-		logger.Int("backendPort", backendPort),
-		logger.Int("frontendPort", frontendPort),
-	)
-
-	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "获取下一个可用端口成功",
-		Data:      data,
 		Timestamp: time.Now().Format(time.RFC3339),
 	})
 }

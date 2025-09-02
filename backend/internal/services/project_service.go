@@ -36,9 +36,6 @@ type ProjectService interface {
 	UpdateProjectPath(ctx context.Context, projectID, projectPath, userID string) error
 	GetProjectByPath(ctx context.Context, projectPath, userID string) (*models.ProjectInfo, error)
 
-	// 端口管理
-	GetNextAvailablePorts(ctx context.Context) (int, int, error)
-
 	// 用户项目管理
 	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) ([]*models.ProjectInfo, *models.PaginationResponse, error)
 }
@@ -48,6 +45,7 @@ type projectService struct {
 	projectRepo     repositories.ProjectRepository
 	tagRepo         repositories.TagRepository
 	templateService ProjectTemplateService
+	nameGenerator   ProjectNameGenerator
 }
 
 // NewProjectService 创建项目服务实例
@@ -56,6 +54,7 @@ func NewProjectService(projectRepo repositories.ProjectRepository, tagRepo repos
 		projectRepo:     projectRepo,
 		tagRepo:         tagRepo,
 		templateService: templateService,
+		nameGenerator:   NewProjectNameGenerator(),
 	}
 }
 
@@ -63,63 +62,35 @@ func NewProjectService(projectRepo repositories.ProjectRepository, tagRepo repos
 func (s *projectService) CreateProject(ctx context.Context, req *models.CreateProjectRequest, userID string) (*models.ProjectInfo, error) {
 	logger.Info("开始创建项目",
 		logger.String("userID", userID),
-		logger.String("projectName", req.Name),
 		logger.String("requirements", req.Requirements),
 	)
 
-	// 生成项目路径
-	projectPath := filepath.Join("/projects", userID, uuid.New().String())
+	// 如果项目名为空，自动生成项目名
+	projectName, projectDescription := s.nameGenerator.GenerateProjectName(req.Requirements)
+	logger.Info("自动生成项目名", logger.String("projectName", projectName))
+
+	// 生成项目路径 - 使用 /app/projects 而不是 /projects
+	projectPath := filepath.Join("/app/data/projects", userID, uuid.New().String())
 	logger.Info("生成项目路径", logger.String("projectPath", projectPath))
 
-	// 设置默认端口
-	backendPort := req.BackendPort
-	if backendPort == 0 {
-		backendPort = 8081
-	}
-	frontendPort := req.FrontendPort
-	if frontendPort == 0 {
-		frontendPort = 3001
-	}
-
-	logger.Info("检查端口可用性",
-		logger.String("requestedBackendPort", fmt.Sprintf("%d", backendPort)),
-		logger.String("requestedFrontendPort", fmt.Sprintf("%d", frontendPort)),
-	)
-
-	// 检查端口冲突并获取可用端口
-	availableBackendPort, availableFrontendPort, err := s.projectRepo.GetAvailablePorts(ctx, backendPort, frontendPort)
+	// 自动获取可用端口
+	availableBackendPort, availableFrontendPort, err := s.projectRepo.GetNextAvailablePorts(ctx)
 	if err != nil {
 		logger.Error("获取可用端口失败",
 			logger.String("error", err.Error()),
-			logger.Int("requestedBackendPort", backendPort),
-			logger.Int("requestedFrontendPort", frontendPort),
 		)
 		return nil, fmt.Errorf("failed to get available ports: %w", err)
 	}
 
-	// 如果端口有变化，记录日志
-	if availableBackendPort != backendPort {
-		logger.Info("后端端口已调整",
-			logger.Int("originalPort", backendPort),
-			logger.Int("newPort", availableBackendPort),
-		)
-	}
-	if availableFrontendPort != frontendPort {
-		logger.Info("前端端口已调整",
-			logger.Int("originalPort", frontendPort),
-			logger.Int("newPort", availableFrontendPort),
-		)
-	}
-
-	logger.Info("设置项目端口",
+	logger.Info("自动分配端口",
 		logger.Int("backendPort", availableBackendPort),
 		logger.Int("frontendPort", availableFrontendPort),
 	)
 
 	// 创建项目
 	project := &models.Project{
-		Name:         req.Name,
-		Description:  req.Description,
+		Name:         projectName,
+		Description:  projectDescription,
 		Requirements: req.Requirements,
 		BackendPort:  availableBackendPort,
 		FrontendPort: availableFrontendPort,
@@ -158,25 +129,25 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	// 添加标签
-	if len(req.TagIDs) > 0 {
-		logger.Info("开始添加项目标签",
-			logger.String("projectID", project.ID),
-			logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
-		)
-		if err := s.projectRepo.AddTags(ctx, project.ID, req.TagIDs); err != nil {
-			// 标签添加失败不影响项目创建，只记录日志
-			logger.Error("添加项目标签失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-				logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
-			)
-		} else {
-			logger.Info("项目标签添加成功",
-				logger.String("projectID", project.ID),
-				logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
-			)
-		}
-	}
+	// if len(tagIDs) > 0 {
+	// 	logger.Info("开始添加项目标签",
+	// 		logger.String("projectID", project.ID),
+	// 		logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
+	// 	)
+	// 	if err := s.projectRepo.AddTags(ctx, project.ID, req.TagIDs); err != nil {
+	// 		// 标签添加失败不影响项目创建，只记录日志
+	// 		logger.Error("添加项目标签失败",
+	// 			logger.String("error", err.Error()),
+	// 			logger.String("projectID", project.ID),
+	// 			logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
+	// 		)
+	// 	} else {
+	// 		logger.Info("项目标签添加成功",
+	// 			logger.String("projectID", project.ID),
+	// 			logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
+	// 		)
+	// 	}
+	// }
 
 	// 获取创建后的项目信息
 	logger.Info("获取创建后的项目信息", logger.String("projectID", project.ID))
@@ -196,11 +167,6 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	)
 
 	return projectInfo, nil
-}
-
-// GetNextAvailablePorts 获取下一个可用的端口
-func (s *projectService) GetNextAvailablePorts(ctx context.Context) (int, int, error) {
-	return s.projectRepo.GetNextAvailablePorts(ctx)
 }
 
 // GetProject 获取项目信息

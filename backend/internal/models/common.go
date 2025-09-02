@@ -89,12 +89,7 @@ type UpdateProfileRequest struct {
 
 // CreateProjectRequest 创建项目请求
 type CreateProjectRequest struct {
-	Name         string   `json:"name" binding:"required,min=1,max=100" example:"我的项目"`
-	Description  string   `json:"description" binding:"omitempty,max=500" example:"项目描述"`
-	Requirements string   `json:"requirements" binding:"required" example:"项目需求描述"`
-	BackendPort  int      `json:"backend_port" binding:"omitempty,min=1024,max=65535" example:"8080"`
-	FrontendPort int      `json:"frontend_port" binding:"omitempty,min=1024,max=65535" example:"3000"`
-	TagIDs       []string `json:"tag_ids,omitempty" example:"['tag1', 'tag2']"`
+	Requirements string `json:"requirements" binding:"required" example:"项目需求描述"`
 }
 
 // UpdateProjectRequest 更新项目请求
