@@ -9,6 +9,7 @@
         :autosize="autosize"
         @keydown.enter="handleEnterKey"
         class="input-field"
+        :theme-overrides="inputThemeOverrides"
       />
       <n-button
         :type="buttonType"
@@ -51,6 +52,15 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+// 主题覆盖配置
+const inputThemeOverrides = {
+  borderHover: 'none',
+  borderFocus: 'none',
+  border: '1px solid #E2E8F0',
+  color: 'white',
+  textColor: '#2D3748'
+}
 
 // 内部输入值
 const inputValue = ref(props.modelValue)
@@ -103,11 +113,10 @@ const handleSend = () => {
 
 .input-container {
   position: relative;
-  border-radius: var(--border-radius-lg);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
   background: white;
+  border-radius: var(--border-radius-lg);
 }
 
 .input-field {
@@ -169,10 +178,17 @@ const handleSend = () => {
   border: none;
   outline: none;
   text-align: left;
+  resize: none;
 }
 
 :deep(.n-input__textarea-el::placeholder) {
   color: var(--text-secondary);
+}
+
+/* 确保主题覆盖生效 */
+:deep(.n-input) {
+  background: transparent;
+  border: none;
 }
 
 /* 响应式设计 */
