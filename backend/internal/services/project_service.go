@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
+	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 
 	"github.com/google/uuid"
@@ -38,6 +40,9 @@ type ProjectService interface {
 
 	// 用户项目管理
 	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) ([]*models.ProjectInfo, *models.PaginationResponse, error)
+
+	// 项目下载
+	DownloadProject(ctx context.Context, projectID, userID string) ([]byte, error)
 }
 
 // projectService 项目服务实现
@@ -46,6 +51,7 @@ type projectService struct {
 	tagRepo         repositories.TagRepository
 	templateService ProjectTemplateService
 	nameGenerator   ProjectNameGenerator
+	zipUtils        *utils.ZipUtils
 }
 
 // NewProjectService 创建项目服务实例
@@ -55,6 +61,7 @@ func NewProjectService(projectRepo repositories.ProjectRepository, tagRepo repos
 		tagRepo:         tagRepo,
 		templateService: templateService,
 		nameGenerator:   NewProjectNameGenerator(),
+		zipUtils:        utils.NewZipUtils(),
 	}
 }
 
@@ -65,9 +72,15 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		logger.String("requirements", req.Requirements),
 	)
 
-	// 如果项目名为空，自动生成项目名
-	projectName, projectDescription := s.nameGenerator.GenerateProjectName(req.Requirements)
-	logger.Info("自动生成项目名", logger.String("projectName", projectName))
+	projectConfig := &models.Project{}
+	// 自动生成项目配置信息和密码信息
+	bGerated := s.nameGenerator.GenerateProjectConfig(req.Requirements, projectConfig)
+	if !bGerated {
+		logger.Error("自动生成项目配置信息失败", logger.String("requirements", req.Requirements))
+		return nil, fmt.Errorf("failed to generate project config: %w", errors.New("failed to generate project config"))
+	}
+
+	logger.Info("自动生成项目名", logger.String("projectName", projectConfig.Name))
 
 	// 生成项目路径 - 使用 /app/projects 而不是 /projects
 	projectPath := filepath.Join("/app/data/projects", userID, uuid.New().String())
@@ -87,16 +100,30 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		logger.Int("frontendPort", availableFrontendPort),
 	)
 
+	projectConfig.BackendPort = availableBackendPort
+	projectConfig.FrontendPort = availableFrontendPort
+
+	// TODO: 获取下一个可用的子网段
+	if projectConfig.Subnetwork == "" {
+		projectConfig.Subnetwork = "172.20.0.0/16"
+	}
+
 	// 创建项目
 	project := &models.Project{
-		Name:         projectName,
-		Description:  projectDescription,
-		Requirements: req.Requirements,
-		BackendPort:  availableBackendPort,
-		FrontendPort: availableFrontendPort,
-		UserID:       userID,
-		Status:       "draft",
-		ProjectPath:  projectPath,
+		Name:             projectConfig.Name,
+		Description:      projectConfig.Description,
+		Requirements:     req.Requirements,
+		BackendPort:      projectConfig.BackendPort,
+		FrontendPort:     projectConfig.FrontendPort,
+		ApiBaseUrl:       projectConfig.ApiBaseUrl,
+		AppSecretKey:     projectConfig.AppSecretKey,
+		DatabasePassword: projectConfig.DatabasePassword,
+		RedisPassword:    projectConfig.RedisPassword,
+		JwtSecretKey:     projectConfig.JwtSecretKey,
+		Subnetwork:       projectConfig.Subnetwork,
+		UserID:           userID,
+		Status:           "draft",
+		ProjectPath:      projectPath,
 	}
 
 	logger.Info("保存项目到数据库")
@@ -268,6 +295,48 @@ func (s *projectService) DeleteProject(ctx context.Context, projectID, userID st
 	}
 	if !isOwner {
 		return errors.New("access denied")
+	}
+
+	// 获取项目信息
+	project, err := s.projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+
+	// 如果项目路径存在，先打包缓存
+	if project.ProjectPath != "" {
+		if _, err := os.Stat(project.ProjectPath); err == nil {
+			// 创建缓存目录
+			cacheDir := "/app/data/projects/cache"
+
+			// 生成缓存文件名
+			cacheFileName := fmt.Sprintf("%s_%s_%s", project.ID, project.Name, time.Now().Format("20060102_150405"))
+
+			// 使用 zipUtils 压缩到缓存
+			_, err := s.zipUtils.CompressDirectoryToCache(ctx, project.ProjectPath, cacheDir, cacheFileName)
+			if err != nil {
+				logger.Error("打包项目到缓存失败",
+					logger.String("projectID", projectID),
+					logger.ErrorField(err))
+			} else {
+				logger.Info("项目已打包到缓存",
+					logger.String("projectID", projectID))
+			}
+		}
+	}
+
+	// 删除项目目录
+	if project.ProjectPath != "" {
+		if err := os.RemoveAll(project.ProjectPath); err != nil {
+			logger.Error("删除项目目录失败",
+				logger.String("projectID", projectID),
+				logger.String("projectPath", project.ProjectPath),
+				logger.ErrorField(err))
+		} else {
+			logger.Info("项目目录已删除",
+				logger.String("projectID", projectID),
+				logger.String("projectPath", project.ProjectPath))
+		}
 	}
 
 	return s.projectRepo.Delete(ctx, projectID)
@@ -518,4 +587,35 @@ func (s *projectService) convertToProjectInfo(project *models.Project) *models.P
 	}
 
 	return projectInfo
+}
+
+// DownloadProject 下载项目文件
+func (s *projectService) DownloadProject(ctx context.Context, projectID, userID string) ([]byte, error) {
+	// 检查权限
+	isOwner, err := s.projectRepo.IsOwner(ctx, projectID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isOwner {
+		return nil, errors.New("access denied")
+	}
+
+	// 获取项目信息
+	project, err := s.projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 检查项目路径是否存在
+	if project.ProjectPath == "" {
+		return nil, fmt.Errorf("项目路径为空")
+	}
+
+	// 使用 zipUtils 压缩项目文件
+	zipData, err := s.zipUtils.CompressDirectoryToBytes(ctx, project.ProjectPath)
+	if err != nil {
+		return nil, fmt.Errorf("打包项目文件失败: %w", err)
+	}
+
+	return zipData, nil
 }

@@ -439,3 +439,75 @@ func (h *ProjectHandler) GetProjectTags(c *gin.Context) {
 		Timestamp: time.Now().Format(time.RFC3339),
 	})
 }
+
+// DownloadProject godoc
+// @Summary 下载项目文件
+// @Description 将项目文件打包为zip并下载
+// @Tags 项目管理
+// @Accept json
+// @Produce application/zip
+// @Param Authorization header string true "Bearer 用户令牌"
+// @Param id path string true "项目ID"
+// @Success 200 {file} file "项目文件zip包"
+// @Failure 400 {object} models.ErrorResponse "请求参数错误"
+// @Failure 401 {object} models.ErrorResponse "未授权"
+// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
+// @Failure 404 {object} models.ErrorResponse "项目不存在"
+// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Router /api/v1/projects/{id}/download [get]
+func (h *ProjectHandler) DownloadProject(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      http.StatusBadRequest,
+			Message:   "项目ID不能为空",
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// 从中间件获取用户ID
+	userID := c.GetString("user_id")
+
+	// 获取项目信息
+	project, err := h.projectService.GetProject(c.Request.Context(), projectID, userID)
+	if err != nil {
+		if err.Error() == "access denied" {
+			c.JSON(http.StatusForbidden, models.ErrorResponse{
+				Code:      http.StatusForbidden,
+				Message:   "访问被拒绝",
+				Timestamp: time.Now().Format(time.RFC3339),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      http.StatusInternalServerError,
+			Message:   "获取项目信息失败: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// 生成zip文件
+	zipData, err := h.projectService.DownloadProject(c.Request.Context(), projectID, userID)
+	if err != nil {
+		logger.Error("生成项目zip文件失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", projectID),
+		)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      http.StatusInternalServerError,
+			Message:   "生成项目文件失败: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// 设置响应头
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", project.Name))
+	c.Header("Content-Length", fmt.Sprintf("%d", len(zipData)))
+
+	// 返回zip文件
+	c.Data(http.StatusOK, "application/zip", zipData)
+}

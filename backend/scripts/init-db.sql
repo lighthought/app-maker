@@ -52,6 +52,12 @@ CREATE TABLE IF NOT EXISTS projects (
     project_path VARCHAR(500) UNIQUE,
     backend_port INTEGER DEFAULT 8080 CHECK (backend_port >= 1024 AND backend_port <= 65535),
     frontend_port INTEGER DEFAULT 3000 CHECK (frontend_port >= 1024 AND frontend_port <= 65535),
+    api_base_url VARCHAR(100) DEFAULT '/api/v1',
+    app_secret_key VARCHAR(255),
+    database_password VARCHAR(255),
+    redis_password VARCHAR(255),
+    jwt_secret_key VARCHAR(255),
+    subnetwork VARCHAR(50) DEFAULT '172.20.0.0/16',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP

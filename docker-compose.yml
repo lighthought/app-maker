@@ -29,6 +29,7 @@ services:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
       - ./backend/bmad-config:/app/bmad-config
+      - app_data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,6 +88,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  app_data:
     driver: local
 
 networks:

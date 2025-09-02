@@ -1,15 +1,20 @@
 package services
 
 import (
+	"autocodeweb-backend/internal/models"
+	"autocodeweb-backend/internal/utils"
+
 	"math/rand"
 	"regexp"
 	"strings"
-	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // ProjectNameGenerator 项目名生成器接口
 type ProjectNameGenerator interface {
-	GenerateProjectName(requirements string) (string, string)
+	GenerateProjectConfig(requirements string, projectConfig *models.Project) bool
 }
 
 // projectNameGenerator 项目名生成器实现
@@ -63,7 +68,7 @@ func NewProjectNameGenerator() ProjectNameGenerator {
 }
 
 // GenerateProjectName 根据需求生成项目名
-func (g *projectNameGenerator) GenerateProjectName(requirements string) (string, string) {
+func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projectConfig *models.Project) bool {
 	// 1. 提取关键词
 	keywords := g.extractKeywords(requirements)
 
@@ -80,7 +85,19 @@ func (g *projectNameGenerator) GenerateProjectName(requirements string) (string,
 	projectName := g.combineName(projectType, feature, suffix)
 	projectDescription := requirements
 
-	return projectName, projectDescription
+	projectConfig.Name = projectName
+	projectConfig.Description = projectDescription
+	projectConfig.ApiBaseUrl = "/api/v1"
+	projectConfig.FrontendPort = 3000
+	projectConfig.BackendPort = 8080
+	passwordUtils := utils.NewPasswordUtils()
+	projectConfig.AppSecretKey = passwordUtils.GenerateRandomPassword("app")
+	projectConfig.RedisPassword = passwordUtils.GenerateRandomPassword("redis")
+	projectConfig.JwtSecretKey = passwordUtils.GenerateRandomPassword("jwt")
+	projectConfig.DatabasePassword = passwordUtils.GenerateRandomPassword("database")
+	projectConfig.Subnetwork = "172.20.0.0/16"
+
+	return true
 }
 
 // extractKeywords 从需求中提取关键词
@@ -123,7 +140,6 @@ func (g *projectNameGenerator) selectProjectType(keywords []string) string {
 			for _, projectType := range types {
 				if keyword == projectType {
 					// 随机选择一个该类型的项目名
-					rand.Seed(time.Now().UnixNano())
 					return types[rand.Intn(len(types))]
 				}
 			}
@@ -142,7 +158,6 @@ func (g *projectNameGenerator) selectFeature(keywords []string) string {
 			for _, feature := range features {
 				if keyword == feature {
 					// 随机选择一个该类型的功能
-					rand.Seed(time.Now().UnixNano())
 					return features[rand.Intn(len(features))]
 				}
 			}
@@ -155,16 +170,16 @@ func (g *projectNameGenerator) selectFeature(keywords []string) string {
 
 // selectSuffix 选择后缀
 func (g *projectNameGenerator) selectSuffix() string {
-	rand.Seed(time.Now().UnixNano())
 	return g.suffixes[rand.Intn(len(g.suffixes))]
 }
 
 // combineName 组合项目名
 func (g *projectNameGenerator) combineName(projectType, feature, suffix string) string {
 	// 确保单词首字母大写
-	projectType = strings.Title(projectType)
-	feature = strings.Title(feature)
-	suffix = strings.Title(suffix)
+	caser := cases.Title(language.English)
+	projectType = caser.String(projectType)
+	feature = caser.String(feature)
+	suffix = caser.String(suffix)
 
 	// 组合方式：Feature + ProjectType + Suffix
 	return feature + projectType + suffix

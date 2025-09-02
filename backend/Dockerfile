@@ -28,7 +28,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/m
 FROM alpine:latest
 
 # 安装 ca-certificates 和 tzdata
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata zip
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S appgroup && \
@@ -47,7 +47,7 @@ COPY --from=builder /app/docs ./docs
 COPY --from=builder /app/data/template.zip ./data/template.zip
 
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data && \
+RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data /app/data/tmp /app/data/projects /app/data/projects/cache && \
     chown -R appuser:appgroup /app
 
 # 切换到非 root 用户

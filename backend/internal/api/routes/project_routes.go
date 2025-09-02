@@ -24,6 +24,9 @@ func RegisterProjectRoutes(router *gin.RouterGroup, projectHandler *handlers.Pro
 
 		// 项目标签管理
 		projects.GET("/:id/tags", projectHandler.GetProjectTags) // 获取项目标签
+
+		// 项目下载
+		projects.GET("/:id/download", projectHandler.DownloadProject) // 下载项目文件
 	}
 
 	// 标签路由组
