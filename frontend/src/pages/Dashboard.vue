@@ -18,7 +18,7 @@
             <template #icon>
               <n-icon><AddIcon /></n-icon>
             </template>
-            创建新项目
+            创建项目
           </n-button>
         </div>
       </div>
@@ -117,6 +117,7 @@
             class="project-card"
             :class="{ 'project-card--active': currentProject?.id === project.id }"
             @click="selectProject(project)"
+            @dblclick="editProject(project.id)"
           >
             <div class="project-header">
               <h3>{{ project.name }}</h3>
@@ -125,7 +126,12 @@
               </n-tag>
             </div>
             
-            <p class="project-description">{{ project.description }}</p>
+            <p 
+              class="project-description" 
+              :title="project.description"
+            >
+              {{ project.description }}
+            </p>
             
             <div class="project-progress">
               <n-progress
@@ -138,22 +144,7 @@
             </div>
             
             <div class="project-meta">
-              <span class="created-time">{{ formatDate(project.createdAt) }}</span>
-              <div class="project-actions">
-                <n-button
-                  size="tiny"
-                  @click.stop="previewProject(project.id)"
-                >
-                  预览
-                </n-button>
-                <n-button
-                  size="tiny"
-                  type="primary"
-                  @click.stop="editProject(project.id)"
-                >
-                  编辑
-                </n-button>
-              </div>
+              <span class="created-time">{{ formatDateShort(project.created_at) }}</span>
             </div>
           </n-card>
         </div>
@@ -195,49 +186,6 @@
 
       <!-- 右侧面板 -->
       <div class="sidebar-panel">
-        <!-- 当前项目详情 -->
-        <n-card v-if="currentProject" class="current-project-card">
-          <template #header>
-            <div class="card-header">
-              <h3>当前项目</h3>
-              <n-button size="tiny" @click="currentProject = null">
-                <n-icon><CloseIcon /></n-icon>
-              </n-button>
-            </div>
-          </template>
-          
-          <div class="project-detail">
-            <h4>{{ currentProject.name }}</h4>
-            <p>{{ currentProject.description }}</p>
-            
-            <div class="project-stats">
-              <div class="stat-item">
-                <span class="label">状态</span>
-                <n-tag :type="getStatusType(currentProject.status)">
-                  {{ getStatusText(currentProject.status) }}
-                </n-tag>
-              </div>
-              <div class="stat-item">
-                <span class="label">进度</span>
-                <span class="value">{{ getProjectProgress(currentProject) }}%</span>
-              </div>
-              <div class="stat-item">
-                <span class="label">创建时间</span>
-                <span class="value">{{ formatDate(currentProject.createdAt) }}</span>
-              </div>
-            </div>
-            
-            <div class="project-actions">
-              <n-button type="primary" @click="editProject(currentProject.id)">
-                继续编辑
-              </n-button>
-              <n-button @click="previewProject(currentProject.id)">
-                预览项目
-              </n-button>
-            </div>
-          </div>
-        </n-card>
-
         <!-- 系统状态 -->
         <n-card class="system-status-card">
           <template #header>
@@ -246,10 +194,14 @@
           
           <div class="status-list">
             <div class="status-item">
-              <n-icon size="16" color="#38A169">
+              <n-icon 
+                size="16" 
+                :color="backendStatus === 'ok' ? '#38A169' : backendStatus === 'error' ? '#E53E3E' : '#D69E2E'"
+              >
                 <CheckIcon />
               </n-icon>
-              <span>后端服务正常</span>
+              <span>后端服务{{ backendStatus === 'ok' ? '正常' : backendStatus === 'error' ? '异常' : '检查中' }}</span>
+              <span v-if="backendVersion" class="version-info">v{{ backendVersion }}</span>
             </div>
             <div class="status-item">
               <n-icon size="16" color="#38A169">
@@ -266,30 +218,64 @@
           </div>
         </n-card>
 
-        <!-- 快速操作 -->
-        <n-card class="quick-actions-card">
+        <!-- 当前项目详情 -->
+        <n-card v-if="currentProject" class="current-project-card">
           <template #header>
-            <h3>快速操作</h3>
+            <div class="card-header">
+              <h3>当前项目</h3>
+              <n-button size="tiny" @click="currentProject = null">
+                <n-icon><CloseIcon /></n-icon>
+              </n-button>
+            </div>
           </template>
           
-          <div class="quick-actions">
-            <n-button
-              v-for="action in quickActions"
-              :key="action.key"
-              :type="action.type"
-              size="small"
-              @click="handleQuickAction(action.key)"
-              class="quick-action-btn"
+          <div class="project-detail">
+            <h4>{{ currentProject.name }}</h4>
+            <p 
+              class="project-description-short" 
+              :title="currentProject.description"
             >
-              <template #icon>
-                <n-icon><component :is="action.icon" /></n-icon>
-              </template>
-              {{ action.label }}
-            </n-button>
+              {{ truncateDescription(currentProject.description) }}
+            </p>
+            
+            <div class="project-stats">
+              <div class="stat-item">
+                <span class="label">状态</span>
+                <n-tag :type="getStatusType(currentProject.status)">
+                  {{ getStatusText(currentProject.status) }}
+                </n-tag>
+              </div>
+              <div class="stat-item">
+                <span class="label">进度</span>
+                <span class="value">{{ getProjectProgress(currentProject) }}%</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">创建时间</span>
+                <span class="value">{{ formatDateTime(currentProject.created_at) }}</span>
+              </div>
+            </div>
+            
+            <div class="project-actions">
+              <n-button type="primary" @click="editProject(currentProject.id)">
+                编辑
+              </n-button>
+              <n-button 
+                v-if="currentProject.status !== 'draft'"
+                @click="previewProject(currentProject.id)"
+              >
+                预览
+              </n-button>
+              <n-button @click="downloadProject(currentProject.id)">
+                下载
+              </n-button>
+              <n-button type="error" @click="handleDeleteProject(currentProject.id)">
+                删除
+              </n-button>
+            </div>
           </div>
         </n-card>
       </div>
-          </div>
+    </div>
     </div>
   </PageLayout>
 </template>
@@ -299,6 +285,8 @@ import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
+import { formatDateTime, formatDateShort } from '@/utils/time'
+import { httpService } from '@/utils/http'
 import {
   NButton, NIcon, NCard, NStatistic, NInput, NSelect, NTag, NProgress, NPagination
 } from 'naive-ui'
@@ -382,6 +370,8 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const currentProject = ref<Project | null>(null)
 const updateInterval = ref<number | null>(null)
+const backendStatus = ref<'ok' | 'error' | 'checking'>('checking')
+const backendVersion = ref('')
 
 // 状态选项
 const statusOptions = [
@@ -390,14 +380,6 @@ const statusOptions = [
   { label: '进行中', value: 'in_progress' },
   { label: '已完成', value: 'completed' },
   { label: '失败', value: 'failed' }
-]
-
-// 快速操作
-const quickActions = [
-  { key: 'create', label: '创建项目', icon: AddIcon, type: 'primary' as const },
-  { key: 'import', label: '导入项目', icon: FolderIcon, type: 'default' as const },
-  { key: 'export', label: '导出数据', icon: TrendingUpIcon, type: 'default' as const },
-  { key: 'settings', label: '设置', icon: ClockIcon, type: 'default' as const }
 ]
 
 // 计算属性
@@ -424,7 +406,7 @@ const newThisMonth = computed(() => {
   const now = new Date()
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   return projectStore.projects.filter(p => 
-    new Date(p.createdAt) >= thisMonth
+    new Date(p.created_at) >= thisMonth
   ).length
 })
 
@@ -451,6 +433,40 @@ const previewProject = (projectId: string) => {
 
 const editProject = (projectId: string) => {
   router.push(`/project/${projectId}`)
+}
+
+const downloadProject = async (projectId: string) => {
+  try {
+    await projectStore.downloadProject(projectId)
+  } catch (error) {
+    console.error('下载项目失败:', error)
+  }
+}
+
+const handleDeleteProject = async (projectId: string) => {
+  try {
+    await projectStore.deleteProject(projectId)
+    // 如果删除的是当前选中的项目，清空选中状态
+    if (currentProject.value?.id === projectId) {
+      currentProject.value = null
+    }
+  } catch (error) {
+    console.error('删除项目失败:', error)
+  }
+}
+
+// 健康检查方法
+const checkBackendHealth = async () => {
+  try {
+    backendStatus.value = 'checking'
+    const healthData = await httpService.healthCheck()
+    backendStatus.value = 'ok'
+    backendVersion.value = healthData.version
+    console.log('后端健康检查成功:', healthData)
+  } catch (error) {
+    backendStatus.value = 'error'
+    console.error('后端健康检查失败:', error)
+  }
 }
 
 const getStatusType = (status: string): 'default' | 'error' | 'warning' | 'success' | 'primary' | 'info' => {
@@ -494,41 +510,31 @@ const getProgressColor = (status: string) => {
   return colorMap[status] || '#A0AEC0'
 }
 
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-const handleQuickAction = (action: string) => {
-  switch (action) {
-    case 'create':
-      createNewProject()
-      break
-    case 'import':
-      // TODO: 实现导入功能
-      console.log('导入项目')
-      break
-    case 'export':
-      // TODO: 实现导出功能
-      console.log('导出数据')
-      break
-    case 'settings':
-      // TODO: 跳转到设置页面
-      console.log('设置')
-      break
-  }
+const truncateDescription = (description: string) => {
+  if (!description) return ''
+  return description.length > 100 ? description.substring(0, 100) + '...' : description
 }
 
 // 实时更新
 const startRealTimeUpdates = () => {
-  updateInterval.value = window.setInterval(() => {
-    // 这里可以调用 API 获取最新数据
-    // 目前使用模拟数据，实际项目中应该调用 projectStore.fetchProjects()
-    console.log('实时更新项目数据...')
-  }, 30000) // 30秒更新一次
+  updateInterval.value = window.setInterval(async () => {
+    try {
+      // 使用实际的API获取最新数据
+      const params: ProjectListRequest = {
+        page: currentPage.value,
+        pageSize: pageSize.value,
+        status: statusFilter.value || undefined,
+        search: searchKeyword.value || undefined
+      }
+      await projectStore.fetchProjects(params)
+      console.log('实时更新项目数据完成')
+
+      // 健康检查
+      await checkBackendHealth()
+    } catch (error) {
+      console.error('实时更新项目数据失败:', error)
+    }
+  }, 45000) // 30秒更新一次
 }
 
 const stopRealTimeUpdates = () => {
@@ -539,7 +545,10 @@ const stopRealTimeUpdates = () => {
 }
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 初始健康检查
+  await checkBackendHealth()
+  
   // 加载项目数据
   fetchProjectsWithFilters()
   
@@ -612,12 +621,6 @@ onUnmounted(() => {
 .welcome-section p {
   margin: 0;
   color: var(--text-secondary);
-}
-
-.create-btn {
-  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-  border: none;
-  font-weight: 600;
 }
 
 /* 统计卡片 */
@@ -709,6 +712,32 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.project-card:hover::after {
+  content: '双击编辑';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
 }
 
 .project-card:hover {
@@ -744,6 +773,14 @@ onUnmounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  cursor: help;
+}
+
+.project-description:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  padding: 2px;
+  margin: -2px -2px calc(var(--spacing-md) - 2px) -2px;
 }
 
 .project-progress {
@@ -765,11 +802,6 @@ onUnmounted(() => {
 .created-time {
   font-size: 0.8rem;
   color: var(--text-disabled);
-}
-
-.project-actions {
-  display: flex;
-  gap: var(--spacing-sm);
 }
 
 /* 空状态 */
@@ -802,18 +834,6 @@ onUnmounted(() => {
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.5;
-}
-
-.create-first-project-btn {
-  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-  border: none;
-  font-weight: 600;
-  padding: var(--spacing-md) var(--spacing-lg);
-}
-
-.create-first-project-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
 }
 
 /* 分页 */
@@ -863,6 +883,27 @@ onUnmounted(() => {
   font-size: 0.9rem;
 }
 
+.project-description-short {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  max-height: 3.6em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  cursor: help;
+  position: relative;
+}
+
+.project-description-short:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  padding: 4px;
+  margin: -4px -4px calc(var(--spacing-md) - 4px) -4px;
+}
+
 .project-stats {
   margin-bottom: var(--spacing-lg);
 }
@@ -903,14 +944,11 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-sm);
-}
-
-.quick-action-btn {
-  width: 100%;
+.version-info {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-disabled);
+  font-weight: 500;
 }
 
 /* 响应式设计 */
@@ -950,10 +988,6 @@ onUnmounted(() => {
   }
   
   .projects-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .quick-actions {
     grid-template-columns: 1fr;
   }
 }

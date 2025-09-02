@@ -50,6 +50,16 @@ class HttpService {
         // 记录响应日志
         apiLogger.logResponse(response)
         
+        // 对于blob响应，直接返回原始响应，不进行数据处理
+        if (response.config.responseType === 'blob') {
+          return response
+        }
+        
+        // 对于健康检查请求，返回原始响应数据
+        if (response.config.url === '/health') {
+          return response.data
+        }
+        
         // 直接返回响应数据，让业务层处理成功/失败逻辑
         return response.data
       },
@@ -142,6 +152,29 @@ class HttpService {
   
   public patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     return this.instance.patch(url, data, config)
+  }
+  
+  // 下载文件方法，返回 blob 数据
+  public async download(url: string): Promise<Blob> {
+    const response = await this.instance.get(url, {
+      responseType: 'blob'
+    })
+    // 对于blob响应，返回response.data（blob数据）
+    return response.data
+  }
+  
+  // 健康检查方法
+  public async healthCheck(): Promise<{
+    message: string
+    status: string
+    version: string
+  }> {
+    try {
+      const response = await this.instance.get('/health')
+      return response as any
+    } catch (error) {
+      throw new Error('后端服务健康检查失败')
+    }
   }
   
   // 日志控制方法

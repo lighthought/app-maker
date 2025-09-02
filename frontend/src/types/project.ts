@@ -10,8 +10,8 @@ export interface Project {
   userId: string
   user?: UserInfo
   tags: TagInfo[]
-  createdAt: string
-  updatedAt: string
+  created_at: string
+  updated_at: string
 }
 
 export interface UserInfo {

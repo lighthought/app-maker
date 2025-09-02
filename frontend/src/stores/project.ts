@@ -136,6 +136,34 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // 下载项目
+  const downloadProject = async (projectId: string) => {
+    try {
+      // 使用 httpService 的 download 方法
+      const blob = await httpService.download(`/projects/${projectId}/download`)
+      
+      // 验证blob数据
+      if (!blob || blob.size === 0) {
+        throw new Error('下载的文件为空')
+      }
+      
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `project-${projectId}.zip`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      console.log('项目下载成功:', projectId)
+    } catch (error) {
+      console.error('下载项目失败:', error)
+      throw error
+    }
+  }
+
   // 获取单个项目
   const getProject = async (projectId: string) => {
     try {
@@ -171,6 +199,7 @@ export const useProjectStore = defineStore('project', () => {
     createProject,
     updateProject,
     deleteProject,
+    downloadProject,
     getProject,
     setCurrentProject
   }
