@@ -43,8 +43,11 @@ COPY --from=builder /app/main .
 # 复制生成的文档
 COPY --from=builder /app/docs ./docs
 
+# 复制模板文件
+COPY --from=builder /app/data/template.zip ./data/template.zip
+
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/configs /app/bmad-config && \
+RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data && \
     chown -R appuser:appgroup /app
 
 # 切换到非 root 用户
