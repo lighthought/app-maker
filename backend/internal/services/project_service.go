@@ -47,21 +47,28 @@ type ProjectService interface {
 
 // projectService 项目服务实现
 type projectService struct {
-	projectRepo     repositories.ProjectRepository
-	tagRepo         repositories.TagRepository
-	templateService ProjectTemplateService
-	nameGenerator   ProjectNameGenerator
-	zipUtils        *utils.ZipUtils
+	projectRepo         repositories.ProjectRepository
+	tagRepo             repositories.TagRepository
+	templateService     ProjectTemplateService
+	taskExecutionService *TaskExecutionService
+	nameGenerator       ProjectNameGenerator
+	zipUtils            *utils.ZipUtils
 }
 
 // NewProjectService 创建项目服务实例
-func NewProjectService(projectRepo repositories.ProjectRepository, tagRepo repositories.TagRepository, templateService ProjectTemplateService) ProjectService {
+func NewProjectService(
+	projectRepo repositories.ProjectRepository, 
+	tagRepo repositories.TagRepository, 
+	templateService ProjectTemplateService,
+	taskExecutionService *TaskExecutionService,
+) ProjectService {
 	return &projectService{
-		projectRepo:     projectRepo,
-		tagRepo:         tagRepo,
-		templateService: templateService,
-		nameGenerator:   NewProjectNameGenerator(),
-		zipUtils:        utils.NewZipUtils(),
+		projectRepo:         projectRepo,
+		tagRepo:            tagRepo,
+		templateService:    templateService,
+		taskExecutionService: taskExecutionService,
+		nameGenerator:      NewProjectNameGenerator(),
+		zipUtils:           utils.NewZipUtils(),
 	}
 }
 
@@ -187,7 +194,17 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		return nil, err
 	}
 
-	logger.Info("项目创建完成",
+	// 启动项目开发流程（异步）
+	go func() {
+		if err := s.taskExecutionService.StartProjectDevelopment(context.Background(), project.ID); err != nil {
+			logger.Error("启动项目开发流程失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
+		}
+	}()
+
+	logger.Info("项目创建完成，开发流程已启动",
 		logger.String("projectID", project.ID),
 		logger.String("projectName", project.Name),
 		logger.String("status", project.Status),

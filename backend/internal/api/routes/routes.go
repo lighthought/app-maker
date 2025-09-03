@@ -54,7 +54,19 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 
 		// 初始化项目模板服务
 		templateService := services.NewProjectTemplateService("./data/template.zip")
-		projectService := services.NewProjectService(projectRepo, tagRepo, templateService)
+
+		// 初始化任务执行服务相关依赖
+		taskRepo := repositories.NewTaskRepository(db)
+		projectDevService := services.NewProjectDevService("/app/data/projects")
+
+		// 先创建 projectService（暂时传入 nil）
+		projectService := services.NewProjectService(projectRepo, tagRepo, templateService, nil)
+
+		// 创建 taskExecutionService
+		taskExecutionService := services.NewTaskExecutionService(projectService, projectRepo, taskRepo, projectDevService, "/app/data/projects")
+
+		// 重新创建 projectService 并传入 taskExecutionService
+		projectService = services.NewProjectService(projectRepo, tagRepo, templateService, taskExecutionService)
 
 		tagService := services.NewTagService(tagRepo)
 		projectHandler := handlers.NewProjectHandler(projectService, tagService)
@@ -64,9 +76,7 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		RegisterProjectRoutes(v1, projectHandler, tagHandler, authMiddleware)
 
 		// 初始化任务相关依赖
-		taskRepo := repositories.NewTaskRepository(db)
-		taskLogRepo := repositories.NewTaskLogRepository(db)
-		taskService := services.NewTaskService(taskRepo, taskLogRepo, projectRepo)
+		taskService := services.NewTaskService(taskRepo, projectRepo)
 		taskHandler := handlers.NewTaskHandler(taskService)
 
 		// 注册任务路由

@@ -33,57 +33,6 @@ definitions:
     required:
     - name
     type: object
-  models.CreateTaskRequest:
-    properties:
-      deadline:
-        type: string
-      dependencies:
-        example:
-        - '[''task1'''
-        - ' ''task2'']'
-        items:
-          type: string
-        type: array
-      description:
-        example: 任务描述
-        maxLength: 500
-        type: string
-      max_retries:
-        example: 3
-        maximum: 10
-        minimum: 0
-        type: integer
-      metadata:
-        example: 元数据
-        type: string
-      name:
-        example: 任务名称
-        maxLength: 100
-        minLength: 1
-        type: string
-      priority:
-        example: 2
-        maximum: 4
-        minimum: 1
-        type: integer
-      project_id:
-        example: uuid
-        type: string
-      retry_delay:
-        example: 60
-        minimum: 0
-        type: integer
-      tags:
-        example:
-        - '[''tag1'''
-        - ' ''tag2'']'
-        items:
-          type: string
-        type: array
-    required:
-    - name
-    - project_id
-    type: object
   models.ErrorResponse:
     properties:
       code:
@@ -227,129 +176,6 @@ definitions:
         example: 标签名称
         type: string
     type: object
-  models.TaskInfo:
-    properties:
-      completed_at:
-        type: string
-      created_at:
-        type: string
-      deadline:
-        type: string
-      dependencies:
-        example:
-        - '[''task1'''
-        - ' ''task2'']'
-        items:
-          type: string
-        type: array
-      description:
-        example: 任务描述
-        type: string
-      error_message:
-        example: 错误信息
-        type: string
-      id:
-        example: uuid
-        type: string
-      max_retries:
-        example: 3
-        type: integer
-      metadata:
-        example: 元数据
-        type: string
-      name:
-        example: 任务名称
-        type: string
-      priority:
-        example: 2
-        type: integer
-      project_id:
-        example: uuid
-        type: string
-      result:
-        example: 执行结果
-        type: string
-      retry_count:
-        example: 0
-        type: integer
-      retry_delay:
-        example: 60
-        type: integer
-      started_at:
-        type: string
-      status:
-        example: pending
-        type: string
-      tags:
-        example:
-        - '[''tag1'''
-        - ' ''tag2'']'
-        items:
-          type: string
-        type: array
-      updated_at:
-        type: string
-      user_id:
-        example: uuid
-        type: string
-    type: object
-  models.TaskLogInfo:
-    properties:
-      created_at:
-        type: string
-      data:
-        example: 额外数据
-        type: string
-      id:
-        example: uuid
-        type: string
-      level:
-        example: info
-        type: string
-      message:
-        example: 日志消息
-        type: string
-      task_id:
-        example: uuid
-        type: string
-    type: object
-  models.TaskRetryRequest:
-    properties:
-      force:
-        description: 强制重试，忽略依赖检查
-        example: false
-        type: boolean
-    type: object
-  models.TaskRollbackRequest:
-    properties:
-      reason:
-        example: 回滚原因
-        type: string
-    required:
-    - reason
-    type: object
-  models.TaskStatusUpdateRequest:
-    properties:
-      error_message:
-        example: 错误信息
-        type: string
-      result:
-        example: 执行结果
-        type: string
-      status:
-        enum:
-        - pending
-        - running
-        - completed
-        - failed
-        - cancelled
-        - retrying
-        - rolled_back
-        example: running
-        type: string
-    required:
-    - status
-    type: object
   models.UpdateProfileRequest:
     properties:
       email:
@@ -411,51 +237,6 @@ definitions:
         maxLength: 50
         minLength: 1
         type: string
-    type: object
-  models.UpdateTaskRequest:
-    properties:
-      deadline:
-        type: string
-      dependencies:
-        example:
-        - '[''task1'''
-        - ' ''task2'']'
-        items:
-          type: string
-        type: array
-      description:
-        example: 更新后的任务描述
-        maxLength: 500
-        type: string
-      max_retries:
-        example: 5
-        maximum: 10
-        minimum: 0
-        type: integer
-      metadata:
-        example: 元数据
-        type: string
-      name:
-        example: 更新后的任务名
-        maxLength: 100
-        minLength: 1
-        type: string
-      priority:
-        example: 3
-        maximum: 4
-        minimum: 1
-        type: integer
-      retry_delay:
-        example: 120
-        minimum: 0
-        type: integer
-      tags:
-        example:
-        - '[''tag1'''
-        - ' ''tag2'']'
-        items:
-          type: string
-        type: array
     type: object
   models.UserInfo:
     properties:
@@ -986,54 +767,188 @@ paths:
       summary: 获取项目标签
       tags:
       - 项目管理
-  /api/v1/projects/{id}/tasks:
+  /api/v1/projects/{projectId}/tasks:
     get:
       consumes:
       - application/json
-      description: 获取指定项目的所有任务
+      description: 获取指定项目的所有任务列表，支持分页查询
       parameters:
       - description: 项目ID
         in: path
-        name: id
+        name: projectId
+        required: true
+        type: string
+      - description: 页码，默认为1
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认为10
+        in: query
+        name: pageSize
+        type: integer
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
         required: true
         type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 成功返回任务列表
           schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskInfo'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            additionalProperties: true
+            type: object
         "401":
-          description: Unauthorized
+          description: 未授权
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            additionalProperties: true
+            type: object
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取项目任务
+            additionalProperties: true
+            type: object
+      summary: 获取项目任务列表
+      tags:
+      - 任务管理
+  /api/v1/projects/{projectId}/tasks/{taskId}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定任务的详细信息
+      parameters:
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 任务ID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回任务详情
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 任务不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取任务详情
+      tags:
+      - 任务管理
+  /api/v1/projects/{projectId}/tasks/{taskId}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消正在执行的任务
+      parameters:
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 任务ID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功取消任务
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取消任务
+      tags:
+      - 任务管理
+  /api/v1/projects/{projectId}/tasks/{taskId}/logs:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定任务的执行日志，支持分页查询
+      parameters:
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 任务ID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: 页码，默认为1
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认为50
+        in: query
+        name: pageSize
+        type: integer
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回任务日志
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取任务日志
       tags:
       - 任务管理
   /api/v1/tags:
@@ -1349,779 +1264,6 @@ paths:
       summary: 获取项目标签
       tags:
       - 标签管理
-  /api/v1/tasks:
-    get:
-      consumes:
-      - application/json
-      description: 分页获取任务列表，支持过滤和搜索
-      parameters:
-      - default: 1
-        description: 页码
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: 每页数量
-        in: query
-        name: page_size
-        type: integer
-      - description: 项目ID
-        in: query
-        name: project_id
-        type: string
-      - description: 用户ID
-        in: query
-        name: user_id
-        type: string
-      - description: 任务状态
-        in: query
-        name: status
-        type: string
-      - description: 优先级
-        in: query
-        name: priority
-        type: integer
-      - collectionFormat: csv
-        description: 标签
-        in: query
-        items:
-          type: string
-        name: tags
-        type: array
-      - description: 搜索关键词
-        in: query
-        name: search
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  allOf:
-                  - $ref: '#/definitions/models.PaginationResponse'
-                  - properties:
-                      data:
-                        items:
-                          $ref: '#/definitions/models.TaskInfo'
-                        type: array
-                    type: object
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取任务列表
-      tags:
-      - 任务管理
-    post:
-      consumes:
-      - application/json
-      description: 创建新的任务
-      parameters:
-      - description: 任务信息
-        in: body
-        name: task
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateTaskRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.TaskInfo'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 创建任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除指定任务
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 删除任务
-      tags:
-      - 任务管理
-    get:
-      consumes:
-      - application/json
-      description: 根据任务ID获取任务详细信息
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.TaskInfo'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取任务详情
-      tags:
-      - 任务管理
-    put:
-      consumes:
-      - application/json
-      description: 更新任务信息
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 任务更新信息
-        in: body
-        name: task
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateTaskRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.TaskInfo'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 更新任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/complete:
-    post:
-      consumes:
-      - application/json
-      description: 标记任务为完成状态
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 执行结果
-        in: query
-        name: result
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 完成任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/dependencies:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定任务的依赖任务列表
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskInfo'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取任务依赖
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/logs:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定任务的执行日志
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 日志级别
-        enum:
-        - info
-        - warn
-        - error
-        in: query
-        name: level
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskLogInfo'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取任务日志
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/retry:
-    post:
-      consumes:
-      - application/json
-      description: 重试失败的任务
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 重试参数
-        in: body
-        name: retry
-        required: true
-        schema:
-          $ref: '#/definitions/models.TaskRetryRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 重试任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/rollback:
-    post:
-      consumes:
-      - application/json
-      description: 回滚已完成的任务
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 回滚参数
-        in: body
-        name: rollback
-        required: true
-        schema:
-          $ref: '#/definitions/models.TaskRollbackRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 回滚任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/start:
-    post:
-      consumes:
-      - application/json
-      description: 启动指定任务
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 启动任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/{id}/status:
-    put:
-      consumes:
-      - application/json
-      description: 更新任务的状态
-      parameters:
-      - description: 任务ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 状态更新信息
-        in: body
-        name: status
-        required: true
-        schema:
-          $ref: '#/definitions/models.TaskStatusUpdateRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 更新任务状态
-      tags:
-      - 任务管理
-  /api/v1/tasks/failed:
-    get:
-      consumes:
-      - application/json
-      description: 获取所有失败的任务
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskInfo'
-                  type: array
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取失败任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/overdue:
-    get:
-      consumes:
-      - application/json
-      description: 获取所有超期的任务
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskInfo'
-                  type: array
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 获取超期任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/priority/{priority}:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定优先级的所有任务
-      parameters:
-      - description: 任务优先级
-        in: path
-        maximum: 4
-        minimum: 1
-        name: priority
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskInfo'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 根据优先级获取任务
-      tags:
-      - 任务管理
-  /api/v1/tasks/status/{status}:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定状态的所有任务
-      parameters:
-      - description: 任务状态
-        enum:
-        - pending
-        - running
-        - completed
-        - failed
-        - cancelled
-        - retrying
-        - rolled_back
-        in: path
-        name: status
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/models.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.TaskInfo'
-                  type: array
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: 根据状态获取任务
-      tags:
-      - 任务管理
   /api/v1/users:
     get:
       consumes:

@@ -1,6 +1,6 @@
 # 多阶段构建 Dockerfile
 # 第一阶段：构建阶段
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -27,8 +27,20 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/m
 # 第二阶段：运行阶段
 FROM alpine:latest
 
-# 安装 ca-certificates 和 tzdata
-RUN apk --no-cache add ca-certificates tzdata zip
+# 安装 Node.js、npm 和其他必要工具
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    zip \
+    nodejs \
+    npm \
+    curl \
+    git \
+    bash \
+    python3 \
+    make \
+    g++ \
+    && npm install -g npx
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S appgroup && \
@@ -46,9 +58,13 @@ COPY --from=builder /app/docs ./docs
 # 复制模板文件
 COPY --from=builder /app/data/template.zip ./data/template.zip
 
+# 复制脚本文件
+COPY --from=builder /app/scripts ./scripts
+
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data /app/data/tmp /app/data/projects /app/data/projects/cache && \
-    chown -R appuser:appgroup /app
+RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts && \
+    chown -R appuser:appgroup /app && \
+    chmod +x /app/scripts/*.sh
 
 # 切换到非 root 用户
 USER appuser
