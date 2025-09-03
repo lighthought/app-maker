@@ -71,6 +71,14 @@ class HttpService {
         
         // 如果是401错误且不是刷新token的请求，尝试刷新token
         if (error.response?.status === 401 && !originalRequest._retry) {
+          // 对于登出接口的401错误，直接清除认证状态，不尝试刷新
+          if (originalRequest.url?.includes('/users/logout')) {
+            const userStore = useUserStore()
+            userStore.clearAuth()
+            window.location.href = '/auth'
+            return Promise.reject(error)
+          }
+          
           if (this.isRefreshing) {
             // 如果正在刷新，将请求加入队列
             return new Promise((resolve, reject) => {
@@ -108,15 +116,13 @@ class HttpService {
               // 重试原始请求
               return this.instance(originalRequest)
             } else {
-              // 刷新失败，清除认证状态
-              userStore.clearAuth()
-              window.location.href = '/auth'
+              // 刷新失败，清除认证状态并跳转到登录页
+              // refreshAuth 方法内部已经处理了清除和跳转，这里不需要重复处理
               return Promise.reject(error)
             }
           } catch (refreshError) {
-            // 刷新失败，清除认证状态
-            userStore.clearAuth()
-            window.location.href = '/auth'
+            // 刷新失败，清除认证状态并跳转到登录页
+            // refreshAuth 方法内部已经处理了清除和跳转，这里不需要重复处理
             return Promise.reject(refreshError)
           } finally {
             this.isRefreshing = false

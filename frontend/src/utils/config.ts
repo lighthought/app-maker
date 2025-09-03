@@ -26,7 +26,7 @@ export class AppConfig {
 
   // 获取 API 基础 URL
   getApiBaseUrl(): string {
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8098'
+    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8098/api/v1'
   }
 
   // 获取当前配置信息

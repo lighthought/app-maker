@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { httpService } from '@/utils/http'
 import type { User, LoginCredentials, RegisterCredentials } from '@/types/user'
+import axios from 'axios'
+import { AppConfig } from '@/utils/config'
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
@@ -22,8 +24,29 @@ export const useUserStore = defineStore('user', () => {
         refreshToken.value = storedRefreshToken || ''
         user.value = JSON.parse(storedUser)
         isAuthenticated.value = true
+        
+        // 启动时验证 token 有效性
+        validateTokenOnStartup()
       } catch (error) {
         console.warn('解析用户数据失败，清除本地存储:', error)
+        clearAuth()
+      }
+    }
+  }
+
+  // 启动时验证 token 有效性
+  const validateTokenOnStartup = async () => {
+    try {
+      // 尝试调用一个需要认证的接口来验证 token
+      await httpService.get('/users/profile')
+    } catch (error: any) {
+      console.warn('启动时 token 验证失败，尝试刷新:', error)
+      
+      // 如果验证失败，尝试刷新 token
+      const refreshed = await refreshAuth()
+      if (!refreshed) {
+        // 刷新也失败，清除认证状态
+        console.warn('token 刷新失败，清除认证状态')
         clearAuth()
       }
     }
@@ -118,12 +141,27 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 调用后端登出接口
       if (token.value) {
-        await httpService.post('/users/logout')
+        // 使用原始的 axios 实例，避免被拦截器处理
+        const directAxios = axios.create({
+          baseURL: `${AppConfig.getInstance().getApiBaseUrl()}`,
+          timeout: 5000
+        })
+        
+        await directAxios.post('/users/logout', null, {
+          headers: {
+            'Authorization': `Bearer ${token.value}`,
+            'Content-Type': 'application/json'
+          }
+        })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('登出请求失败:', error)
+      // 如果登出失败（比如401错误），也要清除本地状态
+      if (error.response?.status === 401) {
+        console.warn('登出时token已失效，直接清除本地状态')
+      }
     } finally {
-      // 清除本地状态
+      // 无论成功还是失败，都要清除本地状态
       clearAuth()
     }
   }
@@ -133,6 +171,9 @@ export const useUserStore = defineStore('user', () => {
     try {
       if (!refreshToken.value) {
         console.warn('没有刷新令牌，无法刷新认证')
+        // 清除认证状态并跳转到登录页
+        clearAuth()
+        window.location.href = '/auth'
         return false
       }
 
@@ -163,10 +204,16 @@ export const useUserStore = defineStore('user', () => {
         return true
       } else {
         console.error('刷新令牌失败:', response.message)
+        // 刷新失败，清除认证状态并跳转到登录页
+        clearAuth()
+        window.location.href = '/auth'
         return false
       }
     } catch (error) {
       console.error('刷新令牌失败:', error)
+      // 刷新失败，清除认证状态并跳转到登录页
+      clearAuth()
+      window.location.href = '/auth'
       return false
     }
   }
