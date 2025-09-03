@@ -8,28 +8,28 @@ import (
 
 // Project 项目模型
 type Project struct {
-	ID               string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	Name             string    `json:"name" gorm:"size:100;not null"`
-	Description      string    `json:"description" gorm:"type:text"`
-	Requirements     string    `json:"requirements" gorm:"type:text;not null"`
-	Status           string    `json:"status" gorm:"size:20;not null;default:'draft'"` // draft, in_progress, completed, failed
-	DevStatus        string    `json:"dev_status" gorm:"size:50;default:'pending'"`   // 开发子状态
-	DevProgress      int       `json:"dev_progress" gorm:"default:0"`                 // 开发进度 0-100
-	CurrentTaskID    string    `json:"current_task_id" gorm:"type:uuid"`              // 当前执行的任务ID
-	BackendPort      int       `json:"backend_port" gorm:"not null"`
-	FrontendPort     int       `json:"frontend_port" gorm:"not null"`
-	ApiBaseUrl       string    `json:"api_base_url" gorm:"size:200"`
-	AppSecretKey     string    `json:"app_secret_key" gorm:"size:100"`
-	DatabasePassword string    `json:"database_password" gorm:"size:100"`
-	RedisPassword    string    `json:"redis_password" gorm:"size:100"`
-	JwtSecretKey     string    `json:"jwt_secret_key" gorm:"size:100"`
-	Subnetwork       string    `json:"subnetwork" gorm:"size:50"`
-	ProjectPath      string    `json:"project_path" gorm:"size:500;not null"`
-	UserID           string    `json:"user_id" gorm:"type:uuid;not null"`
-	User             User      `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Tags             []Tag     `json:"tags,omitempty" gorm:"many2many:project_tags;"`
-	CreatedAt        time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt        time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	ID               string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('PROJ', 'public.projects_id_num_seq')"`
+	Name             string         `json:"name" gorm:"size:100;not null"`
+	Description      string         `json:"description" gorm:"type:text"`
+	Requirements     string         `json:"requirements" gorm:"type:text;not null"`
+	Status           string         `json:"status" gorm:"size:20;not null;default:'draft'"` // draft, in_progress, completed, failed
+	DevStatus        string         `json:"dev_status" gorm:"size:50;default:'pending'"`    // 开发子状态
+	DevProgress      int            `json:"dev_progress" gorm:"default:0"`                  // 开发进度 0-100
+	CurrentTaskID    string         `json:"current_task_id" gorm:"type:varchar(50)"`        // 当前执行的任务ID
+	BackendPort      int            `json:"backend_port" gorm:"not null"`
+	FrontendPort     int            `json:"frontend_port" gorm:"not null"`
+	ApiBaseUrl       string         `json:"api_base_url" gorm:"size:200"`
+	AppSecretKey     string         `json:"app_secret_key" gorm:"size:100"`
+	DatabasePassword string         `json:"database_password" gorm:"size:100"`
+	RedisPassword    string         `json:"redis_password" gorm:"size:100"`
+	JwtSecretKey     string         `json:"jwt_secret_key" gorm:"size:100"`
+	Subnetwork       string         `json:"subnetwork" gorm:"size:50"`
+	ProjectPath      string         `json:"project_path" gorm:"size:500;not null"`
+	UserID           string         `json:"user_id" gorm:"type:varchar(50);not null"`
+	User             User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Tags             []Tag          `json:"tags,omitempty" gorm:"many2many:project_tags;"`
+	CreatedAt        time.Time      `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt        time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// 关联关系
@@ -38,13 +38,13 @@ type Project struct {
 
 // 开发子状态常量
 const (
-	DevStatusPending               = "pending"               // 等待开始
+	DevStatusPending               = "pending"                // 等待开始
 	DevStatusEnvironmentProcessing = "environment_processing" // 环境处理中
 	DevStatusEnvironmentDone       = "environment_done"       // 环境就绪
 	DevStatusPRDGenerating         = "prd_generating"         // PRD生成中
 	DevStatusPRDCompleted          = "prd_completed"          // PRD完成
-	DevStatusUXDefining            = "ux_defining"           // UX标准定义中
-	DevStatusUXCompleted           = "ux_completed"          // UX标准完成
+	DevStatusUXDefining            = "ux_defining"            // UX标准定义中
+	DevStatusUXCompleted           = "ux_completed"           // UX标准完成
 	DevStatusArchDesigning         = "arch_designing"         // 架构设计中
 	DevStatusArchCompleted         = "arch_completed"         // 架构设计完成
 	DevStatusDataModeling          = "data_modeling"          // 数据模型定义中
@@ -62,7 +62,7 @@ const (
 	DevStatusPackaging             = "packaging"              // 打包中
 	DevStatusPackaged              = "packaged"               // 打包完成
 	DevStatusCompleted             = "completed"              // 开发完成
-	DevStatusFailed                = "failed"                // 开发失败
+	DevStatusFailed                = "failed"                 // 开发失败
 )
 
 // 获取开发阶段进度
@@ -196,6 +196,14 @@ func (p *Project) BeforeCreate(tx *gorm.DB) error {
 	}
 	if p.FrontendPort == 0 {
 		p.FrontendPort = 3000
+	}
+	if p.ID == "" {
+		var result string
+		err := tx.Raw("SELECT generate_table_id('PROJ', 'projects_id_num_seq')").Scan(&result).Error
+		if err != nil {
+			return err
+		}
+		p.ID = result
 	}
 	return nil
 }

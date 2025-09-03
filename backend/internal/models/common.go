@@ -38,7 +38,7 @@ type PaginationResponse struct {
 
 // BaseModel 基础模型
 type BaseModel struct {
-	ID        string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID        string    `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('BASE', 'public.base_id_num_seq')"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
@@ -46,7 +46,7 @@ type BaseModel struct {
 
 // UserInfo 用户信息（用于响应）
 type UserInfo struct {
-	ID        string    `json:"id" example:"uuid"`
+	ID        string    `json:"id" example:"varchar(50)"`
 	Email     string    `json:"email" example:"user@example.com"`
 	Username  string    `json:"username" example:"username"`
 	Role      string    `json:"role" example:"user"`
@@ -108,13 +108,13 @@ type ProjectListRequest struct {
 	PaginationRequest
 	Status string   `json:"status" form:"status" binding:"omitempty,oneof=draft in_progress completed failed" example:"in_progress"`
 	TagIDs []string `json:"tag_ids" form:"tag_ids" example:"['tag1', 'tag2']"`
-	UserID string   `json:"user_id" form:"user_id" example:"uuid"`
+	UserID string   `json:"user_id" form:"user_id" example:"USER_00000000001"`
 	Search string   `json:"search" form:"search" example:"项目名称关键词"`
 }
 
 // ProjectInfo 项目信息（用于响应）
 type ProjectInfo struct {
-	ID           string    `json:"id" example:"uuid"`
+	ID           string    `json:"id" example:"PROJ_00000000001"`
 	Name         string    `json:"name" example:"项目名称"`
 	Description  string    `json:"description" example:"项目描述"`
 	Status       string    `json:"status" example:"in_progress"`
@@ -122,7 +122,7 @@ type ProjectInfo struct {
 	ProjectPath  string    `json:"project_path" example:"/path/to/project"`
 	BackendPort  int       `json:"backend_port" example:"8080"`
 	FrontendPort int       `json:"frontend_port" example:"3000"`
-	UserID       string    `json:"user_id" example:"uuid"`
+	UserID       string    `json:"user_id" example:"USER_00000000001"`
 	User         UserInfo  `json:"user,omitempty"`
 	Tags         []TagInfo `json:"tags,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -131,7 +131,7 @@ type ProjectInfo struct {
 
 // TagInfo 标签信息（用于响应）
 type TagInfo struct {
-	ID    string `json:"id" example:"uuid"`
+	ID    string `json:"id" example:"PROJ_00000000001"`
 	Name  string `json:"name" example:"标签名称"`
 	Color string `json:"color" example:"#666666"`
 }
@@ -150,9 +150,9 @@ type UpdateTagRequest struct {
 
 // TaskInfo 任务信息（用于响应）
 type TaskInfo struct {
-	ID           string     `json:"id" example:"uuid"`
-	ProjectID    string     `json:"project_id" example:"uuid"`
-	UserID       string     `json:"user_id" example:"uuid"`
+	ID           string     `json:"id" example:"TASK_00000000001"`
+	ProjectID    string     `json:"project_id" example:"PROJ_00000000001"`
+	UserID       string     `json:"user_id" example:"USER_00000000001"`
 	Name         string     `json:"name" example:"任务名称"`
 	Description  string     `json:"description" example:"任务描述"`
 	Status       string     `json:"status" example:"pending"`
@@ -174,7 +174,7 @@ type TaskInfo struct {
 
 // CreateTaskRequest 创建任务请求
 type CreateTaskRequest struct {
-	ProjectID    string     `json:"project_id" binding:"required" example:"uuid"`
+	ProjectID    string     `json:"project_id" binding:"required" example:"PROJ_00000000001"`
 	Name         string     `json:"name" binding:"required,min=1,max=100" example:"任务名称"`
 	Description  string     `json:"description" binding:"omitempty,max=500" example:"任务描述"`
 	Priority     int        `json:"priority" binding:"omitempty,min=1,max=4" example:"2"`
@@ -202,8 +202,8 @@ type UpdateTaskRequest struct {
 // TaskListRequest 任务列表请求
 type TaskListRequest struct {
 	PaginationRequest
-	ProjectID string   `json:"project_id" form:"project_id" example:"uuid"`
-	UserID    string   `json:"user_id" form:"user_id" example:"uuid"`
+	ProjectID string   `json:"project_id" form:"project_id" example:"PROJ_00000000001"`
+	UserID    string   `json:"user_id" form:"user_id" example:"USER_00000000001"`
 	Status    string   `json:"status" form:"status" example:"pending"`
 	Priority  int      `json:"priority" form:"priority" example:"2"`
 	Tags      []string `json:"tags" form:"tags" example:"['tag1', 'tag2']"`
@@ -212,8 +212,8 @@ type TaskListRequest struct {
 
 // TaskLogInfo 任务日志信息（用于响应）
 type TaskLogInfo struct {
-	ID        string    `json:"id" example:"uuid"`
-	TaskID    string    `json:"task_id" example:"uuid"`
+	ID        string    `json:"id" example:"LOGS_00000000001"`
+	TaskID    string    `json:"task_id" example:"TASK_00000000001"`
 	Level     string    `json:"level" example:"info"`
 	Message   string    `json:"message" example:"日志消息"`
 	Data      string    `json:"data" example:"额外数据"`
@@ -222,7 +222,7 @@ type TaskLogInfo struct {
 
 // CreateTaskLogRequest 创建任务日志请求
 type CreateTaskLogRequest struct {
-	TaskID  string `json:"task_id" binding:"required" example:"uuid"`
+	TaskID  string `json:"task_id" binding:"required" example:"TASK_00000000001"`
 	Level   string `json:"level" binding:"required,oneof=info warn error" example:"info"`
 	Message string `json:"message" binding:"required" example:"日志消息"`
 	Data    string `json:"data" example:"额外数据"`

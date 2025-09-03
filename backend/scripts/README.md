@@ -81,10 +81,27 @@ export DATABASE_NAME=your-db-name
 
 ### 主要表
 1. **users** - 用户表
-2. **projects** - 项目表
-3. **tasks** - 任务表
+2. **projects** - 项目表（包含开发状态跟踪）
+3. **tasks** - 任务表（简化版，用于异步任务管理）
 4. **tags** - 标签表
 5. **project_tags** - 项目标签关联表
+6. **task_logs** - 任务日志表
+
+
+### 项目表字段说明
+- **dev_status**: 开发子状态（pending, environment_processing, prd_generating 等）
+- **dev_progress**: 开发进度（0-100）
+- **current_task_id**: 当前执行的任务ID
+- **requirements**: 项目需求（NOT NULL）
+- **project_path**: 项目路径（NOT NULL）
+
+### 任务表字段说明
+- **type**: 任务类型（project_development, build, deploy 等）
+- **status**: 任务状态（pending, in_progress, completed, failed, cancelled）
+- **priority**: 任务优先级（0-9，0为最高优先级）
+- **description**: 任务描述
+- **started_at**: 开始时间
+- **completed_at**: 完成时间
 
 ### 扩展
 - **uuid-ossp**: 用于生成 UUID

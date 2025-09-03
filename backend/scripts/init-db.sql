@@ -27,10 +27,40 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO autocodeweb;
 -- 启用必要的扩展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "unaccent";
+
+-- 全局函数，用来按指定前缀生成表的 ID 字符串，例如 public.user 表，ID 为 "USER_000" + 'id'
+CREATE OR REPLACE FUNCTION public.generate_table_id(IN prefix VARCHAR(32) DEFAULT 'DEFAULTID_', IN seq_name VARCHAR(50) DEFAULT 'default_id_num_seq')
+    RETURNS VARCHAR(32)
+    LANGUAGE 'plpgsql'
+    VOLATILE 
+AS $BODY$
+DECLARE
+    next_val BIGINT;
+BEGIN
+    next_val := nextval(seq_name);
+    RETURN prefix || LPAD(next_val::TEXT, 11, '0');
+END;
+$BODY$;
+
+ALTER FUNCTION public.generate_table_id(VARCHAR(32), VARCHAR(50))
+    OWNER TO autocodeweb;
+
+COMMENT ON FUNCTION public.generate_table_id(VARCHAR(32), VARCHAR(50))
+    IS '获取ID的全局方法';
+
+-- 创建用户ID序列
+CREATE SEQUENCE IF NOT EXISTS public.users_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
 
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('USER', 'public.users_id_num_seq'),
     email VARCHAR(255) UNIQUE NOT NULL,
     username VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -41,18 +71,29 @@ CREATE TABLE IF NOT EXISTS users (
     deleted_at TIMESTAMP
 );
 
+-- 创建项目ID序列
+CREATE SEQUENCE IF NOT EXISTS public.projects_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+
 -- 创建项目表
 CREATE TABLE IF NOT EXISTS projects (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('PROJ', 'public.projects_id_num_seq'),
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    requirements TEXT NOT NULL,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'in_progress', 'completed', 'failed')),
-    requirements TEXT,
-    project_path VARCHAR(500) UNIQUE,
+    dev_status VARCHAR(50) DEFAULT 'pending',
+    dev_progress INTEGER DEFAULT 0 CHECK (dev_progress >= 0 AND dev_progress <= 100),
+    current_task_id VARCHAR(50),
+    project_path VARCHAR(500) UNIQUE NOT NULL,
     backend_port INTEGER DEFAULT 8080 CHECK (backend_port >= 1024 AND backend_port <= 65535),
     frontend_port INTEGER DEFAULT 3000 CHECK (frontend_port >= 1024 AND frontend_port <= 65535),
-    api_base_url VARCHAR(100) DEFAULT '/api/v1',
+    api_base_url VARCHAR(200) DEFAULT '/api/v1',
     app_secret_key VARCHAR(255),
     database_password VARCHAR(255),
     redis_password VARCHAR(255),
@@ -63,34 +104,39 @@ CREATE TABLE IF NOT EXISTS projects (
     deleted_at TIMESTAMP
 );
 
+-- 创建任务ID序列
+CREATE SEQUENCE IF NOT EXISTS public.tasks_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+
 -- 创建任务表
 CREATE TABLE IF NOT EXISTS tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('TASK', 'public.tasks_id_num_seq'),
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    priority INTEGER DEFAULT 0,
     description TEXT,
-    status VARCHAR(20) DEFAULT 'pending',
-    priority INTEGER DEFAULT 2,
-    dependencies TEXT[],
-    max_retries INTEGER DEFAULT 3,
-    retry_count INTEGER DEFAULT 0,
-    retry_delay INTEGER DEFAULT 60,
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
-    deadline TIMESTAMP,
-    result TEXT,
-    error_message TEXT,
-    metadata TEXT,
-    tags TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
 
+-- 创建标签ID序列
+CREATE SEQUENCE IF NOT EXISTS public.tags_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
 -- 创建标签表
 CREATE TABLE IF NOT EXISTS tags (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('TAGS', 'public.tags_id_num_seq'),
     name VARCHAR(255) UNIQUE NOT NULL,
     color VARCHAR(7) DEFAULT '#666666',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -100,29 +146,27 @@ CREATE TABLE IF NOT EXISTS tags (
 
 -- 创建项目标签关联表
 CREATE TABLE IF NOT EXISTS project_tags (
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    tag_id VARCHAR(50) NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (project_id, tag_id)
 );
 
+-- 创建任务日志ID序列
+CREATE SEQUENCE IF NOT EXISTS public.task_logs_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+    
 -- 创建任务日志表
 CREATE TABLE IF NOT EXISTS task_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('LOGS', 'public.task_logs_id_num_seq'),
+    task_id VARCHAR(50) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     level VARCHAR(10) NOT NULL,
     message TEXT NOT NULL,
-    data TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 创建任务依赖关系表
-CREATE TABLE IF NOT EXISTS task_dependencies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    dependency_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(task_id, dependency_id)
 );
 
 -- 插入默认管理员用户
@@ -142,17 +186,13 @@ CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
-CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline);
 
 CREATE INDEX IF NOT EXISTS idx_task_logs_task_id ON task_logs(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_logs_level ON task_logs(level);
 CREATE INDEX IF NOT EXISTS idx_task_logs_created_at ON task_logs(created_at);
-
-CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(task_id);
-CREATE INDEX IF NOT EXISTS idx_task_dependencies_dependency_id ON task_dependencies(dependency_id);
 
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
 
@@ -161,11 +201,7 @@ INSERT INTO tags (name, color) VALUES
     ('Web应用', '#3B82F6'),
     ('移动应用', '#10B981'),
     ('桌面应用', '#F59E0B'),
-    ('API服务', '#8B5CF6'),
-    ('数据库', '#EF4444'),
-    ('机器学习', '#06B6D4'),
-    ('区块链', '#84CC16'),
-    ('游戏开发', '#F97316')
+    ('API服务', '#8B5CF6')
 ON CONFLICT (name) DO NOTHING;
 
 -- 创建更新时间触发器函数

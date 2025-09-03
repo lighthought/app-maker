@@ -204,15 +204,6 @@ CREATE TABLE tasks (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 任务依赖表
-CREATE TABLE task_dependencies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    depends_on_task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    dependency_type VARCHAR(50) DEFAULT 'blocks' CHECK (dependency_type IN ('blocks', 'requires', 'suggests')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(task_id, depends_on_task_id)
-);
 
 -- 任务日志表
 CREATE TABLE task_logs (

@@ -54,6 +54,37 @@ check_requirements() {
     log_success "所有必需工具已安装"
 }
 
+# 检查 bmad-method 是否已安装
+check_bmad_installed() {
+    local project_dir="$1"
+    
+    if [ -d "$project_dir/.bmad-core" ] && \
+       [ -d "$project_dir/.bmad-core/agents" ] && \
+       [ -d "$project_dir/.bmad-core/templates" ] && \
+       [ -f "$project_dir/.bmad-core/core-config.yaml" ]; then
+        log_success "bmad-method 已安装"
+        return 0
+    else
+        log_info "bmad-method 未安装或安装不完整"
+        return 1
+    fi
+}
+
+# 检查后端项目是否已安装
+check_backend_installed() {
+    local project_dir="$1"
+    
+    if [ -d "$project_dir"/backend/docs ] && \
+       [ -f "$project_dir"/backend/docs/swagger.yaml" ] && \
+       [ -f "$project_dir"/backend/docs/docs.go" ]; then
+        log_success "backend 项目已安装"
+        return 0
+    else
+        log_info "backend 项目未安装或安装不完整"
+        return 1
+    fi
+}
+
 # 安装 bmad-method
 install_bmad_method() {
     local project_dir="$1"
@@ -63,81 +94,83 @@ install_bmad_method() {
     cd "$project_dir"
     
     # 检查是否已安装
-    if [ -d "node_modules" ] && [ -f "package.json" ]; then
-        log_warning "项目目录中已存在 node_modules，跳过安装"
+    if check_bmad_installed "$project_dir"; then
+        log_warning "bmad-method 已安装，跳过安装"
         return 0
     fi
     
-    # 初始化 package.json
-    npm init -y
+    # 初始化 package.json（如果不存在）
+    if [ ! -f "package.json" ]; then
+        log_info "初始化 package.json..."
+        npm init -y
+    fi
+    
+    # 安装 qwen-code 依赖
+    log_info "安装 qwen-code 依赖..."
+    npm i @qwen-code/qwen-code
     
     # 安装 bmad-method
-    npm install bmad-method
-    
-    log_success "bmad-method 安装完成"
-}
-
-# 安装 cursor-cli
-install_cursor_cli() {
-    local project_dir="$1"
-    
-    log_info "安装 cursor-cli..."
-    
-    # 检查是否已安装
-    if command -v cursor &> /dev/null; then
-        log_warning "cursor-cli 已安装"
-        return 0
-    fi
-    
-    # 使用 npm 全局安装 cursor-cli（更可靠的方式）
-    log_info "使用 npm 安装 cursor-cli..."
-    npm install -g @cursor/cli
+    log_info "安装 bmad-method..."
+    npx bmad-method install -f -i qwen-code -d .
     
     # 验证安装
-    if command -v cursor &> /dev/null; then
-        log_success "cursor-cli 安装完成"
-        cursor --version
+    if check_bmad_installed "$project_dir"; then
+        log_success "bmad-method 安装完成"
     else
-        log_error "cursor-cli 安装失败"
+        log_error "bmad-method 安装失败"
         return 1
     fi
 }
 
-# 创建项目配置文件
-create_project_config() {
+# 初始化前端项目
+setup_frontend_project() {
     local project_dir="$1"
-    local project_id="$2"
     
-    log_info "创建项目配置文件..."
+    log_info "在项目目录中初始化前端项目..."
     
-    cd "$project_dir"
+    cd "$project_dir"/frontend
+
+    if [ -d "$project_dir/frontend/node_modules" ]; then
+        log_warning "frontend 项目已安装，跳过安装"
+        return 0
+    fi
+
+    log_info "安装前端项目依赖..."
+    npm install
     
-    # 创建 .bmad-core 目录
-    mkdir -p .bmad-core
-    
-    # 创建项目配置文件
-    cat > .bmad-core/project-config.json << EOF
-{
-  "projectId": "$project_id",
-  "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "environment": "container",
-  "tools": {
-    "node": "$(node --version)",
-    "npm": "$(npm --version)",
-    "npx": "$(npx --version)"
-  },
-  "bmadMethod": {
-    "installed": true,
-    "version": "latest"
-  },
-  "cursorCli": {
-    "installed": true,
-    "version": "latest"
-  }
+    # 检查是否已安装
+    if [ -d "$project_dir"/frontend/node_modules ]; then
+        log_warning "frontend 项目已安装"
+    else
+        log_error "frontend 项目安装失败"
+        return 1
+    fi
+    return 0
 }
-EOF
+
+# 初始化后端项目
+setup_backend_project() {
+    local project_dir="$1"
     
-    log_success "项目配置文件创建完成"
+    log_info "在项目目录中初始化后端项目..."
+    
+    cd "$project_dir"/backend
+
+    if check_backend_installed "$project_dir"; then
+        log_warning "backend 项目已安装"
+        return 0
+    fi
+    
+    log_info "安装后端项目依赖..."
+    go mod download
+
+    log_info "安装 swagger 工具..."
+    go install github.com/swaggo/swag/cmd/swag@latest
+
+    log_info "构建后端项目..."
+    go build -o server ./cmd/server
+    
+    return 0
 }
 
 # 创建开发脚本
@@ -163,9 +196,10 @@ echo "🚀 启动项目开发环境..."
 echo "项目目录: $PROJECT_DIR"
 
 # 检查 bmad-method
-if [ ! -d "node_modules" ]; then
-    echo "📦 安装项目依赖..."
-    npm install
+if [ ! -d ".bmad-core" ] || [ ! -d ".bmad-core/agents" ]; then
+    echo "📦 安装 bmad-method..."
+    npm i @qwen-code/qwen-code
+    npx bmad-method install -f -i qwen-code -d .
 fi
 
 # 启动 cursor-cli 聊天
@@ -206,10 +240,14 @@ main() {
     
     # 安装工具
     install_bmad_method "$project_dir"
-    install_cursor_cli "$project_dir"
+
+    # 初始化前端项目
+    setup_frontend_project "$project_dir"
+
+    # 初始化后端项目
+    setup_backend_project "$project_dir"
     
     # 创建配置
-    create_project_config "$project_dir" "$project_id"
     create_dev_scripts "$project_dir"
     
     log_success "项目开发环境设置完成！"
@@ -217,7 +255,7 @@ main() {
     echo "下一步操作："
     echo "1. 进入项目目录: cd $project_dir"
     echo "2. 启动开发环境: ./start-dev.sh"
-    echo "3. 使用 Cursor CLI: cursor chat --project $project_dir"
+    echo "3. 使用 qwen-code CLI: qwen-code chat --project $project_dir"
 }
 
 # 执行主函数

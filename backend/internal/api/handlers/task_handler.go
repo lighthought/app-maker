@@ -38,7 +38,7 @@ func NewTaskHandler(taskService services.TaskService) *TaskHandler {
 // @Success 200 {object} map[string]interface{} "成功返回任务列表"
 // @Failure 401 {object} map[string]interface{} "未授权"
 // @Failure 500 {object} map[string]interface{} "服务器内部错误"
-// @Router /api/v1/projects/{projectId}/tasks [get]
+// @Router /api/v1/tasks/project/{projectId} [get]
 func (h *TaskHandler) GetProjectTasks(c *gin.Context) {
 	projectID := c.Param("projectId")
 	userID := c.GetString("user_id")
@@ -71,14 +71,13 @@ func (h *TaskHandler) GetProjectTasks(c *gin.Context) {
 // @Tags 任务管理
 // @Accept json
 // @Produce json
-// @Param projectId path string true "项目ID"
 // @Param taskId path string true "任务ID"
 // @Param Authorization header string true "Bearer 用户令牌"
 // @Success 200 {object} map[string]interface{} "成功返回任务详情"
 // @Failure 401 {object} map[string]interface{} "未授权"
 // @Failure 404 {object} map[string]interface{} "任务不存在"
 // @Failure 500 {object} map[string]interface{} "服务器内部错误"
-// @Router /api/v1/projects/{projectId}/tasks/{taskId} [get]
+// @Router /api/v1/tasks/{taskId} [get]
 func (h *TaskHandler) GetTaskDetails(c *gin.Context) {
 	taskID := c.Param("taskId")
 	userID := c.GetString("user_id")
@@ -113,7 +112,6 @@ func (h *TaskHandler) GetTaskDetails(c *gin.Context) {
 // @Tags 任务管理
 // @Accept json
 // @Produce json
-// @Param projectId path string true "项目ID"
 // @Param taskId path string true "任务ID"
 // @Param page query int false "页码，默认为1"
 // @Param pageSize query int false "每页数量，默认为50"
@@ -121,7 +119,7 @@ func (h *TaskHandler) GetTaskDetails(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "成功返回任务日志"
 // @Failure 401 {object} map[string]interface{} "未授权"
 // @Failure 500 {object} map[string]interface{} "服务器内部错误"
-// @Router /api/v1/projects/{projectId}/tasks/{taskId}/logs [get]
+// @Router /api/v1/tasks/{taskId}/logs [get]
 func (h *TaskHandler) GetTaskLogs(c *gin.Context) {
 	taskID := c.Param("taskId")
 	userID := c.GetString("user_id")
@@ -154,13 +152,12 @@ func (h *TaskHandler) GetTaskLogs(c *gin.Context) {
 // @Tags 任务管理
 // @Accept json
 // @Produce json
-// @Param projectId path string true "项目ID"
 // @Param taskId path string true "任务ID"
 // @Param Authorization header string true "Bearer 用户令牌"
 // @Success 200 {object} map[string]interface{} "成功取消任务"
 // @Failure 401 {object} map[string]interface{} "未授权"
 // @Failure 500 {object} map[string]interface{} "服务器内部错误"
-// @Router /api/v1/projects/{projectId}/tasks/{taskId}/cancel [post]
+// @Router /api/v1/tasks/{taskId}/cancel [post]
 func (h *TaskHandler) CancelTask(c *gin.Context) {
 	taskID := c.Param("taskId")
 	userID := c.GetString("user_id")

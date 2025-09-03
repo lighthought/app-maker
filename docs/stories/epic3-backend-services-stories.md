@@ -812,7 +812,7 @@ backend/
 ### 数据模型
 - **用户相关**：users, user_sessions, user_permissions
 - **项目相关**：projects, project_tags
-- **任务相关**：tasks, task_dependencies, task_logs
+- **任务相关**：tasks, task_logs
 
 ### API 设计
 - RESTful API 设计原则

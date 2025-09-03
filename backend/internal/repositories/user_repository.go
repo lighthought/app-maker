@@ -19,7 +19,6 @@ type UserRepository interface {
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 	List(ctx context.Context, offset, limit int) ([]models.User, int64, error)
-	GetUserWithSessions(ctx context.Context, userID string) (*models.User, error)
 }
 
 // userRepository 用户数据访问实现
@@ -107,14 +106,4 @@ func (r *userRepository) List(ctx context.Context, offset, limit int) ([]models.
 	}
 
 	return users, total, nil
-}
-
-// GetUserWithSessions 获取用户及其会话信息
-func (r *userRepository) GetUserWithSessions(ctx context.Context, userID string) (*models.User, error) {
-	var user models.User
-	err := r.db.WithContext(ctx).Preload("UserSessions").Where("id = ?", userID).First(&user).Error
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
 }

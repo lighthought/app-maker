@@ -164,19 +164,10 @@ classDiagram
         +CreatedAt: time.Time
     }
 
-    class UserSession {
-        +ID: string
-        +UserID: string
-        +Token: string
-        +ExpiresAt: time.Time
-        +CreatedAt: time.Time
-    }
-
     Project --> Task : has many
     Task --> TaskLog : has many
     User --> Project : has many
     User --> Tag : has many
-    User --> UserSession : has many
 ```
 
 ### 2. 数据访问层
@@ -221,14 +212,6 @@ classDiagram
         +List(ctx, userID) []*Tag
         +Update(ctx, tag) error
         +Delete(ctx, id) error
-    }
-
-    class UserSessionRepository {
-        <<interface>>
-        +Create(ctx, session) error
-        +GetByToken(ctx, token) *UserSession
-        +Delete(ctx, token) error
-        +DeleteByUserID(ctx, userID) error
     }
 
     class TaskLogRepository {

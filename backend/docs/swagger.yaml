@@ -106,7 +106,7 @@ definitions:
         example: 3000
         type: integer
       id:
-        example: uuid
+        example: PROJ_00000000001
         type: string
       name:
         example: 项目名称
@@ -129,7 +129,7 @@ definitions:
       user:
         $ref: '#/definitions/models.UserInfo'
       user_id:
-        example: uuid
+        example: USER_00000000001
         type: string
     type: object
   models.RegisterRequest:
@@ -170,7 +170,7 @@ definitions:
         example: '#666666'
         type: string
       id:
-        example: uuid
+        example: PROJ_00000000001
         type: string
       name:
         example: 标签名称
@@ -246,7 +246,7 @@ definitions:
         example: user@example.com
         type: string
       id:
-        example: uuid
+        example: varchar(50)
         type: string
       role:
         example: user
@@ -767,190 +767,6 @@ paths:
       summary: 获取项目标签
       tags:
       - 项目管理
-  /api/v1/projects/{projectId}/tasks:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定项目的所有任务列表，支持分页查询
-      parameters:
-      - description: 项目ID
-        in: path
-        name: projectId
-        required: true
-        type: string
-      - description: 页码，默认为1
-        in: query
-        name: page
-        type: integer
-      - description: 每页数量，默认为10
-        in: query
-        name: pageSize
-        type: integer
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功返回任务列表
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: 未授权
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 服务器内部错误
-          schema:
-            additionalProperties: true
-            type: object
-      summary: 获取项目任务列表
-      tags:
-      - 任务管理
-  /api/v1/projects/{projectId}/tasks/{taskId}:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定任务的详细信息
-      parameters:
-      - description: 项目ID
-        in: path
-        name: projectId
-        required: true
-        type: string
-      - description: 任务ID
-        in: path
-        name: taskId
-        required: true
-        type: string
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功返回任务详情
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: 未授权
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: 任务不存在
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 服务器内部错误
-          schema:
-            additionalProperties: true
-            type: object
-      summary: 获取任务详情
-      tags:
-      - 任务管理
-  /api/v1/projects/{projectId}/tasks/{taskId}/cancel:
-    post:
-      consumes:
-      - application/json
-      description: 取消正在执行的任务
-      parameters:
-      - description: 项目ID
-        in: path
-        name: projectId
-        required: true
-        type: string
-      - description: 任务ID
-        in: path
-        name: taskId
-        required: true
-        type: string
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功取消任务
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: 未授权
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 服务器内部错误
-          schema:
-            additionalProperties: true
-            type: object
-      summary: 取消任务
-      tags:
-      - 任务管理
-  /api/v1/projects/{projectId}/tasks/{taskId}/logs:
-    get:
-      consumes:
-      - application/json
-      description: 获取指定任务的执行日志，支持分页查询
-      parameters:
-      - description: 项目ID
-        in: path
-        name: projectId
-        required: true
-        type: string
-      - description: 任务ID
-        in: path
-        name: taskId
-        required: true
-        type: string
-      - description: 页码，默认为1
-        in: query
-        name: page
-        type: integer
-      - description: 每页数量，默认为50
-        in: query
-        name: pageSize
-        type: integer
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 成功返回任务日志
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: 未授权
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 服务器内部错误
-          schema:
-            additionalProperties: true
-            type: object
-      summary: 获取任务日志
-      tags:
-      - 任务管理
   /api/v1/tags:
     get:
       consumes:
@@ -1264,6 +1080,175 @@ paths:
       summary: 获取项目标签
       tags:
       - 标签管理
+  /api/v1/tasks/{taskId}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定任务的详细信息
+      parameters:
+      - description: 任务ID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回任务详情
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 任务不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取任务详情
+      tags:
+      - 任务管理
+  /api/v1/tasks/{taskId}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消正在执行的任务
+      parameters:
+      - description: 任务ID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功取消任务
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取消任务
+      tags:
+      - 任务管理
+  /api/v1/tasks/{taskId}/logs:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定任务的执行日志，支持分页查询
+      parameters:
+      - description: 任务ID
+        in: path
+        name: taskId
+        required: true
+        type: string
+      - description: 页码，默认为1
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认为50
+        in: query
+        name: pageSize
+        type: integer
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回任务日志
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取任务日志
+      tags:
+      - 任务管理
+  /api/v1/tasks/project/{projectId}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定项目的所有任务列表，支持分页查询
+      parameters:
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: string
+      - description: 页码，默认为1
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量，默认为10
+        in: query
+        name: pageSize
+        type: integer
+      - description: Bearer 用户令牌
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回任务列表
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取项目任务列表
+      tags:
+      - 任务管理
   /api/v1/users:
     get:
       consumes:

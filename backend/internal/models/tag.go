@@ -8,7 +8,7 @@ import (
 
 // Tag 标签模型
 type Tag struct {
-	ID        string         `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID        string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('TAGS', 'public.tags_id_num_seq')"`
 	Name      string         `json:"name" gorm:"uniqueIndex;not null"`
 	Color     string         `json:"color" gorm:"default:'#666666'"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -24,10 +24,23 @@ func (Tag) TableName() string {
 	return "tags"
 }
 
+// BeforeCreate 创建前的钩子
+func (t *Tag) BeforeCreate(tx *gorm.DB) error {
+	if t.ID == "" {
+		var result string
+		err := tx.Raw("SELECT generate_table_id('TAGS', 'tags_id_num_seq')").Scan(&result).Error
+		if err != nil {
+			return err
+		}
+		t.ID = result
+	}
+	return nil
+}
+
 // ProjectTag 项目标签关联表
 type ProjectTag struct {
-	ProjectID string    `json:"project_id" gorm:"primaryKey;type:uuid"`
-	TagID     string    `json:"tag_id" gorm:"primaryKey;type:uuid"`
+	ProjectID string    `json:"project_id" gorm:"primaryKey;type:varchar(50)"`
+	TagID     string    `json:"tag_id" gorm:"primaryKey;type:varchar(50)"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

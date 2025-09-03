@@ -47,28 +47,28 @@ type ProjectService interface {
 
 // projectService 项目服务实现
 type projectService struct {
-	projectRepo         repositories.ProjectRepository
-	tagRepo             repositories.TagRepository
-	templateService     ProjectTemplateService
+	projectRepo          repositories.ProjectRepository
+	tagRepo              repositories.TagRepository
+	templateService      ProjectTemplateService
 	taskExecutionService *TaskExecutionService
-	nameGenerator       ProjectNameGenerator
-	zipUtils            *utils.ZipUtils
+	nameGenerator        ProjectNameGenerator
+	zipUtils             *utils.ZipUtils
 }
 
 // NewProjectService 创建项目服务实例
 func NewProjectService(
-	projectRepo repositories.ProjectRepository, 
-	tagRepo repositories.TagRepository, 
+	projectRepo repositories.ProjectRepository,
+	tagRepo repositories.TagRepository,
 	templateService ProjectTemplateService,
 	taskExecutionService *TaskExecutionService,
 ) ProjectService {
 	return &projectService{
-		projectRepo:         projectRepo,
-		tagRepo:            tagRepo,
-		templateService:    templateService,
+		projectRepo:          projectRepo,
+		tagRepo:              tagRepo,
+		templateService:      templateService,
 		taskExecutionService: taskExecutionService,
-		nameGenerator:      NewProjectNameGenerator(),
-		zipUtils:           utils.NewZipUtils(),
+		nameGenerator:        NewProjectNameGenerator(),
+		zipUtils:             utils.NewZipUtils(),
 	}
 }
 
@@ -79,19 +79,35 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		logger.String("requirements", req.Requirements),
 	)
 
-	projectConfig := &models.Project{}
+	filePath := filepath.Join("/app/data/projects", userID, uuid.New().String())
+	newProject := &models.Project{
+		Requirements: req.Requirements,
+		UserID:       userID,
+		Status:       "draft",
+		ProjectPath:  filePath,
+	}
+
+	logger.Info("数据库新建项目")
+	if err := s.projectRepo.Create(ctx, newProject); err != nil {
+		logger.Error("保存项目到数据库失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", newProject.ID),
+		)
+		return nil, fmt.Errorf("failed to create project: %w", err)
+	}
+
+	// 替换为最终的项目路径
+	newProject.ProjectPath = filepath.Join("/app/data/projects", userID, newProject.ID)
+	logger.Info("生成项目路径", logger.String("projectPath", newProject.ProjectPath))
+
 	// 自动生成项目配置信息和密码信息
-	bGerated := s.nameGenerator.GenerateProjectConfig(req.Requirements, projectConfig)
+	bGerated := s.nameGenerator.GenerateProjectConfig(req.Requirements, newProject)
 	if !bGerated {
 		logger.Error("自动生成项目配置信息失败", logger.String("requirements", req.Requirements))
 		return nil, fmt.Errorf("failed to generate project config: %w", errors.New("failed to generate project config"))
 	}
 
-	logger.Info("自动生成项目名", logger.String("projectName", projectConfig.Name))
-
-	// 生成项目路径 - 使用 /app/projects 而不是 /projects
-	projectPath := filepath.Join("/app/data/projects", userID, uuid.New().String())
-	logger.Info("生成项目路径", logger.String("projectPath", projectPath))
+	logger.Info("自动生成项目名", logger.String("projectName", newProject.Name))
 
 	// 自动获取可用端口
 	availableBackendPort, availableFrontendPort, err := s.projectRepo.GetNextAvailablePorts(ctx)
@@ -107,107 +123,69 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		logger.Int("frontendPort", availableFrontendPort),
 	)
 
-	projectConfig.BackendPort = availableBackendPort
-	projectConfig.FrontendPort = availableFrontendPort
+	newProject.BackendPort = availableBackendPort
+	newProject.FrontendPort = availableFrontendPort
 
 	// TODO: 获取下一个可用的子网段
-	if projectConfig.Subnetwork == "" {
-		projectConfig.Subnetwork = "172.20.0.0/16"
+	if newProject.Subnetwork == "" {
+		newProject.Subnetwork = "172.20.0.0/16"
 	}
 
-	// 创建项目
-	project := &models.Project{
-		Name:             projectConfig.Name,
-		Description:      projectConfig.Description,
-		Requirements:     req.Requirements,
-		BackendPort:      projectConfig.BackendPort,
-		FrontendPort:     projectConfig.FrontendPort,
-		ApiBaseUrl:       projectConfig.ApiBaseUrl,
-		AppSecretKey:     projectConfig.AppSecretKey,
-		DatabasePassword: projectConfig.DatabasePassword,
-		RedisPassword:    projectConfig.RedisPassword,
-		JwtSecretKey:     projectConfig.JwtSecretKey,
-		Subnetwork:       projectConfig.Subnetwork,
-		UserID:           userID,
-		Status:           "draft",
-		ProjectPath:      projectPath,
-	}
-
+	// 更新项目
 	logger.Info("保存项目到数据库")
-	if err := s.projectRepo.Create(ctx, project); err != nil {
+	if err := s.projectRepo.Update(ctx, newProject); err != nil {
 		logger.Error("保存项目到数据库失败",
 			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
+			logger.String("projectID", newProject.ID),
 		)
 		return nil, fmt.Errorf("failed to create project: %w", err)
 	}
-	logger.Info("项目保存成功", logger.String("projectID", project.ID))
+	logger.Info("项目保存成功", logger.String("projectID", newProject.ID))
 
 	// 初始化项目模板
 	logger.Info("开始初始化项目模板",
-		logger.String("projectID", project.ID),
-		logger.String("projectPath", projectPath),
+		logger.String("projectID", newProject.ID),
+		logger.String("projectPath", newProject.ProjectPath),
 	)
-	if err := s.templateService.InitializeProject(ctx, project); err != nil {
+	if err := s.templateService.InitializeProject(ctx, newProject); err != nil {
 		// 模板初始化失败不影响项目创建，但记录错误
 		logger.Error("项目模板初始化失败",
 			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-			logger.String("projectPath", projectPath),
+			logger.String("projectID", newProject.ID),
+			logger.String("projectPath", newProject.ProjectPath),
 		)
 	} else {
 		logger.Info("项目模板初始化成功",
-			logger.String("projectID", project.ID),
-			logger.String("projectPath", projectPath),
+			logger.String("projectID", newProject.ID),
+			logger.String("projectPath", newProject.ProjectPath),
 		)
 	}
 
-	// 添加标签
-	// if len(tagIDs) > 0 {
-	// 	logger.Info("开始添加项目标签",
-	// 		logger.String("projectID", project.ID),
-	// 		logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
-	// 	)
-	// 	if err := s.projectRepo.AddTags(ctx, project.ID, req.TagIDs); err != nil {
-	// 		// 标签添加失败不影响项目创建，只记录日志
-	// 		logger.Error("添加项目标签失败",
-	// 			logger.String("error", err.Error()),
-	// 			logger.String("projectID", project.ID),
-	// 			logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
-	// 		)
-	// 	} else {
-	// 		logger.Info("项目标签添加成功",
-	// 			logger.String("projectID", project.ID),
-	// 			logger.String("tagIDs", fmt.Sprintf("%v", req.TagIDs)),
-	// 		)
-	// 	}
-	// }
-
 	// 获取创建后的项目信息
-	logger.Info("获取创建后的项目信息", logger.String("projectID", project.ID))
-	projectInfo, err := s.GetProject(ctx, project.ID, userID)
+	logger.Info("获取创建后的项目信息", logger.String("projectID", newProject.ID))
+	projectInfo, err := s.GetProject(ctx, newProject.ID, userID)
 	if err != nil {
 		logger.Error("获取项目信息失败",
 			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
+			logger.String("projectID", newProject.ID),
 		)
 		return nil, err
 	}
 
 	// 启动项目开发流程（异步）
 	go func() {
-		if err := s.taskExecutionService.StartProjectDevelopment(context.Background(), project.ID); err != nil {
+		if err := s.taskExecutionService.StartProjectDevelopment(context.Background(), newProject.ID); err != nil {
 			logger.Error("启动项目开发流程失败",
 				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
+				logger.String("projectID", newProject.ID),
 			)
 		}
 	}()
 
 	logger.Info("项目创建完成，开发流程已启动",
-		logger.String("projectID", project.ID),
-		logger.String("projectName", project.Name),
-		logger.String("status", project.Status),
+		logger.String("projectID", newProject.ID),
+		logger.String("projectName", newProject.Name),
+		logger.String("status", newProject.Status),
 	)
 
 	return projectInfo, nil
@@ -322,24 +300,27 @@ func (s *projectService) DeleteProject(ctx context.Context, projectID, userID st
 
 	// 如果项目路径存在，先打包缓存
 	if project.ProjectPath != "" {
-		if _, err := os.Stat(project.ProjectPath); err == nil {
-			// 创建缓存目录
-			cacheDir := "/app/data/projects/cache"
+		// 异步打包项目到缓存
+		go func(project *models.Project) {
+			if _, err := os.Stat(project.ProjectPath); err == nil {
+				// 创建缓存目录
+				cacheDir := "/app/data/projects/cache"
 
-			// 生成缓存文件名
-			cacheFileName := fmt.Sprintf("%s_%s_%s", project.ID, project.Name, time.Now().Format("20060102_150405"))
+				// 生成缓存文件名
+				cacheFileName := fmt.Sprintf("%s_%s", project.ID, time.Now().Format("20060102_150405"))
 
-			// 使用 zipUtils 压缩到缓存
-			_, err := s.zipUtils.CompressDirectoryToCache(ctx, project.ProjectPath, cacheDir, cacheFileName)
-			if err != nil {
-				logger.Error("打包项目到缓存失败",
-					logger.String("projectID", projectID),
-					logger.ErrorField(err))
-			} else {
-				logger.Info("项目已打包到缓存",
-					logger.String("projectID", projectID))
+				// 使用 zipUtils 压缩到缓存
+				_, err := s.zipUtils.CompressDirectoryToCache(context.Background(), project.ProjectPath, cacheDir, cacheFileName)
+				if err != nil {
+					logger.Error("异步打包项目到缓存失败",
+						logger.String("projectID", project.ID),
+						logger.ErrorField(err))
+				} else {
+					logger.Info("项目已异步打包到缓存",
+						logger.String("projectID", project.ID))
+				}
 			}
-		}
+		}(project)
 	}
 
 	// 删除项目目录
