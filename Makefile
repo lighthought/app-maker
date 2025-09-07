@@ -1,4 +1,4 @@
-.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean
+.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services
 
 # 默认目标
 help:
@@ -7,6 +7,7 @@ help:
 	@echo "Available Commands:"
 	@echo "  network-create - Create Docker network (app-maker-network)"
 	@echo "  network-check  - Check if Docker network exists"
+	@echo "  external-services - Show external services configuration"
 	@echo "  build-dev     - Build development environment images"
 	@echo "  build-prod    - Build production environment images"
 	@echo "  run-dev       - Start development environment"
@@ -34,6 +35,24 @@ network-check:
 network-create:
 	@echo "Creating Docker network 'app-maker-network'..."
 	@docker network ls --format "table {{.Name}}" | findstr "app-maker-network" >nul 2>&1 && echo "Network 'app-maker-network' already exists, skipping creation" || (echo "Creating network 'app-maker-network'..." && docker network create app-maker-network && echo "Network 'app-maker-network' created successfully")
+
+# 显示外部服务配置
+external-services:
+	@echo "External Services Configuration:"
+	@echo "================================"
+	@echo "Current external services in traefik-external.yml:"
+	@if exist traefik-external.yml ( \
+		echo "Ollama AI Service: http://chat.app-maker.localhost -> localhost:11434" && \
+		echo "Edit traefik-external.yml to add more services" && \
+		echo "Template available: traefik-external-template.yml" \
+	) else ( \
+		echo "traefik-external.yml not found" \
+	)
+	@echo ""
+	@echo "To add a new service:"
+	@echo "1. Edit traefik-external.yml"
+	@echo "2. Add router and service configuration"
+	@echo "3. Restart Traefik: docker-compose restart traefik"
 
 # 生成Swagger文档
 swagger:

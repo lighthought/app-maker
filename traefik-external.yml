@@ -1,0 +1,20 @@
+# 外部服务配置 - 本地运行的服务通过 Traefik 代理
+http:
+  routers:
+    # Ollama AI 服务
+    ollama-chat:
+      rule: "Host(`chat.app-maker.localhost`)"
+      service: ollama-service
+      entryPoints:
+        - web
+
+  services:
+    # Ollama AI 服务
+    ollama-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:11434"
+        healthCheck:
+          path: "/api/tags"
+          interval: "30s"
+          timeout: "5s"

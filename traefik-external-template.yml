@@ -1,0 +1,114 @@
+# 外部服务配置模板 - 本地运行的服务通过 Traefik 代理
+# 使用方法：
+# 1. 取消注释你需要启用的服务
+# 2. 修改端口号和域名
+# 3. 重启 Traefik 容器
+
+http:
+  routers:
+    # Ollama AI 服务 (端口 11434)
+    ollama-chat:
+      rule: "Host(`chat.app-maker.localhost`)"
+      service: ollama-service
+      entryPoints:
+        - web
+
+    # 取消注释以下服务配置，根据需要修改端口和域名
+    
+    # # 本地开发服务器 (端口 3001)
+    # dev-server:
+    #   rule: "Host(`dev.app-maker.localhost`)"
+    #   service: dev-server-service
+    #   entryPoints:
+    #     - web
+
+    # # 本地 API 服务 (端口 5000)
+    # local-api:
+    #   rule: "Host(`local-api.app-maker.localhost`)"
+    #   service: local-api-service
+    #   entryPoints:
+    #     - web
+
+    # # 数据库管理界面 (端口 8081)
+    # db-admin:
+    #   rule: "Host(`db.app-maker.localhost`)"
+    #   service: db-admin-service
+    #   entryPoints:
+    #     - web
+
+    # # 监控服务 (端口 9090)
+    # monitoring:
+    #   rule: "Host(`monitor.app-maker.localhost`)"
+    #   service: monitoring-service
+    #   entryPoints:
+    #     - web
+
+    # # 添加更多服务...
+    # # 新服务:
+    # #   rule: "Host(`新域名.app-maker.localhost`)"
+    # #   service: 新服务-service
+    # #   entryPoints:
+    # #     - web
+
+  services:
+    # Ollama AI 服务
+    ollama-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:11434"
+        healthCheck:
+          path: "/api/tags"
+          interval: "30s"
+          timeout: "5s"
+
+    # 取消注释以下服务配置，根据需要修改端口和健康检查路径
+    
+    # # 本地开发服务器
+    # dev-server-service:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://host.docker.internal:3001"
+    #     healthCheck:
+    #       path: "/"
+    #       interval: "30s"
+    #       timeout: "5s"
+
+    # # 本地 API 服务
+    # local-api-service:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://host.docker.internal:5000"
+    #     healthCheck:
+    #       path: "/health"
+    #       interval: "30s"
+    #       timeout: "5s"
+
+    # # 数据库管理界面
+    # db-admin-service:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://host.docker.internal:8081"
+    #     healthCheck:
+    #       path: "/"
+    #       interval: "30s"
+    #       timeout: "5s"
+
+    # # 监控服务
+    # monitoring-service:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://host.docker.internal:9090"
+    #     healthCheck:
+    #       path: "/"
+    #       interval: "30s"
+    #       timeout: "5s"
+
+    # # 添加更多服务...
+    # # 新服务-service:
+    # #   loadBalancer:
+    # #     servers:
+    # #       - url: "http://host.docker.internal:端口号"
+    # #     healthCheck:
+    # #       path: "/健康检查路径"
+    # #       interval: "30s"
+    # #       timeout: "5s"

@@ -13,6 +13,9 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false  # 只暴露有标签的容器
     network: app-maker-network
+  file:
+    filename: /etc/traefik/external.yml
+    watch: true
 
 # 暂时注释掉 ACME 证书配置，先让 Traefik 正常运行
 # certificatesResolvers:
