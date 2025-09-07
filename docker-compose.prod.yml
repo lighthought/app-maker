@@ -1,4 +1,26 @@
 services:
+  # Traefik 反向代理
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik-data:/data
+    networks:
+      - app-maker-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${PROD_DOMAIN_NAME:-thought-light.com}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+
   # AutoCodeWeb 前端服务 (生产环境 - Nginx)
   frontend:
     build:
@@ -9,8 +31,20 @@ services:
       - "80:80"
     depends_on:
       - backend
+      - traefik
     networks:
-      - prod-network
+      - app-maker-network
+    labels:
+      # 用于 Traefik 服务发现
+      - "traefik.enable=true"
+      - "traefik.docker.network=app-maker-network"
+      # HTTP 相关
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-http.rule=Host(`${PROD_DOMAIN_NAME:-thought-light.com}`)"
+      - "traefik.http.routers.frontend-http.service=frontend-service"
+      # 声明服务名称为 frontend-service，使用 80 端口提供服务
+      - "traefik.http.services.frontend-service.loadbalancer.server.scheme=http"
+      - "traefik.http.services.frontend-service.loadbalancer.server.port=80"
 
   # AutoCodeWeb 后端服务
   backend:
@@ -40,6 +74,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      traefik:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
       interval: 30s
@@ -48,7 +84,18 @@ services:
       start_period: 40s
     restart: unless-stopped
     networks:
-      - prod-network
+      - app-maker-network
+    labels:
+      # 用于 Traefik 服务发现
+      - "traefik.enable=true"
+      - "traefik.docker.network=app-maker-network"
+      # HTTP 相关
+      - "traefik.http.routers.backend-http.entrypoints=web"
+      - "traefik.http.routers.backend-http.rule=Host(`api.${PROD_DOMAIN_NAME:-thought-light.com}`)"
+      - "traefik.http.routers.backend-http.service=backend-service"
+      # 声明服务名称为 backend-service，使用 8080 端口提供服务
+      - "traefik.http.services.backend-service.loadbalancer.server.scheme=http"
+      - "traefik.http.services.backend-service.loadbalancer.server.port=8080"
 
   # PostgreSQL 数据库
   postgres:
@@ -68,7 +115,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - prod-network
+      - app-maker-network
 
   # Redis 缓存
   redis:
@@ -84,7 +131,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - prod-network
+      - app-maker-network
 
 volumes:
   postgres_data:
@@ -93,8 +140,5 @@ volumes:
     driver: local
 
 networks:
-  prod-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16 
+  app-maker-network:
+    external: true

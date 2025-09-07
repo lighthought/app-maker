@@ -1,0 +1,24 @@
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false  # 只暴露有标签的容器
+    network: app-maker-network
+
+# 暂时注释掉 ACME 证书配置，先让 Traefik 正常运行
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: qqjack2012@gmail.com
+#       storage: /data/acme.json
+#       httpChallenge:
+#         entryPoint: web

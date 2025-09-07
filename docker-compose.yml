@@ -1,4 +1,26 @@
 services:
+  # Traefik 反向代理
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik-data:/data
+    networks:
+      - app-maker-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN_NAME:-app-maker.localhost}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+
   # AutoCodeWeb 前端服务 (开发环境)
   frontend:
     build:
@@ -9,8 +31,25 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+      - traefik
     networks:
-      - dev-network
+      - app-maker-network
+    labels:
+      # 用于 Traefik 服务发现
+      - "traefik.enable=true"
+      - "traefik.docker.network=app-maker-network"
+      # HTTP 相关
+      # 使用 HTTP 协议访问前端，将使用 `web`（80端口） 提供服务
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      # 并自动跳转至 HTTPS 协议（443端口）
+      #- "traefik.http.routers.flare-http.middlewares=redir-https"
+      # 默认服务域名为 frontend.app-maker.localhost
+      - "traefik.http.routers.frontend-http.rule=Host(`${DOMAIN_NAME:-app-maker.localhost}`)"
+      # 服务名称为 frontend-service，使用 3000 端口提供服务
+      - "traefik.http.routers.frontend-http.service=app-maker-frontend"
+      # 声明服务名称为 frontend-service，使用 3000 端口提供服务
+      - "traefik.http.services.app-maker-frontend.loadbalancer.server.scheme=http"
+      - "traefik.http.services.app-maker-frontend.loadbalancer.server.port=3000"
 
   # AutoCodeWeb 后端服务
   backend:
@@ -35,6 +74,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      traefik:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
       interval: 30s
@@ -43,7 +84,18 @@ services:
       start_period: 40s
     restart: unless-stopped
     networks:
-      - dev-network
+      - app-maker-network
+    labels:
+      # 用于 Traefik 服务发现
+      - "traefik.enable=true"
+      - "traefik.docker.network=app-maker-network"
+      # HTTP 相关
+      - "traefik.http.routers.backend-http.entrypoints=web"
+      - "traefik.http.routers.backend-http.rule=Host(`api.${DOMAIN_NAME:-app-maker.localhost}`)"
+      - "traefik.http.routers.backend-http.service=app-maker-backend"
+      # 声明服务名称为 backend-service，使用 8080 端口提供服务
+      - "traefik.http.services.app-maker-backend.loadbalancer.server.scheme=http"
+      - "traefik.http.services.app-maker-backend.loadbalancer.server.port=8080"
 
   # PostgreSQL 数据库
   postgres:
@@ -65,7 +117,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - dev-network
+      - app-maker-network
 
   # Redis 缓存
   redis:
@@ -82,7 +134,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - dev-network
+      - app-maker-network
 
 volumes:
   postgres_data:
@@ -93,5 +145,5 @@ volumes:
     driver: local
 
 networks:
-  dev-network:
-    driver: bridge
+  app-maker-network:
+    external: true

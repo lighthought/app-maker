@@ -1,10 +1,12 @@
-.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config
+.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean
 
 # 默认目标
 help:
 	@echo "AutoCodeWeb Full-Stack Application Build Tool"
 	@echo "=========================================="
 	@echo "Available Commands:"
+	@echo "  network-create - Create Docker network (app-maker-network)"
+	@echo "  network-check  - Check if Docker network exists"
 	@echo "  build-dev     - Build development environment images"
 	@echo "  build-prod    - Build production environment images"
 	@echo "  run-dev       - Start development environment"
@@ -12,7 +14,7 @@ help:
 	@echo "  stop-dev      - Stop development environment"
 	@echo "  stop-prod     - Stop production environment"
 	@echo "  test          - Run tests"
-	@echo "  clean         - Clean build files (⚠️  Will clean all unused Docker resources)"
+	@echo "  clean         - Clean build files (Will clean all unused Docker resources)"
 	@echo "  clean-safe    - Safe cleanup (only current project)"
 	@echo "  validate-config - Validate configuration files"
 	@echo "  swagger       - Generate Swagger documentation"
@@ -23,35 +25,47 @@ help:
 	@echo "  logs-prod     - View production environment logs"
 	@echo "  restart-front-dev - Restart frontend development environment (rebuild)"
 
+# 检查Docker网络是否存在
+network-check:
+	@echo "Checking Docker network 'app-maker-network'..."
+	@docker network ls --format "table {{.Name}}" | findstr "app-maker-network" >nul 2>&1 && echo "Network 'app-maker-network' already exists" || echo "Network 'app-maker-network' does not exist"
+
+# 创建Docker网络
+network-create:
+	@echo "Creating Docker network 'app-maker-network'..."
+	@docker network ls --format "table {{.Name}}" | findstr "app-maker-network" >nul 2>&1 && echo "Network 'app-maker-network' already exists, skipping creation" || (echo "Creating network 'app-maker-network'..." && docker network create app-maker-network && echo "Network 'app-maker-network' created successfully")
+
 # 生成Swagger文档
 swagger:
 	@echo "Generating Swagger documentation..."
 	cd backend && swag init -g cmd/server/main.go -o docs
 
 # 构建开发环境镜像
-build-dev: swagger
+build-dev: network-create swagger
 	@echo "Building development environment images..."
 	docker-compose build
 
 # 构建生产环境镜像
-build-prod: swagger
+build-prod: network-create swagger
 	@echo "Building production environment images..."
 	docker-compose -f docker-compose.prod.yml build
 
 # 启动开发环境
-run-dev:
+run-dev: network-create
 	@echo "Starting development environment..."
-	@echo "Frontend: http://localhost:3000"
-	@echo "Backend API: http://localhost:8098"
-	@echo "Swagger Docs: http://localhost:8098/swagger/index.html"
+	@echo "Frontend: http://localhost:3000 (Direct) or http://app-maker.localhost (via Traefik)"
+	@echo "Backend API: http://localhost:8098 (Direct) or http://api.app-maker.localhost (via Traefik)"
+	@echo "Traefik Dashboard: http://localhost:8080 or http://traefik.app-maker.localhost"
+	@echo "Swagger Docs: http://localhost:8098/swagger/index.html" or http://api.app-maker.localhost/swagger/index.html
 	docker-compose up -d
 
 # 启动生产环境
-run-prod:
+run-prod: network-create
 	@echo "Starting production environment..."
-	@echo "Frontend: http://localhost"
-	@echo "Backend API: http://localhost:8080"
-	@echo "Swagger Docs: http://localhost:8080/swagger/index.html"
+	@echo "Frontend: http://localhost (Direct) or http://thought-light.com (via Traefik)"
+	@echo "Backend API: http://localhost:8080 (Direct) or http://api.thought-light.com (via Traefik)"
+	@echo "Traefik Dashboard: http://localhost:8080 or http://traefik.thought-light.com"
+	@echo "Swagger Docs: http://localhost:8080/swagger/index.html" or http://api.thought-light.com/swagger/index.html
 	docker-compose -f docker-compose.prod.yml up -d
 
 # 停止开发环境
@@ -94,8 +108,13 @@ validate-config:
 	@echo "Validating production environment configuration..."
 	cd backend && APP_ENVIRONMENT=production go run cmd/server/main.go --validate-only
 
+# 清理网络
+network-clean:
+	@echo "Cleaning Docker network 'app-maker-network'..."
+	@docker network ls --format "table {{.Name}}" | findstr "app-maker-network" >nul 2>&1 && (echo "Removing network 'app-maker-network'..." && docker network rm app-maker-network && echo "Network 'app-maker-network' removed successfully") || echo "Network 'app-maker-network' does not exist, nothing to clean"
+
 # 清理
-clean:
+clean: network-clean
 	@echo "Cleaning build files..."
 	docker-compose down -v
 	docker-compose -f docker-compose.prod.yml down -v
