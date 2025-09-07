@@ -1,4 +1,4 @@
-.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services
+.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services gitlab-status data-status
 
 # 默认目标
 help:
@@ -8,6 +8,8 @@ help:
 	@echo "  network-create - Create Docker network (app-maker-network)"
 	@echo "  network-check  - Check if Docker network exists"
 	@echo "  external-services - Show external services configuration"
+	@echo "  gitlab-status    - Check GitLab service status"
+	@echo "  data-status      - Show data directories status"
 	@echo "  build-dev     - Build development environment images"
 	@echo "  build-prod    - Build production environment images"
 	@echo "  run-dev       - Start development environment"
@@ -53,6 +55,46 @@ external-services:
 	@echo "1. Edit traefik-external.yml"
 	@echo "2. Add router and service configuration"
 	@echo "3. Restart Traefik: docker-compose restart traefik"
+
+# 检查 GitLab 服务状态
+gitlab-status:
+	@echo "GitLab Service Status:"
+	@echo "====================="
+	@echo "GitLab Container Status:"
+	@docker ps --filter "name=app-maker-gitlab-dev" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@echo ""
+	@echo "GitLab Access URLs:"
+	@echo "  Web UI: http://gitlab.$(DOMAIN_NAME)"
+	@echo "  Direct Access: http://localhost:8082"
+	@echo "  SSH Access: ssh://git@localhost:8083"
+	@echo ""
+	@echo "GitLab Configuration:"
+	@echo "  Data Directory: %GITLAB_HOME%/data"
+	@echo "  Config Directory: %GITLAB_HOME%/config"
+	@echo "  Logs Directory: %GITLAB_HOME%/logs"
+	@echo ""
+	@echo "To get initial root password:"
+	@echo "  docker exec -it app-maker-gitlab-dev grep 'Password:' /etc/gitlab/initial_root_password"
+
+# 检查数据目录状态
+data-status:
+	@echo "Data Directories Status:"
+	@echo "======================="
+	@echo "GitLab Data:"
+	@echo "  Config: %GITLAB_HOME%/config"
+	@echo "  Logs: %GITLAB_HOME%/logs"
+	@echo "  Data: %GITLAB_HOME%/data"
+	@echo ""
+	@echo "Application Data:"
+	@echo "  PostgreSQL: %POSTGRES_DATA_HOME% (default: F:/app-maker/postgres-data)"
+	@echo "  Redis: %REDIS_DATA_HOME% (default: F:/app-maker/redis-data)"
+	@echo "  App Data: %APP_DATA_HOME% (default: F:/app-maker/data)"
+	@echo ""
+	@echo "Directory Status:"
+	@if exist "%GITLAB_HOME%" (echo "✅ GitLab directory exists: %GITLAB_HOME%") else (echo "❌ GitLab directory missing: %GITLAB_HOME%")
+	@if exist "%POSTGRES_DATA_HOME%" (echo "✅ PostgreSQL data exists: %POSTGRES_DATA_HOME%") else (echo "⚠️ PostgreSQL data directory: %POSTGRES_DATA_HOME% (will be created)")
+	@if exist "%REDIS_DATA_HOME%" (echo "✅ Redis data exists: %REDIS_DATA_HOME%") else (echo "⚠️ Redis data directory: %REDIS_DATA_HOME% (will be created)")
+	@if exist "%APP_DATA_HOME%" (echo "✅ App data exists: %APP_DATA_HOME%") else (echo "⚠️ App data directory: %APP_DATA_HOME% (will be created)")
 
 # 生成Swagger文档
 swagger:

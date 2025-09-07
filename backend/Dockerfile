@@ -57,8 +57,8 @@ COPY --from=builder /app/main .
 # 复制生成的文档
 COPY --from=builder /app/docs ./docs
 
-# 复制模板文件
-COPY --from=builder /app/data/template.zip ./data/template.zip
+# 复制模板文件到临时位置
+COPY --from=builder /app/data/template.zip ./template.zip
 
 # 复制脚本文件
 COPY --from=builder /app/scripts ./scripts
@@ -67,6 +67,16 @@ COPY --from=builder /app/scripts ./scripts
 RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts && \
     chown -R appuser:appgroup /app && \
     chmod +x /app/scripts/*.sh
+
+# 创建启动脚本，在容器启动时复制 template.zip
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'if [ ! -f /app/data/template.zip ] && [ -f /app/template.zip ]; then' >> /app/start.sh && \
+    echo '    echo "Copying template.zip to data directory..."' >> /app/start.sh && \
+    echo '    cp /app/template.zip /app/data/template.zip' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo './main' >> /app/start.sh && \
+    chmod +x /app/start.sh && \
+    chown appuser:appgroup /app/start.sh
 
 # 切换到非 root 用户
 USER appuser
@@ -79,4 +89,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/health || exit 1
 
 # 启动应用
-CMD ["./main"]
+CMD ["./start.sh"]

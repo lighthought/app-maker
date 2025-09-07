@@ -69,7 +69,7 @@ services:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
       - ./backend/bmad-config:/app/bmad-config
-      - app_data:/app/data
+      - ${APP_DATA_HOME:-F:/app-maker/app_data}:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,7 +109,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_HOME:-F:/app-maker/postgres-data}:/var/lib/postgresql/data
       - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U autocodeweb -d autocodeweb"]
@@ -127,7 +127,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - ${REDIS_DATA_HOME:-F:/app-maker/redis-data}:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -137,13 +137,48 @@ services:
     networks:
       - app-maker-network
 
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  app_data:
-    driver: local
+  # GitLab CE 代码仓库
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: app-maker-gitlab-dev
+    restart: unless-stopped
+    ports:
+      - "8081:443"  # HTTPS
+      - "8082:80"   # HTTP
+      - "8083:22"   # SSH
+    volumes:
+      - ${GITLAB_HOME}/config:/etc/gitlab
+      - ${GITLAB_HOME}/logs:/var/log/gitlab
+      - ${GITLAB_HOME}/data:/var/opt/gitlab
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.${DOMAIN_NAME:-app-maker.localhost}'
+        gitlab_rails['gitlab_shell_ssh_port'] = 8083
+        # 禁用 HTTPS 重定向，因为我们在 Traefik 后面
+        nginx['redirect_http_to_https'] = false
+        nginx['listen_port'] = 80
+        # 配置 GitLab 与 Jenkins 集成
+        gitlab_rails['webhook_timeout'] = 10
+        gitlab_rails['git_timeout'] = 10
+    healthcheck:
+      test: ["CMD", "gitlab-ctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - app-maker-network
+    labels:
+      # 用于 Traefik 服务发现
+      - "traefik.enable=true"
+      - "traefik.docker.network=app-maker-network"
+      # HTTP 相关
+      - "traefik.http.routers.gitlab-http.entrypoints=web"
+      - "traefik.http.routers.gitlab-http.rule=Host(`gitlab.${DOMAIN_NAME:-app-maker.localhost}`)"
+      - "traefik.http.routers.gitlab-http.service=app-maker-gitlab"
+      # 声明服务名称为 gitlab-service，使用 80 端口提供服务
+      - "traefik.http.services.app-maker-gitlab.loadbalancer.server.scheme=http"
+      - "traefik.http.services.app-maker-gitlab.loadbalancer.server.port=80"
 
 networks:
   app-maker-network:
