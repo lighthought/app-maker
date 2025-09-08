@@ -218,13 +218,10 @@ classDiagram
         +fetchProjects(params)
         +createProject(data)
         +deleteProject(id)
-        +downloadProject(id)
         +getProject(id)
         +setCurrentProject(project)
-        +getProjectFiles(projectId)
-        +getFileContent(projectId, filePath)
-        +getProjectConversations(projectId)
-        +addConversationMessage(projectId, message)
+        +getProjectMessages(projectId)
+        +addChatMessage(projectId, message)
         +getProjectStages(projectId)
     }
 
@@ -252,7 +249,6 @@ classDiagram
         +previewUrl: string
         +userId: string
         +user: UserInfo
-        +tags: TagInfo[]
         +created_at: string
         +updated_at: string
     }
@@ -412,7 +408,7 @@ sequenceDiagram
     Backend-->>ProjectStore: 返回开发阶段
     ProjectStore-->>ConversationContainer: 阶段数据
     
-    ConversationContainer->>ProjectStore: getProjectConversations(projectId)
+    ConversationContainer->>ProjectStore: getProjectMessages(projectId)
     ProjectStore->>Backend: GET /projects/{id}/conversations
     Backend-->>ProjectStore: 返回对话历史
     ProjectStore-->>ConversationContainer: 对话数据

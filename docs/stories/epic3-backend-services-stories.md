@@ -810,9 +810,8 @@ backend/
 - **任务服务**：任务执行、状态管理、依赖关系
 
 ### 数据模型
-- **用户相关**：users, user_sessions, user_permissions
-- **项目相关**：projects, project_tags
-- **任务相关**：tasks, task_logs
+- **用户相关**：users
+- **项目相关**：projects
 
 ### API 设计
 - RESTful API 设计原则

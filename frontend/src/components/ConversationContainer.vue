@@ -74,7 +74,7 @@ const loadDevStages = async () => {
 // 加载对话历史
 const loadConversations = async () => {
   try {
-    const conversations = await projectStore.getProjectConversations(props.projectId)
+    const conversations = await projectStore.getProjectMessages(props.projectId)
     if (conversations) {
       messages.value = conversations.data
       scrollToBottom()
@@ -149,7 +149,7 @@ const initialize = async () => {
   // 如果没有对话历史，添加初始消息
   if (messages.value.length === 0) {
     // 添加用户需求消息
-    const userMessage = await projectStore.addConversationMessage(props.projectId, {
+    const userMessage = await projectStore.addChatMessage(props.projectId, {
       type: 'user',
       content: props.requirements,
       isExpanded: false

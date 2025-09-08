@@ -149,6 +149,7 @@
 import { ref, computed, h, onMounted } from 'vue'
 import { NIcon, NButton, NButtonGroup, NTag } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
+import { useFilesStore } from '@/stores/file'
 import type { Project } from '@/types/project'
 
 interface Props {
@@ -164,6 +165,7 @@ interface FileItem {
 
 const props = defineProps<Props>()
 const projectStore = useProjectStore()
+const fileStore = useFilesStore()
 
 // 响应式数据
 const activeTab = ref<'code' | 'preview'>('code')
@@ -177,7 +179,7 @@ const loadProjectFiles = async () => {
   if (!props.project?.id) return
   
   try {
-    const files = await projectStore.getProjectFiles(props.project.id)
+    const files = await fileStore.getProjectFiles(props.project.id)
     if (files) {
       fileTree.value = files.map(file => ({
         name: file.name,
@@ -249,7 +251,7 @@ const selectFile = async (file: FileItem) => {
     // 如果文件内容未加载，则加载内容
     if (!file.content && props.project?.id) {
       try {
-        const fileContent = await projectStore.getFileContent(props.project.id, file.path)
+        const fileContent = await fileStore.getFileContent(props.project.id, file.path)
         if (fileContent) {
           file.content = fileContent.content
         }

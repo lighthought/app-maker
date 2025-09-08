@@ -107,34 +107,6 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  // 下载项目
-  const downloadProject = async (projectId: string) => {
-    try {
-      // 使用 httpService 的 download 方法
-      const blob = await httpService.download(`/projects/${projectId}/download`)
-      
-      // 验证blob数据
-      if (!blob || blob.size === 0) {
-        throw new Error('下载的文件为空')
-      }
-      
-      // 创建下载链接
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `project-${projectId}.zip`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
-      console.log('项目下载成功:', projectId)
-    } catch (error) {
-      console.error('下载项目失败:', error)
-      throw error
-    }
-  }
-
   // 获取单个项目
   const getProject = async (projectId: string) => {
     try {
@@ -161,73 +133,15 @@ export const useProjectStore = defineStore('project', () => {
     currentProject.value = project
   }
 
-
-  // 获取项目文件列表
-  const getProjectFiles = async (projectId: string, path?: string) => {
-    try {
-      const response = await httpService.get<{
-        code: number
-        message: string
-        data: Array<{
-          name: string
-          path: string
-          type: 'file' | 'folder'
-          size: number
-          modifiedAt: string
-        }>
-      }>(`/projects/${projectId}/files`, {
-        params: path ? { path } : {}
-      })
-
-      if (response.code === 0 && response.data) {
-        return response.data
-      } else {
-        console.error('获取项目文件失败:', response.message)
-        return null
-      }
-    } catch (error) {
-      console.error('获取项目文件失败:', error)
-      return null
-    }
-  }
-
-  // 获取文件内容
-  const getFileContent = async (projectId: string, filePath: string) => {
-    try {
-      const response = await httpService.get<{
-        code: number
-        message: string
-        data: {
-          path: string
-          content: string
-          size: number
-          modifiedAt: string
-        }
-      }>(`/projects/${projectId}/files/content`, {
-        params: { filePath }
-      })
-
-      if (response.code === 0 && response.data) {
-        return response.data
-      } else {
-        console.error('获取文件内容失败:', response.message)
-        return null
-      }
-    } catch (error) {
-      console.error('获取文件内容失败:', error)
-      return null
-    }
-  }
-
-
+  
   // 获取项目对话历史
-  const getProjectConversations = async (projectId: string, page = 1, pageSize = 50) => {
+  const getProjectMessages = async (projectId: string, page = 1, pageSize = 50) => {
     try {
       const response = await httpService.get<{
         code: number
         message: string
         data: PaginationResponse<ConversationMessage>
-      }>(`/projects/${projectId}/conversations`, {
+      }>(`/chat/${projectId}/messages`, {
         params: { page, pageSize }
       })
 
@@ -244,13 +158,13 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 添加对话消息
-  const addConversationMessage = async (projectId: string, message: Omit<ConversationMessage, 'id' | 'timestamp'>) => {
+  const addChatMessage = async (projectId: string, message: Omit<ConversationMessage, 'id' | 'timestamp'>) => {
     try {
       const response = await httpService.post<{
         code: number
         message: string
         data: ConversationMessage
-      }>(`/projects/${projectId}/conversations`, message)
+      }>(`/chat/${projectId}/chat`, message)
 
       if (response.code === 0 && response.data) {
         return response.data
@@ -285,7 +199,6 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-
   return {
     projects,
     currentProject,
@@ -294,13 +207,10 @@ export const useProjectStore = defineStore('project', () => {
     fetchProjects,
     createProject,
     deleteProject,
-    downloadProject,
     getProject,
     setCurrentProject,
-    getProjectFiles,
-    getFileContent,
-    getProjectConversations,
-    addConversationMessage,
+    getProjectMessages,
+    addChatMessage,
     getProjectStages
   }
 })

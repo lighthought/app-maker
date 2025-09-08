@@ -285,6 +285,7 @@ import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
+import { useFilesStore } from '@/stores/file'
 import { formatDateTime, formatDateShort } from '@/utils/time'
 import { httpService } from '@/utils/http'
 import {
@@ -362,6 +363,7 @@ const EmptyIcon = () => h('svg', {
 const router = useRouter()
 const userStore = useUserStore()
 const projectStore = useProjectStore()
+const fileStore = useFilesStore()
 
 // 响应式数据
 const searchKeyword = ref('')
@@ -437,7 +439,7 @@ const editProject = (projectId: string) => {
 
 const downloadProject = async (projectId: string) => {
   try {
-    await projectStore.downloadProject(projectId)
+    await fileStore.downloadProject(projectId)
   } catch (error) {
     console.error('下载项目失败:', error)
   }

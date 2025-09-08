@@ -116,7 +116,8 @@ const startResize = (e: MouseEvent | TouchEvent) => {
 
 // 方法
 const goBack = () => {
-  router.back()
+  // 返回 dashboard 面板页面
+  router.push('/dashboard')
 }
 
 const loadProject = async () => {
