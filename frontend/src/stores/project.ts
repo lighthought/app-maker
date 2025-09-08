@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { httpService } from '@/utils/http'
-import type { Project, CreateProjectData, UpdateProjectData, ProjectListRequest, PaginationResponse } from '@/types/project'
+import type { Project, CreateProjectData, UpdateProjectData, ProjectListRequest, PaginationResponse, ConversationMessage, DevStage } from '@/types/project'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([])
@@ -190,6 +190,131 @@ export const useProjectStore = defineStore('project', () => {
     currentProject.value = project
   }
 
+
+  // 获取项目文件列表
+  const getProjectFiles = async (projectId: string, path?: string) => {
+    try {
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: Array<{
+          name: string
+          path: string
+          type: 'file' | 'folder'
+          size: number
+          modifiedAt: string
+        }>
+      }>(`/projects/${projectId}/files`, {
+        params: path ? { path } : {}
+      })
+
+      if (response.code === 0 && response.data) {
+        return response.data
+      } else {
+        console.error('获取项目文件失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('获取项目文件失败:', error)
+      return null
+    }
+  }
+
+  // 获取文件内容
+  const getFileContent = async (projectId: string, filePath: string) => {
+    try {
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: {
+          path: string
+          content: string
+          size: number
+          modifiedAt: string
+        }
+      }>(`/projects/${projectId}/files/content`, {
+        params: { filePath }
+      })
+
+      if (response.code === 0 && response.data) {
+        return response.data
+      } else {
+        console.error('获取文件内容失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('获取文件内容失败:', error)
+      return null
+    }
+  }
+
+
+  // 获取项目对话历史
+  const getProjectConversations = async (projectId: string, page = 1, pageSize = 50) => {
+    try {
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: PaginationResponse<ConversationMessage>
+      }>(`/projects/${projectId}/conversations`, {
+        params: { page, pageSize }
+      })
+
+      if (response.code === 0 && response.data) {
+        return response.data
+      } else {
+        console.error('获取对话历史失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('获取对话历史失败:', error)
+      return null
+    }
+  }
+
+  // 添加对话消息
+  const addConversationMessage = async (projectId: string, message: Omit<ConversationMessage, 'id' | 'timestamp'>) => {
+    try {
+      const response = await httpService.post<{
+        code: number
+        message: string
+        data: ConversationMessage
+      }>(`/projects/${projectId}/conversations`, message)
+
+      if (response.code === 0 && response.data) {
+        return response.data
+      } else {
+        console.error('添加对话消息失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('添加对话消息失败:', error)
+      return null
+    }
+  }
+
+  // 获取项目开发阶段
+  const getProjectStages = async (projectId: string) => {
+    try {
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: DevStage[]
+      }>(`/projects/${projectId}/stages`)
+
+      if (response.code === 0 && response.data) {
+        return response.data
+      } else {
+        console.error('获取开发阶段失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('获取开发阶段失败:', error)
+      return null
+    }
+  }
+
+
   return {
     projects,
     currentProject,
@@ -201,6 +326,11 @@ export const useProjectStore = defineStore('project', () => {
     deleteProject,
     downloadProject,
     getProject,
-    setCurrentProject
+    setCurrentProject,
+    getProjectFiles,
+    getFileContent,
+    getProjectConversations,
+    addConversationMessage,
+    getProjectStages
   }
 })

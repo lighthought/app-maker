@@ -23,15 +23,9 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/project/:id',
-    name: 'ProjectDetail',
-    component: () => import('@/pages/ProjectDetail.vue'),
-    meta: { title: '项目详情', requiresAuth: true, layout: 'default' }
-  },
-  {
-    path: '/preview/:id',
-    name: 'ProjectPreview',
-    component: () => import('@/pages/ProjectPreview.vue'),
-    meta: { title: '项目预览', requiresAuth: true, layout: 'default' }
+    name: 'ProjectEdit',
+    component: () => import('@/pages/ProjectEdit.vue'),
+    meta: { title: '项目编辑', requiresAuth: true, layout: 'default' }
   },
   {
     path: '/auth',

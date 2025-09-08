@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS projects (
     redis_password VARCHAR(255),
     jwt_secret_key VARCHAR(255),
     subnetwork VARCHAR(50) DEFAULT '172.20.0.0/16',
+    preview_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP

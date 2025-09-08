@@ -1,1 +1,5 @@
 export { default as SmartInput } from './SmartInput.vue'
+export { default as ConversationMessage } from '../ConversationMessage.vue'
+export { default as DevStages } from '../DevStages.vue'
+export { default as ConversationContainer } from '../ConversationContainer.vue'
+export { default as ProjectPanel } from '../ProjectPanel.vue'

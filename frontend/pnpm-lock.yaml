@@ -17,6 +17,9 @@ importers:
       axios:
         specifier: ^1.6.2
         version: 1.11.0
+      marked:
+        specifier: ^16.2.1
+        version: 16.2.1
       naive-ui:
         specifier: ^2.37.3
         version: 2.42.0(vue@3.5.20(typescript@5.9.2))
@@ -37,13 +40,13 @@ importers:
         specifier: ^1.69.5
         version: 1.91.0
       typescript:
-        specifier: ^5.9.2
+        specifier: ^5.2.2
         version: 5.9.2
       vite:
         specifier: ^5.0.8
         version: 5.4.19(@types/node@20.19.11)(sass@1.91.0)
       vue-tsc:
-        specifier: ^1.8.27
+        specifier: ^1.8.25
         version: 1.8.27(typescript@5.9.2)
 
 packages:
@@ -690,6 +693,11 @@ packages:
 
   magic-string@0.30.18:
     resolution: {integrity: sha512-yi8swmWbO17qHhwIBNeeZxTceJMeBvWJaId6dyvTSOwTipqeHhMhOrz6513r1sOKnpvQ7zkhlG8tPrpilwTxHQ==}
+
+  marked@16.2.1:
+    resolution: {integrity: sha512-r3UrXED9lMlHF97jJByry90cwrZBBvZmjG1L68oYfuPMW+uDTnuMbyJDymCWwbTE+f+3LhpNDKfpR3a3saFyjA==}
+    engines: {node: '>= 20'}
+    hasBin: true
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -1410,6 +1418,8 @@ snapshots:
   magic-string@0.30.18:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  marked@16.2.1: {}
 
   math-intrinsics@1.1.0: {}
 

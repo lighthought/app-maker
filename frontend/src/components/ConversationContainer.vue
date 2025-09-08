@@ -1,0 +1,276 @@
+<template>
+  <div class="conversation-container">
+    <!-- 开发阶段进度 -->
+    <DevStages 
+      :stages="devStages" 
+      :current-progress="currentProgress"
+    />
+    
+    <!-- 对话消息列表 -->
+    <div class="conversation-messages" ref="messagesContainer">
+      <ConversationMessage
+        v-for="message in messages"
+        :key="message.id"
+        :message="message"
+        @toggle-expanded="toggleMessageExpanded"
+      />
+      
+      <!-- 加载状态 -->
+      <div v-if="isLoading" class="loading-message">
+        <div class="loading-avatar">
+          <n-icon size="20" color="white">
+            <LoadingIcon />
+          </n-icon>
+        </div>
+        <div class="loading-content">
+          <div class="loading-text">AI Agent 正在思考中...</div>
+          <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch, nextTick, h } from 'vue'
+import { NIcon } from 'naive-ui'
+import ConversationMessage from './ConversationMessage.vue'
+import DevStages from './DevStages.vue'
+import { useProjectStore } from '@/stores/project'
+import type { ConversationMessage as ConversationMessageType, DevStage } from '@/types/project'
+
+interface Props {
+  projectId: string
+  requirements: string
+}
+
+const props = defineProps<Props>()
+const projectStore = useProjectStore()
+
+// 响应式数据
+const messages = ref<ConversationMessageType[]>([])
+const devStages = ref<DevStage[]>([])
+const currentProgress = ref(0)
+const isLoading = ref(false)
+const messagesContainer = ref<HTMLElement>()
+
+// 加载开发阶段
+const loadDevStages = async () => {
+  try {
+    const stages = await projectStore.getProjectStages(props.projectId)
+    if (stages) {
+      devStages.value = stages
+      updateCurrentProgress()
+    }
+  } catch (error) {
+    console.error('加载开发阶段失败:', error)
+  }
+}
+
+// 加载对话历史
+const loadConversations = async () => {
+  try {
+    const conversations = await projectStore.getProjectConversations(props.projectId)
+    if (conversations) {
+      messages.value = conversations.data
+      scrollToBottom()
+    }
+  } catch (error) {
+    console.error('加载对话历史失败:', error)
+  }
+}
+
+
+
+// 更新开发阶段状态
+const updateDevStage = (stageId: string, status: 'pending' | 'in_progress' | 'completed' | 'failed') => {
+  const stage = devStages.value.find(s => s.id === stageId)
+  if (stage) {
+    stage.status = status
+    updateCurrentProgress()
+  }
+}
+
+// 更新当前进度
+const updateCurrentProgress = () => {
+  const completedStages = devStages.value.filter(s => s.status === 'completed')
+  const inProgressStage = devStages.value.find(s => s.status === 'in_progress')
+  
+  if (inProgressStage) {
+    currentProgress.value = inProgressStage.progress
+  } else if (completedStages.length > 0) {
+    const lastCompleted = completedStages[completedStages.length - 1]
+    currentProgress.value = lastCompleted.progress
+  } else {
+    currentProgress.value = 0
+  }
+}
+
+// 滚动到底部
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
+
+// 切换消息展开状态
+const toggleMessageExpanded = (messageId: string) => {
+  const message = messages.value.find(m => m.id === messageId)
+  if (message) {
+    message.isExpanded = !message.isExpanded
+  }
+}
+
+
+// 图标组件
+const LoadingIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm0 18a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8z' }),
+  h('path', { 
+    d: 'M12 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8',
+    style: 'opacity: 0.3;'
+  })
+])
+
+// 初始化
+const initialize = async () => {
+  await loadDevStages()
+  await loadConversations()
+  
+  // 如果没有对话历史，添加初始消息
+  if (messages.value.length === 0) {
+    // 添加用户需求消息
+    const userMessage = await projectStore.addConversationMessage(props.projectId, {
+      type: 'user',
+      content: props.requirements,
+      isExpanded: false
+    })
+    if (userMessage) {
+      messages.value.push(userMessage)
+    }
+    
+    // 系统消息将通过WebSocket推送
+  }
+}
+
+// 初始化
+initialize()
+</script>
+
+<style scoped>
+.conversation-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversation-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  background: var(--background-color);
+}
+
+/* 加载状态样式 */
+.loading-message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.loading-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #D69E2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+.loading-content {
+  background: white;
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  border-bottom-left-radius: var(--border-radius-sm);
+}
+
+.loading-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.loading-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #D69E2E;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(214, 158, 46, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(214, 158, 46, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(214, 158, 46, 0);
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 滚动条样式 */
+.conversation-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversation-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversation-messages::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.conversation-messages::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+</style>

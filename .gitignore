@@ -33,3 +33,5 @@ go.work.sum
 backend/logs/
 backend/bin/
 /.vite/deps_temp_169df612
+/backend/server
+/.env.backup

@@ -24,6 +24,7 @@ type Project struct {
 	RedisPassword    string         `json:"redis_password" gorm:"size:100"`
 	JwtSecretKey     string         `json:"jwt_secret_key" gorm:"size:100"`
 	Subnetwork       string         `json:"subnetwork" gorm:"size:50"`
+	PreviewUrl       string         `json:"preview_url" gorm:"size:500"`
 	ProjectPath      string         `json:"project_path" gorm:"size:500;not null"`
 	UserID           string         `json:"user_id" gorm:"type:varchar(50);not null"`
 	User             User           `json:"user,omitempty" gorm:"foreignKey:UserID"`

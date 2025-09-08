@@ -7,6 +7,7 @@ export interface Project {
   projectPath: string
   backendPort: number
   frontendPort: number
+  previewUrl?: string
   userId: string
   user?: UserInfo
   tags: TagInfo[]
@@ -60,4 +61,47 @@ export interface PaginationResponse<T> {
   data: T[]
   hasNext: boolean
   hasPrevious: boolean
+}
+
+// 任务相关类型
+export interface Task {
+  id: string
+  projectId: string
+  type: string
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  priority: number
+  description: string
+  startedAt?: string
+  completedAt?: string
+  createdAt: string
+}
+
+export interface TaskLog {
+  id: string
+  taskId: string
+  level: 'info' | 'success' | 'warning' | 'error'
+  message: string
+  createdAt: string
+}
+
+// 对话消息类型
+export interface ConversationMessage {
+  id: string
+  type: 'user' | 'agent' | 'system'
+  agentRole?: 'dev' | 'pm' | 'arch' | 'ux' | 'qa' | 'ops'
+  agentName?: string
+  content: string
+  timestamp: string
+  isMarkdown?: boolean
+  markdownContent?: string
+  isExpanded?: boolean
+}
+
+// 开发阶段类型
+export interface DevStage {
+  id: string
+  name: string
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  progress: number
+  description: string
 }

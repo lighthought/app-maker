@@ -1,11 +1,15 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,11 +28,30 @@ type TaskExecutionService struct {
 	taskRepo          repositories.TaskRepository
 	projectDevService *ProjectDevService
 	baseProjectsDir   string
+	jenkinsConfig     *JenkinsConfig
 
 	// 线程池控制
 	semaphore      *semaphore.Weighted
 	maxConcurrency int64
 	mu             sync.Mutex
+}
+
+// JenkinsConfig Jenkins 配置
+type JenkinsConfig struct {
+	BaseURL     string
+	Username    string
+	APIToken    string
+	JobName     string
+	RemoteToken string
+	Timeout     time.Duration
+}
+
+// JenkinsBuildRequest Jenkins 构建请求
+type JenkinsBuildRequest struct {
+	UserID      string `json:"user_id"`
+	ProjectID   string `json:"project_id"`
+	ProjectPath string `json:"project_path"`
+	BuildType   string `json:"build_type"` // dev 或 prod
 }
 
 // NewTaskExecutionService 创建任务执行服务
@@ -41,15 +64,34 @@ func NewTaskExecutionService(
 ) *TaskExecutionService {
 	maxConcurrency := int64(3) // 限制同时执行3个项目开发任务
 
+	// Jenkins 配置
+	jenkinsConfig := &JenkinsConfig{
+		BaseURL:     getEnvOrDefault("JENKINS_URL", "http://10.0.0.6:5016"),
+		Username:    getEnvOrDefault("JENKINS_USERNAME", "admin"),
+		APIToken:    getEnvOrDefault("JENKINS_API_TOKEN", "119ffe6f373f1cb4b4b4e9a27ca5b1890f"),
+		JobName:     getEnvOrDefault("JENKINS_JOB_NAME", "app-maker-flow"),
+		RemoteToken: getEnvOrDefault("JENKINS_REMOTE_TOKEN", ""),
+		Timeout:     30 * time.Minute,
+	}
+
 	return &TaskExecutionService{
 		projectService:    projectService,
 		projectRepo:       projectRepo,
 		taskRepo:          taskRepo,
 		projectDevService: projectDevService,
 		baseProjectsDir:   baseProjectsDir,
+		jenkinsConfig:     jenkinsConfig,
 		semaphore:         semaphore.NewWeighted(maxConcurrency),
 		maxConcurrency:    maxConcurrency,
 	}
+}
+
+// getEnvOrDefault 获取环境变量或返回默认值
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // StartProjectDevelopment 启动项目开发流程
@@ -232,6 +274,9 @@ func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, pr
 	s.taskRepo.Update(ctx, task)
 
 	s.addTaskLog(ctx, task.ID, "success", "项目开发流程完成")
+
+	// 触发 Jenkins 构建和部署
+	go s.triggerJenkinsBuild(context.Background(), project, task)
 
 	logger.Info("项目开发流程执行完成",
 		logger.String("projectID", project.ID),
@@ -483,4 +528,160 @@ func (s *TaskExecutionService) addTaskLog(ctx context.Context, taskID, level, me
 			logger.String("error", err.Error()),
 		)
 	}
+}
+
+// triggerJenkinsBuild 触发 Jenkins 构建
+func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project *models.Project, task *models.Task) {
+	logger.Info("开始触发 Jenkins 构建",
+		logger.String("projectID", project.ID),
+		logger.String("taskID", task.ID),
+	)
+
+	s.addTaskLog(ctx, task.ID, "info", "开始触发 Jenkins 构建和部署...")
+
+	// 构建 Jenkins 请求
+	// 将容器内路径转换为主机路径
+	hostProjectPath := s.convertToHostPath(project.ProjectPath)
+
+	buildRequest := &JenkinsBuildRequest{
+		UserID:      project.UserID,
+		ProjectID:   project.ID,
+		ProjectPath: hostProjectPath,
+		BuildType:   "dev", // 默认使用开发环境
+	}
+
+	// 序列化请求
+	jsonData, err := json.Marshal(buildRequest)
+	if err != nil {
+		logger.Error("序列化 Jenkins 请求失败",
+			logger.String("projectID", project.ID),
+			logger.String("error", err.Error()),
+		)
+		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("序列化 Jenkins 请求失败: %s", err.Error()))
+		return
+	}
+
+	// 构建 Jenkins API URL
+	var jenkinsURL string
+	var req *http.Request
+
+	if s.jenkinsConfig.RemoteToken != "" {
+		// 使用远程令牌触发
+		jenkinsURL = fmt.Sprintf("%s/job/%s/buildWithParameters", s.jenkinsConfig.BaseURL, s.jenkinsConfig.JobName)
+		params := fmt.Sprintf("USER_ID=%s&PROJECT_ID=%s&PROJECT_PATH=%s&BUILD_TYPE=%s&token=%s",
+			buildRequest.UserID, buildRequest.ProjectID, buildRequest.ProjectPath, buildRequest.BuildType, s.jenkinsConfig.RemoteToken)
+		jenkinsURL = jenkinsURL + "?" + params
+
+		req, err = http.NewRequestWithContext(ctx, "POST", jenkinsURL, nil)
+	} else {
+		// 使用 API Token 触发
+		jenkinsURL = fmt.Sprintf("%s/job/%s/buildWithParameters", s.jenkinsConfig.BaseURL, s.jenkinsConfig.JobName)
+		req, err = http.NewRequestWithContext(ctx, "POST", jenkinsURL, bytes.NewBuffer(jsonData))
+	}
+
+	if err != nil {
+		logger.Error("创建 Jenkins 请求失败",
+			logger.String("projectID", project.ID),
+			logger.String("error", err.Error()),
+		)
+		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("创建 Jenkins 请求失败: %s", err.Error()))
+		return
+	}
+
+	// 设置请求头
+	if s.jenkinsConfig.RemoteToken == "" {
+		req.Header.Set("Content-Type", "application/json")
+		if s.jenkinsConfig.APIToken != "" {
+			req.SetBasicAuth(s.jenkinsConfig.Username, s.jenkinsConfig.APIToken)
+		}
+	}
+
+	// 发送请求
+	client := &http.Client{Timeout: s.jenkinsConfig.Timeout}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Error("发送 Jenkins 请求失败",
+			logger.String("projectID", project.ID),
+			logger.String("error", err.Error()),
+		)
+		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("发送 Jenkins 请求失败: %s", err.Error()))
+		return
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		logger.Info("Jenkins 构建触发成功",
+			logger.String("projectID", project.ID),
+			logger.String("statusCode", fmt.Sprintf("%d", resp.StatusCode)),
+		)
+		s.addTaskLog(ctx, task.ID, "success", "Jenkins 构建触发成功，开始构建和部署项目")
+
+		// 更新项目状态为部署中
+		project.Status = "deploying"
+		s.projectRepo.Update(ctx, project)
+	} else {
+		logger.Error("Jenkins 构建触发失败",
+			logger.String("projectID", project.ID),
+			logger.String("statusCode", fmt.Sprintf("%d", resp.StatusCode)),
+		)
+		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("Jenkins 构建触发失败，状态码: %d", resp.StatusCode))
+	}
+}
+
+// triggerJenkinsBuildWithScript 使用脚本触发 Jenkins 构建（备用方案）
+func (s *TaskExecutionService) triggerJenkinsBuildWithScript(ctx context.Context, project *models.Project, task *models.Task) {
+	logger.Info("使用脚本触发 Jenkins 构建",
+		logger.String("projectID", project.ID),
+		logger.String("taskID", task.ID),
+	)
+
+	s.addTaskLog(ctx, task.ID, "info", "使用脚本触发 Jenkins 构建...")
+
+	// 构建脚本命令
+	scriptPath := "/scripts/jenkins-trigger.sh"
+	cmd := exec.CommandContext(ctx, "bash", scriptPath,
+		"--user-id", project.UserID,
+		"--project-id", project.ID,
+		"--project-path", project.ProjectPath,
+		"--build-type", "dev",
+		"--jenkins-url", s.jenkinsConfig.BaseURL,
+		"--job-name", s.jenkinsConfig.JobName,
+	)
+
+	// 执行脚本
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Error("Jenkins 构建脚本执行失败",
+			logger.String("projectID", project.ID),
+			logger.String("error", err.Error()),
+			logger.String("output", string(output)),
+		)
+		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("Jenkins 构建脚本执行失败: %s", err.Error()))
+		return
+	}
+
+	logger.Info("Jenkins 构建脚本执行成功",
+		logger.String("projectID", project.ID),
+		logger.String("output", string(output)),
+	)
+	s.addTaskLog(ctx, task.ID, "success", "Jenkins 构建脚本执行成功")
+}
+
+// convertToHostPath 将容器内路径转换为主机路径
+func (s *TaskExecutionService) convertToHostPath(containerPath string) string {
+	// 容器内路径: /app/data/projects/USER00000000002/PROJ00000000006
+	// 主机路径: F:/app-maker/app_data/projects/USER00000000002/PROJ00000000006
+
+	// 获取主机数据目录
+	hostDataDir := getEnvOrDefault("APP_DATA_HOME", "F:/app-maker/app_data")
+
+	// 替换路径前缀
+	if strings.HasPrefix(containerPath, "/app/data/") {
+		relativePath := strings.TrimPrefix(containerPath, "/app/data/")
+		return filepath.Join(hostDataDir, relativePath)
+	}
+
+	// 如果不是预期的路径格式，返回原路径
+	return containerPath
 }
