@@ -1,73 +1,53 @@
 <template>
-  <PageLayout>
-    <div class="project-edit-page">
-      <div class="page-header">
-        <div class="header-left">
-          <n-button text @click="goBack">
-            <template #icon>
-              <n-icon><ArrowLeftIcon /></n-icon>
-            </template>
-            返回
-          </n-button>
-          <div class="project-info">
-            <h1>{{ project?.name || '项目编辑' }}</h1>
-            <p v-if="project?.description">{{ project.description }}</p>
-          </div>
-        </div>
-        <div class="header-right">
-          <n-button-group>
-            <n-button
-              :type="viewMode === 'conversation' ? 'primary' : 'default'"
-              @click="viewMode = 'conversation'"
-            >
-              <template #icon>
-                <n-icon><ChatIcon /></n-icon>
-              </template>
-              对话
-            </n-button>
-            <n-button
-              :type="viewMode === 'panel' ? 'primary' : 'default'"
-              @click="viewMode = 'panel'"
-            >
-              <template #icon>
-                <n-icon><CodeIcon /></n-icon>
-              </template>
-              面板
-            </n-button>
-          </n-button-group>
+  <div class="project-edit-page">
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+      <div class="navbar-left">
+        <n-button text @click="goBack" class="back-button">
+          <template #icon>
+            <n-icon><ArrowLeftIcon /></n-icon>
+          </template>
+          返回
+        </n-button>
+        <div class="project-title">
+          {{ project?.name || '项目编辑' }}
         </div>
       </div>
+    </div>
 
-      <div class="page-content">
-        <!-- 对话模式 -->
-        <div v-if="viewMode === 'conversation'" class="conversation-mode">
-          <div class="conversation-layout">
-            <div class="conversation-left">
-              <ConversationContainer
-                :project-id="projectId"
-                :requirements="project?.requirements || ''"
-              />
-            </div>
-            <div class="conversation-right">
-              <ProjectPanel :project="project" />
-            </div>
-          </div>
+    <!-- 主内容区域 - 分屏布局 -->
+    <div class="main-content">
+      <div class="split-container">
+        <!-- 左侧对话窗口 -->
+        <div class="left-panel" :style="{ width: leftWidth + '%' }">
+          <ConversationContainer
+            :project-id="projectId"
+            :requirements="project?.requirements || ''"
+          />
         </div>
-
-        <!-- 面板模式 -->
-        <div v-else-if="viewMode === 'panel'" class="panel-mode">
+        
+        <!-- 分割器 -->
+        <div 
+          class="splitter" 
+          @mousedown="startResize"
+          @touchstart="startResize"
+        >
+          <div class="splitter-handle"></div>
+        </div>
+        
+        <!-- 右侧项目面板 -->
+        <div class="right-panel" :style="{ width: rightWidth + '%' }">
           <ProjectPanel :project="project" />
         </div>
       </div>
     </div>
-  </PageLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NButton, NButtonGroup, NIcon } from 'naive-ui'
-import PageLayout from '@/components/layout/PageLayout.vue'
+import { NButton, NIcon } from 'naive-ui'
 import ConversationContainer from '@/components/ConversationContainer.vue'
 import ProjectPanel from '@/components/ProjectPanel.vue'
 import { useProjectStore } from '@/stores/project'
@@ -78,9 +58,13 @@ const router = useRouter()
 const projectStore = useProjectStore()
 
 // 响应式数据
-const viewMode = ref<'conversation' | 'panel'>('conversation')
-const project = ref<Project | null>(null)
+const project = ref<Project | undefined>(undefined)
 const loading = ref(false)
+
+// 分割器相关
+const leftWidth = ref(50)
+const rightWidth = ref(50)
+const isResizing = ref(false)
 
 // 计算属性
 const projectId = computed(() => route.params.id as string)
@@ -94,21 +78,41 @@ const ArrowLeftIcon = () => h('svg', {
   h('path', { d: 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z' })
 ])
 
-const ChatIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z' })
-])
-
-const CodeIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z' })
-])
+// 分割器拖拽逻辑
+const startResize = (e: MouseEvent | TouchEvent) => {
+  isResizing.value = true
+  e.preventDefault()
+  
+  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (!isResizing.value) return
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const containerWidth = window.innerWidth
+    const newLeftWidth = (clientX / containerWidth) * 100
+    
+    // 限制最小和最大宽度
+    const minWidth = 20
+    const maxWidth = 80
+    
+    if (newLeftWidth >= minWidth && newLeftWidth <= maxWidth) {
+      leftWidth.value = newLeftWidth
+      rightWidth.value = 100 - newLeftWidth
+    }
+  }
+  
+  const handleMouseUp = () => {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+    document.removeEventListener('touchmove', handleMouseMove)
+    document.removeEventListener('touchend', handleMouseUp)
+  }
+  
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+  document.addEventListener('touchmove', handleMouseMove)
+  document.addEventListener('touchend', handleMouseUp)
+}
 
 // 方法
 const goBack = () => {
@@ -140,6 +144,14 @@ const loadProject = async () => {
 onMounted(() => {
   loadProject()
 })
+
+onUnmounted(() => {
+  // 清理事件监听器
+  document.removeEventListener('mousemove', () => {})
+  document.removeEventListener('mouseup', () => {})
+  document.removeEventListener('touchmove', () => {})
+  document.removeEventListener('touchend', () => {})
+})
 </script>
 
 <style scoped>
@@ -147,99 +159,165 @@ onMounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--background-color);
+  background: #f8fafc;
+  overflow: hidden;
 }
 
-.page-header {
+/* 顶部导航栏 */
+.top-navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
+  padding: 12px 24px;
   background: white;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 10;
 }
 
-.header-left {
+.navbar-left {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: 16px;
 }
 
-.project-info h1 {
-  margin: 0 0 var(--spacing-xs) 0;
-  color: var(--primary-color);
-  font-size: 1.5rem;
+.back-button {
+  color: #64748b;
+  font-size: 14px;
 }
 
-.project-info p {
+.back-button:hover {
+  color: #334155;
+}
+
+.project-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
   margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
 }
 
-.page-content {
+/* 主内容区域 - 分屏布局 */
+.main-content {
   flex: 1;
   overflow: hidden;
 }
 
-/* 对话模式布局 */
-.conversation-mode {
-  height: 100%;
-}
-
-.conversation-layout {
+.split-container {
   display: flex;
   height: 100%;
+  position: relative;
 }
 
-.conversation-left {
-  flex: 1;
+/* 左侧面板 */
+.left-panel {
+  background: white;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* 右侧面板 */
+.right-panel {
+  background: #f8fafc;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.conversation-right {
-  width: 400px;
-  border-left: 1px solid var(--border-color);
+/* 分割器 */
+.splitter {
+  width: 8px;
+  background: #e2e8f0;
+  cursor: col-resize;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.splitter:hover {
+  background: #cbd5e1;
+}
+
+.splitter-handle {
+  width: 4px;
+  height: 40px;
+  background: #94a3b8;
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.splitter:hover .splitter-handle {
+  opacity: 1;
+}
+
+/* 拖拽时的样式 */
+.splitter:active {
+  background: #3b82f6;
+}
+
+.splitter:active .splitter-handle {
   background: white;
-}
-
-/* 面板模式布局 */
-.panel-mode {
-  height: 100%;
-  padding: var(--spacing-lg);
+  opacity: 1;
 }
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
-  .conversation-layout {
+  .split-container {
     flex-direction: column;
   }
   
-  .conversation-right {
+  .left-panel,
+  .right-panel {
+    width: 100% !important;
+    height: 50%;
+  }
+  
+  .splitter {
     width: 100%;
-    height: 300px;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
+    height: 8px;
+    cursor: row-resize;
+  }
+  
+  .splitter-handle {
+    width: 40px;
+    height: 4px;
   }
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
+  .top-navbar {
+    padding: 8px 16px;
   }
   
-  .header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
+  .navbar-left {
+    gap: 12px;
   }
   
-  .conversation-right {
-    height: 250px;
+  .project-title {
+    font-size: 16px;
+  }
+  
+  .left-panel,
+  .right-panel {
+    height: 50%;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  
+  .navbar-left {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 </style>
