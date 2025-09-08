@@ -80,35 +80,6 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  // 更新项目
-  const updateProject = async (projectId: string, updates: UpdateProjectData) => {
-    projectStatus.value = 'loading'
-    try {
-      const response = await httpService.put<{
-        code: number
-        message: string
-        data: Project
-      }>(`/projects/${projectId}`, updates)
-
-      if (response.code === 0 && response.data) {
-        const index = projects.value.findIndex(p => p.id === projectId)
-        if (index !== -1) {
-          projects.value[index] = response.data
-        }
-        projectStatus.value = 'success'
-        return response.data
-      } else {
-        console.error('更新项目失败:', response.message)
-        projectStatus.value = 'error'
-        throw new Error(response.message || '更新项目失败')
-      }
-    } catch (error) {
-      console.error('更新项目失败:', error)
-      projectStatus.value = 'error'
-      throw error
-    }
-  }
-
   // 删除项目
   const deleteProject = async (projectId: string) => {
     projectStatus.value = 'loading'
@@ -322,7 +293,6 @@ export const useProjectStore = defineStore('project', () => {
     pagination,
     fetchProjects,
     createProject,
-    updateProject,
     deleteProject,
     downloadProject,
     getProject,

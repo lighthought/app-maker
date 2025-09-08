@@ -22,26 +22,20 @@ graph TB
     
     subgraph "Application Layer"
         PH[Project Handler]
-        TH[Task Handler]
         UH[User Handler]
-        TagH[Tag Handler]
         CH[Cache Handler]
     end
     
     subgraph "Business Logic Layer"
         PS[Project Service]
-        TS[Task Service]
         TES[Task Execution Service]
         PDS[Project Dev Service]
         US[User Service]
-        TagS[Tag Service]
     end
     
     subgraph "Data Access Layer"
         PR[Project Repository]
-        TR[Task Repository]
         UR[User Repository]
-        TagR[Tag Repository]
     end
     
     subgraph "Data Layer"
@@ -127,26 +121,6 @@ classDiagram
         +GetDevStageDescription() string
     }
 
-    class Task {
-        +ID: string
-        +ProjectID: string
-        +Type: string
-        +Status: string
-        +Priority: int
-        +Description: string
-        +StartedAt: *time.Time
-        +CompletedAt: *time.Time
-        +CreatedAt: time.Time
-    }
-
-    class TaskLog {
-        +ID: string
-        +TaskID: string
-        +Level: string
-        +Message: string
-        +CreatedAt: time.Time
-    }
-
     class User {
         +ID: string
         +Username: string
@@ -156,18 +130,7 @@ classDiagram
         +UpdatedAt: time.Time
     }
 
-    class Tag {
-        +ID: string
-        +Name: string
-        +Color: string
-        +UserID: string
-        +CreatedAt: time.Time
-    }
-
-    Project --> Task : has many
-    Task --> TaskLog : has many
     User --> Project : has many
-    User --> Tag : has many
 ```
 
 ### 2. 数据访问层
@@ -185,16 +148,6 @@ classDiagram
         +GetByPath(ctx, path, userID) *Project
     }
 
-    class TaskRepository {
-        <<interface>>
-        +Create(ctx, task) error
-        +GetByID(ctx, id) *Task
-        +Update(ctx, task) error
-        +List(ctx, projectID, limit, offset) []*Task
-        +UpdateStatus(ctx, id, status) error
-        +CreateLog(ctx, log) error
-        +GetLogs(ctx, taskID, limit, offset) []*TaskLog
-    }
 
     class UserRepository {
         <<interface>>
@@ -205,21 +158,6 @@ classDiagram
         +GetByUsername(ctx, username) *User
     }
 
-    class TagRepository {
-        <<interface>>
-        +Create(ctx, tag) error
-        +GetByID(ctx, id) *Tag
-        +List(ctx, userID) []*Tag
-        +Update(ctx, tag) error
-        +Delete(ctx, id) error
-    }
-
-    class TaskLogRepository {
-        <<interface>>
-        +Create(ctx, log) error
-        +GetByTaskID(ctx, taskID, limit, offset) []*TaskLog
-        +GetByLevel(ctx, taskID, level) []*TaskLog
-    }
 ```
 
 ### 3. 业务逻辑层
@@ -230,28 +168,12 @@ classDiagram
         <<interface>>
         +CreateProject(ctx, req, userID) *ProjectInfo
         +GetProject(ctx, projectID, userID) *ProjectInfo
-        +UpdateProject(ctx, projectID, req, userID) *ProjectInfo
         +DeleteProject(ctx, projectID, userID) error
         +ListProjects(ctx, req, userID) ([]*ProjectInfo, *PaginationResponse)
-        +UpdateProjectStatus(ctx, projectID, status, userID) error
-        +GetProjectsByStatus(ctx, status, userID) []*ProjectInfo
-        +AddProjectTags(ctx, projectID, tagIDs, userID) error
-        +RemoveProjectTags(ctx, projectID, tagIDs, userID) error
-        +GetProjectTags(ctx, projectID, userID) []*TagInfo
-        +UpdateProjectPath(ctx, projectID, path, userID) error
-        +GetProjectByPath(ctx, path, userID) *ProjectInfo
         +DownloadProject(ctx, projectID, userID) []byte
     }
 
-    class TaskService {
-        <<interface>>
-        +GetProjectTasks(ctx, projectID, userID, limit, offset) []*Task
-        +GetTaskDetails(ctx, taskID, userID) *Task
-        +GetTaskLogs(ctx, taskID, userID, limit, offset) []*TaskLog
-        +CancelTask(ctx, taskID, userID) error
-    }
-
-    class TaskExecutionService {
+    class ProjectStageService {
         +projectService: ProjectService
         +projectRepo: ProjectRepository
         +taskRepo: TaskRepository
@@ -278,18 +200,6 @@ classDiagram
 
     class ProjectDevService {
         +baseProjectsDir: string
-        +SetupProjectDevEnvironment(project) error
-        +InstallBmadMethod(projectDir) error
-        +InstallCursorCLI() error
-        +StartCursorChat(projectDir) error
-        +ExecuteCommand(projectDir, command, args) error
-        +GetProjectDevStatus(projectDir) map[string]interface{}
-        +isBmadMethodInstalled(projectDir) bool
-        +isCursorCLIInstalled() bool
-        +isNodeInstalled() bool
-        +isNpmInstalled() bool
-        +getNodeVersion() string
-        +getNpmVersion() string
     }
 
     class ProjectTemplateService {
@@ -323,14 +233,6 @@ classDiagram
         +ValidateToken(token) (string, error)
     }
 
-    class TagService {
-        <<interface>>
-        +CreateTag(ctx, req, userID) *TagInfo
-        +GetTag(ctx, tagID, userID) *TagInfo
-        +UpdateTag(ctx, tagID, req, userID) *TagInfo
-        +DeleteTag(ctx, tagID, userID) error
-        +ListTags(ctx, userID) []*TagInfo
-    }
 ```
 
 ### 4. API 控制器层
@@ -339,28 +241,13 @@ classDiagram
 classDiagram
     class ProjectHandler {
         +projectService: ProjectService
-        +tagService: TagService
         +CreateProject(c) *gin.Context
         +GetProject(c) *gin.Context
-        +UpdateProject(c) *gin.Context
         +DeleteProject(c) *gin.Context
         +ListProjects(c) *gin.Context
-        +UpdateProjectStatus(c) *gin.Context
-        +AddProjectTags(c) *gin.Context
-        +RemoveProjectTags(c) *gin.Context
-        +GetProjectTags(c) *gin.Context
-        +UpdateProjectPath(c) *gin.Context
-        +GetProjectByPath(c) *gin.Context
         +DownloadProject(c) *gin.Context
     }
 
-    class TaskHandler {
-        +taskService: TaskService
-        +GetProjectTasks(c) *gin.Context
-        +GetTaskDetails(c) *gin.Context
-        +GetTaskLogs(c) *gin.Context
-        +CancelTask(c) *gin.Context
-    }
 
     class UserHandler {
         +userService: UserService
@@ -369,15 +256,6 @@ classDiagram
         +GetProfile(c) *gin.Context
         +UpdateProfile(c) *gin.Context
         +ChangePassword(c) *gin.Context
-    }
-
-    class TagHandler {
-        +tagService: TagService
-        +CreateTag(c) *gin.Context
-        +GetTag(c) *gin.Context
-        +UpdateTag(c) *gin.Context
-        +DeleteTag(c) *gin.Context
-        +ListTags(c) *gin.Context
     }
 
     class CacheHandler {
@@ -474,7 +352,7 @@ sequenceDiagram
     participant Client
     participant ProjectHandler
     participant ProjectService
-    participant TaskExecutionService
+    participant ProjectStageService
     participant ProjectTemplateService
     participant ProjectRepository
     participant Database
@@ -485,10 +363,10 @@ sequenceDiagram
     ProjectRepository->>Database: INSERT project
     ProjectService->>ProjectTemplateService: InitializeProject(project)
     ProjectTemplateService->>ProjectService: Project initialized
-    ProjectService->>TaskExecutionService: StartProjectDevelopment(projectID)
-    TaskExecutionService->>ProjectRepository: Update project status
-    TaskExecutionService->>TaskRepository: Create task
-    TaskExecutionService-->>ProjectService: Development started
+    ProjectService->>ProjectStageService: StartProjectDevelopment(projectID)
+    ProjectStageService->>ProjectRepository: Update project status
+    ProjectStageService->>TaskRepository: Create task
+    ProjectStageService-->>ProjectService: Development started
     ProjectService-->>ProjectHandler: Project created
     ProjectHandler-->>Client: 201 Created
 ```
@@ -497,28 +375,27 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant TaskExecutionService
+    participant ProjectStageService
     participant ProjectDevService
     participant CursorCLI
     participant ProjectRepository
     participant TaskRepository
     participant Database
 
-    TaskExecutionService->>ProjectDevService: SetupProjectDevEnvironment(project)
     ProjectDevService->>CursorCLI: Install cursor-cli
     ProjectDevService->>CursorCLI: Install bmad-method
-    ProjectDevService-->>TaskExecutionService: Environment ready
+    ProjectDevService-->>ProjectStageService: Environment ready
     
     loop Development Stages
-        TaskExecutionService->>ProjectRepository: Update project status
-        TaskExecutionService->>CursorCLI: Execute development stage
-        CursorCLI-->>TaskExecutionService: Stage completed
-        TaskExecutionService->>TaskRepository: Add task log
-        TaskExecutionService->>ProjectRepository: Update progress
+        ProjectStageService->>ProjectRepository: Update project status
+        ProjectStageService->>CursorCLI: Execute development stage
+        CursorCLI-->>ProjectStageService: Stage completed
+        ProjectStageService->>TaskRepository: Add task log
+        ProjectStageService->>ProjectRepository: Update progress
     end
     
-    TaskExecutionService->>ProjectRepository: Mark project completed
-    TaskExecutionService->>TaskRepository: Mark task completed
+    ProjectStageService->>ProjectRepository: Mark project completed
+    ProjectStageService->>TaskRepository: Mark task completed
 ```
 
 ## 部署架构

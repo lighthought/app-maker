@@ -136,11 +136,9 @@ backend/
 ### 异步任务架构
 ```
 ┌─────────────────────────────────────┐
-│        TaskExecutionService         │  ← 异步任务执行服务
+│        ProjectStageService          │  ← 异步任务执行服务
 ├─────────────────────────────────────┤
-│         ProjectDevService           │  ← 项目开发环境服务
-├─────────────────────────────────────┤
-│           Cursor CLI               │  ← AI驱动的代码生成
+│           Cursor CLI                │  ← AI驱动的代码生成
 └─────────────────────────────────────┘
 ```
 
@@ -168,26 +166,6 @@ classDiagram
         +GetDevStageDescription() string
     }
 
-    class Task {
-        +ID: string
-        +ProjectID: string
-        +Type: string
-        +Status: string
-        +Priority: int
-        +Description: string
-        +StartedAt: *time.Time
-        +CompletedAt: *time.Time
-        +CreatedAt: time.Time
-    }
-
-    class TaskLog {
-        +ID: string
-        +TaskID: string
-        +Level: string
-        +Message: string
-        +CreatedAt: time.Time
-    }
-
     class User {
         +ID: string
         +Username: string
@@ -197,13 +175,6 @@ classDiagram
         +UpdatedAt: time.Time
     }
 
-    class Tag {
-        +ID: string
-        +Name: string
-        +Color: string
-        +UserID: string
-        +CreatedAt: time.Time
-    }
 
     %% 仓库层
     class ProjectRepository {
@@ -216,17 +187,6 @@ classDiagram
         +GetNextAvailablePorts(ctx) (int, int, error)
     }
 
-    class TaskRepository {
-        <<interface>>
-        +Create(ctx, task) error
-        +GetByID(ctx, id) *Task
-        +Update(ctx, task) error
-        +List(ctx, projectID, limit, offset) []*Task
-        +UpdateStatus(ctx, id, status) error
-        +CreateLog(ctx, log) error
-        +GetLogs(ctx, taskID, limit, offset) []*TaskLog
-    }
-
     class UserRepository {
         <<interface>>
         +Create(ctx, user) error
@@ -235,39 +195,20 @@ classDiagram
         +Update(ctx, user) error
     }
 
-    class TagRepository {
-        <<interface>>
-        +Create(ctx, tag) error
-        +GetByID(ctx, id) *Tag
-        +List(ctx, userID) []*Tag
-        +Update(ctx, tag) error
-        +Delete(ctx, id) error
-    }
 
     %% 服务层
     class ProjectService {
         <<interface>>
         +CreateProject(ctx, req, userID) *ProjectInfo
         +GetProject(ctx, projectID, userID) *ProjectInfo
-        +UpdateProject(ctx, projectID, req, userID) *ProjectInfo
         +DeleteProject(ctx, projectID, userID) error
         +ListProjects(ctx, req, userID) ([]*ProjectInfo, *PaginationResponse)
-        +UpdateProjectStatus(ctx, projectID, status, userID) error
     }
 
-    class TaskService {
-        <<interface>>
-        +GetProjectTasks(ctx, projectID, userID, limit, offset) []*Task
-        +GetTaskDetails(ctx, taskID, userID) *Task
-        +GetTaskLogs(ctx, taskID, userID, limit, offset) []*TaskLog
-        +CancelTask(ctx, taskID, userID) error
-    }
-
-    class TaskExecutionService {
+    class ProjectStageService {
         +projectService: ProjectService
         +projectRepo: ProjectRepository
         +taskRepo: TaskRepository
-        +projectDevService: *ProjectDevService
         +baseProjectsDir: string
         +semaphore: *semaphore.Weighted
         +maxConcurrency: int64
@@ -285,15 +226,6 @@ classDiagram
         +packageProject(ctx, project, task) error
     }
 
-    class ProjectDevService {
-        +baseProjectsDir: string
-        +SetupProjectDevEnvironment(project) error
-        +InstallBmadMethod(projectDir) error
-        +InstallCursorCLI() error
-        +StartCursorChat(projectDir) error
-        +ExecuteCommand(projectDir, command, args) error
-        +GetProjectDevStatus(projectDir) map
-    }
 
     class UserService {
         <<interface>>
@@ -304,34 +236,16 @@ classDiagram
         +ChangePassword(ctx, userID, req) error
     }
 
-    class TagService {
-        <<interface>>
-        +CreateTag(ctx, req, userID) *TagInfo
-        +GetTag(ctx, tagID, userID) *TagInfo
-        +UpdateTag(ctx, tagID, req, userID) *TagInfo
-        +DeleteTag(ctx, tagID, userID) error
-        +ListTags(ctx, userID) []*TagInfo
-    }
-
     %% 处理器层
     class ProjectHandler {
         +projectService: ProjectService
-        +tagService: TagService
         +CreateProject(c) *gin.Context
         +GetProject(c) *gin.Context
-        +UpdateProject(c) *gin.Context
         +DeleteProject(c) *gin.Context
         +ListProjects(c) *gin.Context
         +DownloadProject(c) *gin.Context
     }
 
-    class TaskHandler {
-        +taskService: TaskService
-        +GetProjectTasks(c) *gin.Context
-        +GetTaskDetails(c) *gin.Context
-        +GetTaskLogs(c) *gin.Context
-        +CancelTask(c) *gin.Context
-    }
 
     class UserHandler {
         +userService: UserService
@@ -340,15 +254,6 @@ classDiagram
         +GetProfile(c) *gin.Context
         +UpdateProfile(c) *gin.Context
         +ChangePassword(c) *gin.Context
-    }
-
-    class TagHandler {
-        +tagService: TagService
-        +CreateTag(c) *gin.Context
-        +GetTag(c) *gin.Context
-        +UpdateTag(c) *gin.Context
-        +DeleteTag(c) *gin.Context
-        +ListTags(c) *gin.Context
     }
 
     %% 工具和中间件
@@ -377,32 +282,18 @@ classDiagram
 
     %% 关系定义
     ProjectHandler --> ProjectService
-    ProjectHandler --> TagService
-    TaskHandler --> TaskService
     UserHandler --> UserService
-    TagHandler --> TagService
 
     ProjectService --> ProjectRepository
-    TaskService --> TaskRepository
-    TaskService --> ProjectRepository
     UserService --> UserRepository
-    TagService --> TagRepository
 
-    TaskExecutionService --> ProjectService
-    TaskExecutionService --> ProjectRepository
-    TaskExecutionService --> TaskRepository
-    TaskExecutionService --> ProjectDevService
+    ProjectStageService --> ProjectService
+    ProjectStageService --> ProjectRepository
 
     ProjectRepository --> Project
-    TaskRepository --> Task
-    TaskRepository --> TaskLog
     UserRepository --> User
-    TagRepository --> Tag
 
-    Project --> Task
-    Task --> TaskLog
     User --> Project
-    User --> Tag
 
     JWTService --> User
     Cache --> RedisCache

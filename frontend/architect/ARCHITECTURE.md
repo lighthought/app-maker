@@ -217,7 +217,6 @@ classDiagram
         +error: string
         +fetchProjects(params)
         +createProject(data)
-        +updateProject(id, updates)
         +deleteProject(id)
         +downloadProject(id)
         +getProject(id)

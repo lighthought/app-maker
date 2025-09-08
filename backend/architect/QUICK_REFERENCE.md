@@ -58,7 +58,7 @@ backend/
 
 ```mermaid
 graph LR
-    A[项目创建] --> B[TaskExecutionService]
+    A[项目创建] --> B[ProjectStageService]
     B --> C[环境初始化]
     C --> D[PRD生成]
     D --> E[UX设计]
@@ -76,10 +76,6 @@ graph LR
 ```mermaid
 erDiagram
     User ||--o{ Project : creates
-    User ||--o{ Tag : owns
-    Project ||--o{ Task : has
-    Task ||--o{ TaskLog : generates
-    Project }o--o{ Tag : tagged_with
 ```
 
 ### 3. API端点概览
@@ -191,7 +187,7 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ### 添加新的开发阶段
 
-1. 在 `TaskExecutionService` 中添加新的阶段方法
+1. 在 `ProjectStageService` 中添加新的阶段方法
 2. 在 `Project` 模型中添加对应的状态常量
 3. 更新 `GetDevStageProgress()` 方法
 4. 在开发流程数组中添加新阶段

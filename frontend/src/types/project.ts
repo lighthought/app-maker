@@ -10,7 +10,6 @@ export interface Project {
   previewUrl?: string
   userId: string
   user?: UserInfo
-  tags: TagInfo[]
   created_at: string
   updated_at: string
 }
@@ -22,12 +21,6 @@ export interface UserInfo {
   role: string
   status: string
   createdAt: string
-}
-
-export interface TagInfo {
-  id: string
-  name: string
-  color: string
 }
 
 export interface CreateProjectData {
@@ -63,26 +56,6 @@ export interface PaginationResponse<T> {
   hasPrevious: boolean
 }
 
-// 任务相关类型
-export interface Task {
-  id: string
-  projectId: string
-  type: string
-  status: 'pending' | 'in_progress' | 'completed' | 'failed'
-  priority: number
-  description: string
-  startedAt?: string
-  completedAt?: string
-  createdAt: string
-}
-
-export interface TaskLog {
-  id: string
-  taskId: string
-  level: 'info' | 'success' | 'warning' | 'error'
-  message: string
-  createdAt: string
-}
 
 // 对话消息类型
 export interface ConversationMessage {

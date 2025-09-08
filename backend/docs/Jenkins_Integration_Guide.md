@@ -9,7 +9,7 @@
 ```mermaid
 graph TB
     A[用户创建项目] --> B[项目开发完成]
-    B --> C[TaskExecutionService]
+    B --> C[ProjectStageService]
     C --> D[触发 Jenkins 构建]
     D --> E[Jenkins 执行构建]
     E --> F[make build-dev]
@@ -200,7 +200,7 @@ JENKINS_JOB_NAME=app-maker-flow
 
 ### 1. 自动触发
 
-项目开发完成后，`TaskExecutionService` 会自动触发 Jenkins 构建：
+项目开发完成后，`ProjectStageService` 会自动触发 Jenkins 构建：
 
 ```go
 // 在项目开发完成后自动触发

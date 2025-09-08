@@ -436,26 +436,6 @@ func (s *ProjectService) GetProject(ctx context.Context, projectID, userID strin
     return project, nil
 }
 
-func (s *ProjectService) UpdateProject(ctx context.Context, projectID string, updates map[string]interface{}, userID string) (*models.Project, error) {
-    project, err := s.projectRepo.FindByID(ctx, projectID)
-    if err != nil {
-        return nil, err
-    }
-    
-    // 检查权限
-    if project.UserID != userID {
-        return nil, errors.New("access denied")
-    }
-    
-    // 更新项目
-    updates["updated_at"] = time.Now()
-    if err := s.projectRepo.Update(ctx, projectID, updates); err != nil {
-        return nil, err
-    }
-    
-    // 获取更新后的项目
-    return s.projectRepo.FindByID(ctx, projectID)
-}
 ```
 
 ## 5. 中间件架构设计
