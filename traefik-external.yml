@@ -7,6 +7,12 @@ http:
       service: ollama-service
       entryPoints:
         - web
+    # Jenkins 服务
+    jenkins:
+      rule: "Host(`jenkins.app-maker.localhost`)"
+      service: jenkins-service
+      entryPoints:
+        - web
 
   services:
     # Ollama AI 服务
@@ -16,5 +22,14 @@ http:
           - url: "http://host.docker.internal:11434"
         healthCheck:
           path: "/api/tags"
+          interval: "30s"
+          timeout: "5s"
+    # Jenkins 服务
+    jenkins-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:5016"
+        healthCheck:
+          path: "/health"
           interval: "30s"
           timeout: "5s"

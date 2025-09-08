@@ -1,4 +1,4 @@
-.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services gitlab-status data-status
+.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services gitlab-status jenkins-status data-status
 
 # 默认目标
 help:
@@ -9,6 +9,7 @@ help:
 	@echo "  network-check  - Check if Docker network exists"
 	@echo "  external-services - Show external services configuration"
 	@echo "  gitlab-status    - Check GitLab service status"
+	@echo "  jenkins-status   - Check Jenkins service status"
 	@echo "  data-status      - Show data directories status"
 	@echo "  build-dev     - Build development environment images"
 	@echo "  build-prod    - Build production environment images"
@@ -75,6 +76,29 @@ gitlab-status:
 	@echo ""
 	@echo "To get initial root password:"
 	@echo "  docker exec -it app-maker-gitlab-dev grep 'Password:' /etc/gitlab/initial_root_password"
+
+# 检查 Jenkins 服务状态
+jenkins-status:
+	@echo "Jenkins Service Status:"
+	@echo "======================"
+	@echo "Jenkins Access URLs:"
+	@echo "  Web UI: http://jenkins.$(DOMAIN_NAME)"
+	@echo "  Direct Access: http://localhost:8084"
+	@echo "  Your Jenkins: http://10.0.0.6:5016"
+	@echo ""
+	@echo "Jenkins Configuration:"
+	@echo "  Job Name: app-maker-flow"
+	@echo "  API Endpoint: http://10.0.0.6:5016/job/app-maker-flow/buildWithParameters"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  JENKINS_URL: %JENKINS_URL% (default: http://10.0.0.6:5016)"
+	@echo "  JENKINS_USERNAME: %JENKINS_USERNAME% (default: admin)"
+	@echo "  JENKINS_API_TOKEN: %JENKINS_API_TOKEN% (optional)"
+	@echo "  JENKINS_REMOTE_TOKEN: %JENKINS_REMOTE_TOKEN% (optional)"
+	@echo "  JENKINS_JOB_NAME: %JENKINS_JOB_NAME% (default: app-maker-flow)"
+	@echo ""
+	@echo "To test Jenkins connection:"
+	@echo "  curl -X POST \"http://10.0.0.6:5016/job/app-maker-flow/buildWithParameters?USER_ID=test&PROJECT_ID=test\""
 
 # 检查数据目录状态
 data-status:
