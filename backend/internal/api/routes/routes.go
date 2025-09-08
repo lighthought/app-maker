@@ -24,14 +24,14 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 	authMiddleware := middleware.AuthMiddleware(jwtService)
 
 	// API v1 路由组
-	v1 := engine.Group("/api/v1")
+	routers := engine.Group("/api/v1")
 	{
-		// 健康检查
-		v1.GET("/health", handlers.HealthCheck)
+		// 0.健康检查
+		routers.GET("/health", handlers.HealthCheck)
 
-		// 缓存相关路由
+		// 1.缓存相关路由
 		cacheHandler := handlers.NewCacheHandler(cacheInstance, monitor)
-		cache := v1.Group("/cache")
+		cache := routers.Group("/cache")
 		{
 			cache.GET("/health", cacheHandler.HealthCheck)
 			cache.GET("/stats", cacheHandler.GetStats)
@@ -45,41 +45,68 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		userService := services.NewUserService(userRepo, cfg.JWT.SecretKey, cfg.JWT.Expire)
 		userHandler := handlers.NewUserHandler(userService)
 
-		// 注册用户路由
-		RegisterUserRoutes(v1, userHandler, authMiddleware)
+		// 2.认证相关路由（无需认证）
+		auth := routers.Group("/auth")
+		{
+			auth.POST("/register", userHandler.Register)
+			auth.POST("/login", userHandler.Login)
+			auth.POST("/refresh", userHandler.RefreshToken)
+		}
 
-		// 初始化项目和标签相关依赖
-		projectRepo := repositories.NewProjectRepository(db)
-		tagRepo := repositories.NewTagRepository(db)
+		// 3.用户相关路由（需要认证）
+		users := routers.Group("/users")
+		users.Use(authMiddleware) // 应用认证中间件
+		{
+			// 用户档案管理
+			users.GET("/profile", userHandler.GetUserProfile)
+			users.PUT("/profile", userHandler.UpdateUserProfile)
+			users.POST("/change-password", userHandler.ChangePassword)
+			users.POST("/logout", userHandler.Logout)
 
-		// 初始化项目模板服务
-		templateService := services.NewProjectTemplateService("./data/template.zip")
-
-		// 初始化任务执行服务相关依赖
-		taskRepo := repositories.NewTaskRepository(db)
-		projectDevService := services.NewProjectDevService("/app/data/projects")
-
-		// 先创建 projectService（暂时传入 nil）
-		projectService := services.NewProjectService(projectRepo, tagRepo, templateService, nil)
-
-		// 创建 taskExecutionService
-		taskExecutionService := services.NewTaskExecutionService(projectService, projectRepo, taskRepo, projectDevService, "/app/data/projects")
+			// 管理员功能
+			users.GET("", userHandler.GetUserList)
+			users.DELETE("/:user_id", userHandler.DeleteUser)
+		}
 
 		// 重新创建 projectService 并传入 taskExecutionService
-		projectService = services.NewProjectService(projectRepo, tagRepo, templateService, taskExecutionService)
-
-		tagService := services.NewTagService(tagRepo)
-		projectHandler := handlers.NewProjectHandler(projectService, tagService)
-		tagHandler := handlers.NewTagHandler(tagService)
-
+		fileService := services.NewFileService("/app/data")
+		projectService := services.NewProjectService(db, fileService)
+		projectHandler := handlers.NewProjectHandler(projectService)
 		// 注册项目和标签路由
-		RegisterProjectRoutes(v1, projectHandler, tagHandler, authMiddleware)
 
-		// 初始化任务相关依赖
-		taskService := services.NewTaskService(taskRepo, projectRepo)
-		taskHandler := handlers.NewTaskHandler(taskService)
+		projects := routers.Group("/projects")
+		projects.Use(authMiddleware) // 应用认证中间件
+		{
+			projects.POST("/", projectHandler.CreateProject)             // 创建项目
+			projects.GET("/", projectHandler.ListProjects)               // 获取项目列表
+			projects.GET("/:id", projectHandler.GetProject)              // 获取项目详情
+			projects.DELETE("/:id", projectHandler.DeleteProject)        // 删除项目
+			projects.GET("/:id/stages", projectHandler.GetProjectStages) // 获取项目开发阶段
+		}
 
-		// 注册任务路由
-		RegisterTaskRoutes(v1, taskHandler, authMiddleware)
+		fileHandler := handlers.NewFileHandler(fileService, projectService)
+		files := routers.Group("/files")
+		files.Use(authMiddleware) // 应用认证中间件
+		{
+			files.GET("/download/:projectId", fileHandler.DownloadProject) // 下载项目文件
+			// 文件相关
+			files.GET("/files/:projectId", fileHandler.GetProjectFiles)      // 获取文件列表
+			files.GET("/filecontent/:projectId", fileHandler.GetFileContent) // 获取文件内容
+		}
+
+		// 初始化对话相关依赖
+		messageService := services.NewMessageService(db)
+
+		chatHandler := handlers.NewChatHandler(messageService, fileService)
+
+		// 注册对话路由
+		conversations := routers.Group("/chat/:projectId")
+		conversations.Use(authMiddleware) // 应用认证中间件
+		{
+			// 对话消息相关
+			conversations.GET("/messages", chatHandler.GetProjectMessages) // 获取对话历史
+			conversations.POST("/chat", chatHandler.AddChatMessage)        // 添加对话消息
+
+		}
 	}
 }

@@ -23,16 +23,6 @@ type ProjectRepository interface {
 
 	// 项目状态管理
 	UpdateStatus(ctx context.Context, id string, status string) error
-	GetByStatus(ctx context.Context, status string, userID string) ([]*models.Project, error)
-
-	// 项目标签管理
-	AddTags(ctx context.Context, projectID string, tagIDs []string) error
-	RemoveTags(ctx context.Context, projectID string, tagIDs []string) error
-	GetTags(ctx context.Context, projectID string) ([]*models.Tag, error)
-
-	// 项目路径管理
-	GetByProjectPath(ctx context.Context, projectPath string) (*models.Project, error)
-	UpdateProjectPath(ctx context.Context, id string, projectPath string) error
 
 	// 端口管理
 	GetAvailablePorts(ctx context.Context, backendPort, frontendPort int) (int, int, error)
@@ -134,90 +124,6 @@ func (r *projectRepository) UpdateStatus(ctx context.Context, id string, status 
 	return r.db.WithContext(ctx).Model(&models.Project{}).
 		Where("id = ?", id).
 		Update("status", status).Error
-}
-
-// GetByStatus 根据状态获取项目
-func (r *projectRepository) GetByStatus(ctx context.Context, status string, userID string) ([]*models.Project, error) {
-	var projects []*models.Project
-	err := r.db.WithContext(ctx).
-		Preload("User").
-		Preload("Tags").
-		Where("status = ? AND user_id = ?", status, userID).
-		Order("created_at DESC").
-		Find(&projects).Error
-	return projects, err
-}
-
-// AddTags 为项目添加标签
-func (r *projectRepository) AddTags(ctx context.Context, projectID string, tagIDs []string) error {
-	if len(tagIDs) == 0 {
-		return nil
-	}
-
-	// 检查标签是否存在
-	var count int64
-	if err := r.db.WithContext(ctx).Model(&models.Tag{}).
-		Where("id IN ?", tagIDs).
-		Count(&count).Error; err != nil {
-		return err
-	}
-	if int(count) != len(tagIDs) {
-		return errors.New("some tags not found")
-	}
-
-	// 添加项目标签关联
-	var projectTags []models.ProjectTag
-	for _, tagID := range tagIDs {
-		projectTags = append(projectTags, models.ProjectTag{
-			ProjectID: projectID,
-			TagID:     tagID,
-		})
-	}
-
-	return r.db.WithContext(ctx).Create(&projectTags).Error
-}
-
-// RemoveTags 从项目移除标签
-func (r *projectRepository) RemoveTags(ctx context.Context, projectID string, tagIDs []string) error {
-	if len(tagIDs) == 0 {
-		return nil
-	}
-
-	return r.db.WithContext(ctx).
-		Where("project_id = ? AND tag_id IN ?", projectID, tagIDs).
-		Delete(&models.ProjectTag{}).Error
-}
-
-// GetTags 获取项目标签
-func (r *projectRepository) GetTags(ctx context.Context, projectID string) ([]*models.Tag, error) {
-	var tags []*models.Tag
-	err := r.db.WithContext(ctx).
-		Joins("JOIN project_tags ON tags.id = project_tags.tag_id").
-		Where("project_tags.project_id = ?", projectID).
-		Find(&tags).Error
-	return tags, err
-}
-
-// GetByProjectPath 根据项目路径获取项目
-func (r *projectRepository) GetByProjectPath(ctx context.Context, projectPath string) (*models.Project, error) {
-	var project models.Project
-	err := r.db.WithContext(ctx).
-		Where("project_path = ?", projectPath).
-		First(&project).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("project not found with path: %s", projectPath)
-		}
-		return nil, err
-	}
-	return &project, nil
-}
-
-// UpdateProjectPath 更新项目路径
-func (r *projectRepository) UpdateProjectPath(ctx context.Context, id string, projectPath string) error {
-	return r.db.WithContext(ctx).Model(&models.Project{}).
-		Where("id = ?", id).
-		Update("project_path", projectPath).Error
 }
 
 // IsOwner 检查用户是否为项目所有者

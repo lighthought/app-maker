@@ -16,14 +16,12 @@ import (
 // ProjectHandler 项目处理器
 type ProjectHandler struct {
 	projectService services.ProjectService
-	tagService     services.TagService
 }
 
 // NewProjectHandler 创建项目处理器实例
-func NewProjectHandler(projectService services.ProjectService, tagService services.TagService) *ProjectHandler {
+func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
 	return &ProjectHandler{
 		projectService: projectService,
-		tagService:     tagService,
 	}
 }
 
@@ -150,72 +148,6 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	})
 }
 
-// UpdateProject godoc
-// @Summary 更新项目
-// @Description 更新项目信息
-// @Tags 项目管理
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
-// @Param id path string true "项目ID"
-// @Param project body models.UpdateProjectRequest true "项目更新请求"
-// @Success 200 {object} models.Response{data=models.ProjectInfo} "项目更新成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 404 {object} models.ErrorResponse "项目不存在"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/{id} [put]
-func (h *ProjectHandler) UpdateProject(c *gin.Context) {
-	projectID := c.Param("id")
-	if projectID == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "项目ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	var req models.UpdateProjectRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "请求参数错误",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	// 从中间件获取用户ID
-	userID := c.GetString("user_id")
-
-	project, err := h.projectService.UpdateProject(c.Request.Context(), projectID, &req, userID)
-	if err != nil {
-		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
-				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
-			})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "更新项目失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "项目更新成功",
-		Data:      project,
-		Timestamp: time.Now().Format(time.RFC3339),
-	})
-}
-
 // DeleteProject godoc
 // @Summary 删除项目
 // @Description 删除指定项目
@@ -329,185 +261,33 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	})
 }
 
-// UpdateProjectStatus godoc
-// @Summary 更新项目状态
-// @Description 更新项目状态
-// @Tags 项目管理
+// GetProjectStages 获取项目开发阶段
+// @Summary 获取项目开发阶段
+// @Description 获取指定项目的开发阶段信息
+// @Tags 开发阶段
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
-// @Param id path string true "项目ID"
-// @Param status query string true "项目状态" Enums(draft, in_progress, completed, failed)
-// @Success 200 {object} models.Response "状态更新成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/{id}/status [put]
-func (h *ProjectHandler) UpdateProjectStatus(c *gin.Context) {
-	projectID := c.Param("id")
-	status := c.Query("status")
-
-	if projectID == "" || status == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "项目ID和状态不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	// 从中间件获取用户ID
-	userID := c.GetString("user_id")
-
-	err := h.projectService.UpdateProjectStatus(c.Request.Context(), projectID, status, userID)
-	if err != nil {
-		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
-				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
-			})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "更新项目状态失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "项目状态更新成功",
-		Data:      nil,
-		Timestamp: time.Now().Format(time.RFC3339),
-	})
-}
-
-// GetProjectTags godoc
-// @Summary 获取项目标签
-// @Description 获取项目的所有标签
-// @Tags 项目管理
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
-// @Param id path string true "项目ID"
-// @Success 200 {object} models.Response{data=[]models.TagInfo} "获取项目标签成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/{id}/tags [get]
-func (h *ProjectHandler) GetProjectTags(c *gin.Context) {
-	projectID := c.Param("id")
+// @Param projectId path string true "项目ID"
+// @Success 200 {object} map[string]interface{} "成功响应"
+// @Failure 400 {object} map[string]string "请求参数错误"
+// @Failure 500 {object} map[string]string "服务器内部错误"
+// @Router /api/v1/projects/{projectId}/stages [get]
+func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
+	projectID := c.Param("projectId")
 	if projectID == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "项目ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
 		return
 	}
 
-	// 从中间件获取用户ID
-	userID := c.GetString("user_id")
-
-	tags, err := h.projectService.GetProjectTags(c.Request.Context(), projectID, userID)
+	stages, err := h.projectService.GetProjectStages(c.Request.Context(), projectID)
 	if err != nil {
-		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
-				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
-			})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "获取项目标签失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取开发阶段失败"})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "获取项目标签成功",
-		Data:      tags,
-		Timestamp: time.Now().Format(time.RFC3339),
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "success",
+		"data":    stages,
 	})
-}
-
-// DownloadProject godoc
-// @Summary 下载项目文件
-// @Description 将项目文件打包为zip并下载
-// @Tags 项目管理
-// @Accept json
-// @Produce application/zip
-// @Param Authorization header string true "Bearer 用户令牌"
-// @Param id path string true "项目ID"
-// @Success 200 {file} file "项目文件zip包"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 404 {object} models.ErrorResponse "项目不存在"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/{id}/download [get]
-func (h *ProjectHandler) DownloadProject(c *gin.Context) {
-	projectID := c.Param("id")
-	if projectID == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "项目ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	// 从中间件获取用户ID
-	userID := c.GetString("user_id")
-
-	// 获取项目信息
-	project, err := h.projectService.GetProject(c.Request.Context(), projectID, userID)
-	if err != nil {
-		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
-				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
-			})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "获取项目信息失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	// 生成zip文件
-	zipData, err := h.projectService.DownloadProject(c.Request.Context(), projectID, userID)
-	if err != nil {
-		logger.Error("生成项目zip文件失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", projectID),
-		)
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "生成项目文件失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		})
-		return
-	}
-
-	// 设置响应头
-	c.Header("Content-Type", "application/zip")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", project.Name))
-	c.Header("Content-Length", fmt.Sprintf("%d", len(zipData)))
-
-	// 返回zip文件
-	c.Data(http.StatusOK, "application/zip", zipData)
 }

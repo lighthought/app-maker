@@ -128,6 +128,23 @@ CREATE TABLE IF NOT EXISTS tasks (
     deleted_at TIMESTAMP
 );
 
+-- 创建任务日志ID序列
+CREATE SEQUENCE IF NOT EXISTS public.task_logs_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+
+-- 创建任务日志表
+CREATE TABLE IF NOT EXISTS task_logs (
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('LOGS', 'public.task_logs_id_num_seq'),
+    task_id VARCHAR(50) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    level VARCHAR(10) NOT NULL CHECK (level IN ('info', 'success', 'warning', 'error')),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 创建标签ID序列
 CREATE SEQUENCE IF NOT EXISTS public.tags_id_num_seq
     INCREMENT BY 1            -- 步长
@@ -153,21 +170,51 @@ CREATE TABLE IF NOT EXISTS project_tags (
     PRIMARY KEY (project_id, tag_id)
 );
 
--- 创建任务日志ID序列
-CREATE SEQUENCE IF NOT EXISTS public.task_logs_id_num_seq
+-- 创建对话消息ID序列
+CREATE SEQUENCE IF NOT EXISTS public.conversation_messages_id_num_seq
     INCREMENT BY 1            -- 步长
     START 1                   -- 起始值    
     MINVALUE 1
     MAXVALUE 99999999999      -- 11位数字容量
     CACHE 1;
-    
--- 创建任务日志表
-CREATE TABLE IF NOT EXISTS task_logs (
-    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('LOGS', 'public.task_logs_id_num_seq'),
-    task_id VARCHAR(50) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    level VARCHAR(10) NOT NULL,
-    message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+-- 创建对话消息表
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('MSG', 'public.conversation_messages_id_num_seq'),
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('user', 'agent', 'system')),
+    agent_role VARCHAR(20) CHECK (agent_role IN ('dev', 'pm', 'arch', 'ux', 'qa', 'ops')),
+    agent_name VARCHAR(100),
+    content TEXT,
+    is_markdown BOOLEAN DEFAULT FALSE,
+    markdown_content TEXT,
+    is_expanded BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+-- 创建开发阶段ID序列
+CREATE SEQUENCE IF NOT EXISTS public.dev_stages_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+
+-- 创建开发阶段表
+CREATE TABLE IF NOT EXISTS dev_stages (
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq'),
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
+    progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+    description TEXT,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 -- 插入默认管理员用户
@@ -195,7 +242,13 @@ CREATE INDEX IF NOT EXISTS idx_task_logs_task_id ON task_logs(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_logs_level ON task_logs(level);
 CREATE INDEX IF NOT EXISTS idx_task_logs_created_at ON task_logs(created_at);
 
-CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
+CREATE INDEX IF NOT EXISTS idx_conversation_messages_project_id ON conversation_messages(project_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_messages_type ON conversation_messages(type);
+CREATE INDEX IF NOT EXISTS idx_conversation_messages_created_at ON conversation_messages(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_dev_stages_project_id ON dev_stages(project_id);
+CREATE INDEX IF NOT EXISTS idx_dev_stages_status ON dev_stages(status);
+CREATE INDEX IF NOT EXISTS idx_dev_stages_created_at ON dev_stages(created_at);
 
 -- 插入默认标签
 INSERT INTO tags (name, color) VALUES 
@@ -219,6 +272,8 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_tags_updated_at BEFORE UPDATE ON tags FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_conversation_messages_updated_at BEFORE UPDATE ON conversation_messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_dev_stages_updated_at BEFORE UPDATE ON dev_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 显示创建的表
 \dt

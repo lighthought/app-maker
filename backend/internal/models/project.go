@@ -28,13 +28,9 @@ type Project struct {
 	ProjectPath      string         `json:"project_path" gorm:"size:500;not null"`
 	UserID           string         `json:"user_id" gorm:"type:varchar(50);not null"`
 	User             User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Tags             []Tag          `json:"tags,omitempty" gorm:"many2many:project_tags;"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
-
-	// 关联关系
-	Tasks []Task `json:"tasks,omitempty" gorm:"foreignKey:ProjectID"`
 }
 
 // 开发子状态常量

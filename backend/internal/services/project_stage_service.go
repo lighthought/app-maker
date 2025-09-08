@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,20 +16,18 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
+	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 
-	"github.com/google/uuid"
 	"golang.org/x/sync/semaphore"
 )
 
-// TaskExecutionService 任务执行服务
-type TaskExecutionService struct {
-	projectService    ProjectService
-	projectRepo       repositories.ProjectRepository
-	taskRepo          repositories.TaskRepository
-	projectDevService *ProjectDevService
-	baseProjectsDir   string
-	jenkinsConfig     *JenkinsConfig
+// ProjectStageService 任务执行服务
+type ProjectStageService struct {
+	projectRepo   repositories.ProjectRepository
+	stageRepo     repositories.StageRepository
+	fileUtils     *utils.FileUtils
+	jenkinsConfig *models.JenkinsConfig
 
 	// 线程池控制
 	semaphore      *semaphore.Weighted
@@ -36,37 +35,17 @@ type TaskExecutionService struct {
 	mu             sync.Mutex
 }
 
-// JenkinsConfig Jenkins 配置
-type JenkinsConfig struct {
-	BaseURL     string
-	Username    string
-	APIToken    string
-	JobName     string
-	RemoteToken string
-	Timeout     time.Duration
-}
-
-// JenkinsBuildRequest Jenkins 构建请求
-type JenkinsBuildRequest struct {
-	UserID      string `json:"user_id"`
-	ProjectID   string `json:"project_id"`
-	ProjectPath string `json:"project_path"`
-	BuildType   string `json:"build_type"` // dev 或 prod
-}
-
 // NewTaskExecutionService 创建任务执行服务
-func NewTaskExecutionService(
-	projectService ProjectService,
+func NewProjectStageService(
 	projectRepo repositories.ProjectRepository,
-	taskRepo repositories.TaskRepository,
-	projectDevService *ProjectDevService,
-	baseProjectsDir string,
-) *TaskExecutionService {
+	stageRepo repositories.StageRepository,
+	fileUtils *utils.FileUtils,
+) *ProjectStageService {
 	maxConcurrency := int64(3) // 限制同时执行3个项目开发任务
 
 	// Jenkins 配置
-	jenkinsConfig := &JenkinsConfig{
-		BaseURL:     getEnvOrDefault("JENKINS_URL", "http://10.0.0.6:5016"),
+	jenkinsConfig := &models.JenkinsConfig{
+		BaseURL:     getEnvOrDefault("JENKINS_URL", "http://127.0.0.1:5016"),
 		Username:    getEnvOrDefault("JENKINS_USERNAME", "admin"),
 		APIToken:    getEnvOrDefault("JENKINS_API_TOKEN", "119ffe6f373f1cb4b4b4e9a27ca5b1890f"),
 		JobName:     getEnvOrDefault("JENKINS_JOB_NAME", "app-maker-flow"),
@@ -74,15 +53,13 @@ func NewTaskExecutionService(
 		Timeout:     30 * time.Minute,
 	}
 
-	return &TaskExecutionService{
-		projectService:    projectService,
-		projectRepo:       projectRepo,
-		taskRepo:          taskRepo,
-		projectDevService: projectDevService,
-		baseProjectsDir:   baseProjectsDir,
-		jenkinsConfig:     jenkinsConfig,
-		semaphore:         semaphore.NewWeighted(maxConcurrency),
-		maxConcurrency:    maxConcurrency,
+	return &ProjectStageService{
+		projectRepo:    projectRepo,
+		stageRepo:      stageRepo,
+		fileUtils:      fileUtils,
+		jenkinsConfig:  jenkinsConfig,
+		semaphore:      semaphore.NewWeighted(maxConcurrency),
+		maxConcurrency: maxConcurrency,
 	}
 }
 
@@ -95,7 +72,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 }
 
 // StartProjectDevelopment 启动项目开发流程
-func (s *TaskExecutionService) StartProjectDevelopment(ctx context.Context, projectID string) error {
+func (s *ProjectStageService) StartProjectDevelopment(ctx context.Context, projectID string) error {
 	logger.Info("开始项目开发流程", logger.String("projectID", projectID))
 
 	// 获取项目信息
@@ -113,36 +90,14 @@ func (s *TaskExecutionService) StartProjectDevelopment(ctx context.Context, proj
 		return fmt.Errorf("更新项目状态失败: %w", err)
 	}
 
-	// 创建开发任务
-	taskID := uuid.New().String()
-	task := &models.Task{
-		ID:          taskID,
-		ProjectID:   projectID,
-		Type:        "project_development",
-		Status:      "pending",
-		Priority:    1,
-		Description: "项目开发流程",
-		CreatedAt:   time.Now(),
-	}
-
-	if err := s.taskRepo.Create(ctx, task); err != nil {
-		return fmt.Errorf("创建任务失败: %w", err)
-	}
-
-	// 更新项目的当前任务ID
-	project.CurrentTaskID = taskID
-	if err := s.projectRepo.Update(ctx, project); err != nil {
-		return fmt.Errorf("更新项目任务ID失败: %w", err)
-	}
-
 	// 使用线程池异步执行开发流程
-	go s.executeWithSemaphore(context.Background(), project, task)
+	go s.executeWithSemaphore(context.Background(), project)
 
 	return nil
 }
 
 // executeWithSemaphore 使用信号量控制并发执行
-func (s *TaskExecutionService) executeWithSemaphore(ctx context.Context, project *models.Project, task *models.Task) {
+func (s *ProjectStageService) executeWithSemaphore(ctx context.Context, project *models.Project) {
 	// 获取信号量许可
 	if err := s.semaphore.Acquire(ctx, 1); err != nil {
 		logger.Error("获取信号量失败",
@@ -155,31 +110,61 @@ func (s *TaskExecutionService) executeWithSemaphore(ctx context.Context, project
 
 	logger.Info("获得执行许可，开始执行项目开发流程",
 		logger.String("projectID", project.ID),
-		logger.String("taskID", task.ID),
 	)
 
 	// 执行开发流程
-	s.executeProjectDevelopment(ctx, project, task)
+	s.executeProjectDevelopment(ctx, project)
+}
+
+// SetupProjectDevEnvironment 设置项目开发环境
+func (s *ProjectStageService) SetupProjectDevEnvironment(project *models.Project) error {
+	projectDir := project.ProjectPath
+
+	// 检查项目目录是否存在
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return fmt.Errorf("项目目录不存在: %s", projectDir)
+	}
+
+	// 创建日志文件
+	logFile, err := os.OpenFile("/app/logs/task.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("创建日志文件失败: %v", err)
+	}
+	defer logFile.Close()
+
+	// 运行开发环境设置脚本
+	scriptPath := filepath.Join("/app/scripts", "project-dev-setup.sh")
+	cmd := exec.Command("bash", scriptPath, projectDir, project.ID)
+	cmd.Stdout = io.MultiWriter(os.Stdout, logFile)
+	cmd.Stderr = io.MultiWriter(os.Stderr, logFile)
+
+	// 记录开始时间
+	startTime := time.Now()
+	logFile.WriteString(fmt.Sprintf("[%s] 开始设置项目开发环境: %s\n", startTime.Format("2006-01-02 15:04:05"), project.ID))
+
+	if err := cmd.Run(); err != nil {
+		endTime := time.Now()
+		errorMsg := fmt.Sprintf("[%s] 设置开发环境失败: %v\n", endTime.Format("2006-01-02 15:04:05"), err)
+		logFile.WriteString(errorMsg)
+		return fmt.Errorf("设置开发环境失败: %v", err)
+	}
+
+	// 记录完成时间
+	endTime := time.Now()
+	logFile.WriteString(fmt.Sprintf("[%s] 项目开发环境设置完成: %s (耗时: %v)\n",
+		endTime.Format("2006-01-02 15:04:05"), project.ID, endTime.Sub(startTime)))
+
+	return nil
 }
 
 // executeProjectDevelopment 执行项目开发流程
-func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, project *models.Project, task *models.Task) {
+func (s *ProjectStageService) executeProjectDevelopment(ctx context.Context, project *models.Project) {
 	logger.Info("开始执行项目开发流程",
 		logger.String("projectID", project.ID),
-		logger.String("taskID", task.ID),
 	)
 
-	// 更新任务状态为执行中
-	task.Status = "in_progress"
-	task.StartedAt = &time.Time{}
-	*task.StartedAt = time.Now()
-	s.taskRepo.Update(ctx, task)
-
-	// 1. 首先初始化开发环境
-	s.addTaskLog(ctx, task.ID, "info", "开始初始化项目开发环境...")
-
 	projectDir := project.ProjectPath
-	if err := s.projectDevService.SetupProjectDevEnvironment(project); err != nil {
+	if err := s.SetupProjectDevEnvironment(project); err != nil {
 		logger.Error("初始化开发环境失败",
 			logger.String("projectID", project.ID),
 			logger.String("projectDir", projectDir),
@@ -191,13 +176,6 @@ func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, pr
 		project.Status = "failed"
 		s.projectRepo.Update(ctx, project)
 
-		// 更新任务状态
-		task.Status = "failed"
-		task.CompletedAt = &time.Time{}
-		*task.CompletedAt = time.Now()
-		s.taskRepo.Update(ctx, task)
-
-		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("初始化开发环境失败: %s", err.Error()))
 		return
 	}
 
@@ -205,13 +183,12 @@ func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, pr
 	project.DevStatus = models.DevStatusEnvironmentDone
 	project.DevProgress = project.GetDevStageProgress()
 	s.projectRepo.Update(ctx, project)
-	s.addTaskLog(ctx, task.ID, "success", "项目开发环境初始化完成")
 
 	// 2. 执行开发阶段
 	stages := []struct {
 		status      string
 		description string
-		executor    func(context.Context, *models.Project, *models.Task) error
+		executor    func(context.Context, *models.Project) error
 	}{
 		{models.DevStatusPRDGenerating, "生成PRD文档", s.generatePRD},
 		{models.DevStatusUXDefining, "定义UX标准", s.defineUXStandards},
@@ -231,11 +208,8 @@ func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, pr
 		project.DevProgress = project.GetDevStageProgress()
 		s.projectRepo.Update(ctx, project)
 
-		// 记录阶段开始
-		s.addTaskLog(ctx, task.ID, "info", fmt.Sprintf("开始%s", stage.description))
-
 		// 执行阶段
-		if err := stage.executor(ctx, project, task); err != nil {
+		if err := stage.executor(ctx, project); err != nil {
 			logger.Error("开发阶段执行失败",
 				logger.String("projectID", project.ID),
 				logger.String("stage", stage.status),
@@ -247,18 +221,12 @@ func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, pr
 			project.Status = "failed"
 			s.projectRepo.Update(ctx, project)
 
-			// 更新任务状态
-			task.Status = "failed"
-			task.CompletedAt = &time.Time{}
-			*task.CompletedAt = time.Now()
-			s.taskRepo.Update(ctx, task)
-
-			s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("%s失败: %s", stage.description, err.Error()))
+			//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("%s失败: %s", stage.description, err.Error()))
 			return
 		}
 
 		// 记录阶段完成
-		s.addTaskLog(ctx, task.ID, "success", fmt.Sprintf("%s完成", stage.description))
+		//s.addTaskLog(ctx, task.ID, "success", fmt.Sprintf("%s完成", stage.description))
 	}
 
 	// 开发完成
@@ -267,28 +235,21 @@ func (s *TaskExecutionService) executeProjectDevelopment(ctx context.Context, pr
 	project.DevProgress = 100
 	s.projectRepo.Update(ctx, project)
 
-	// 更新任务状态
-	task.Status = "completed"
-	task.CompletedAt = &time.Time{}
-	*task.CompletedAt = time.Now()
-	s.taskRepo.Update(ctx, task)
-
-	s.addTaskLog(ctx, task.ID, "success", "项目开发流程完成")
+	//s.addTaskLog(ctx, task.ID, "success", "项目开发流程完成")
 
 	// 触发 Jenkins 构建和部署
-	go s.triggerJenkinsBuild(context.Background(), project, task)
+	go s.triggerJenkinsBuild(context.Background(), project)
 
 	logger.Info("项目开发流程执行完成",
 		logger.String("projectID", project.ID),
-		logger.String("taskID", task.ID),
 	)
 }
 
 // generatePRD 生成PRD文档
-func (s *TaskExecutionService) generatePRD(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) generatePRD(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始生成产品需求文档...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始生成产品需求文档...")
 
 	// 使用 cursor-cli 生成PRD
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -307,15 +268,15 @@ func (s *TaskExecutionService) generatePRD(ctx context.Context, project *models.
 		return fmt.Errorf("保存PRD文件失败: %w", err)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "PRD文档生成完成")
+	//s.addTaskLog(ctx, task.ID, "success", "PRD文档生成完成")
 	return nil
 }
 
 // defineUXStandards 定义UX标准
-func (s *TaskExecutionService) defineUXStandards(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) defineUXStandards(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始定义用户体验标准...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始定义用户体验标准...")
 
 	// 使用 cursor-cli 定义UX标准
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -332,15 +293,15 @@ func (s *TaskExecutionService) defineUXStandards(ctx context.Context, project *m
 		return fmt.Errorf("保存UX标准文件失败: %w", err)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "UX标准定义完成")
+	//s.addTaskLog(ctx, task.ID, "success", "UX标准定义完成")
 	return nil
 }
 
 // designArchitecture 设计系统架构
-func (s *TaskExecutionService) designArchitecture(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) designArchitecture(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始设计系统架构...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始设计系统架构...")
 
 	// 使用 cursor-cli 设计架构
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -357,15 +318,15 @@ func (s *TaskExecutionService) designArchitecture(ctx context.Context, project *
 		return fmt.Errorf("保存架构设计文件失败: %w", err)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "系统架构设计完成")
+	//s.addTaskLog(ctx, task.ID, "success", "系统架构设计完成")
 	return nil
 }
 
 // defineDataModel 定义数据模型
-func (s *TaskExecutionService) defineDataModel(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) defineDataModel(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始定义数据模型...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始定义数据模型...")
 
 	// 使用 cursor-cli 定义数据模型
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -382,15 +343,15 @@ func (s *TaskExecutionService) defineDataModel(ctx context.Context, project *mod
 		return fmt.Errorf("保存数据模型文件失败: %w", err)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "数据模型定义完成")
+	//s.addTaskLog(ctx, task.ID, "success", "数据模型定义完成")
 	return nil
 }
 
 // defineAPIs 定义API接口
-func (s *TaskExecutionService) defineAPIs(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) defineAPIs(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始定义API接口...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始定义API接口...")
 
 	// 使用 cursor-cli 定义API接口
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -407,15 +368,15 @@ func (s *TaskExecutionService) defineAPIs(ctx context.Context, project *models.P
 		return fmt.Errorf("保存API接口定义文件失败: %w", err)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "API接口定义完成")
+	//s.addTaskLog(ctx, task.ID, "success", "API接口定义完成")
 	return nil
 }
 
 // planEpicsAndStories 划分Epic和Story
-func (s *TaskExecutionService) planEpicsAndStories(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) planEpicsAndStories(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始划分Epic和Story...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始划分Epic和Story...")
 
 	// 使用 cursor-cli 划分Epic和Story
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -432,15 +393,15 @@ func (s *TaskExecutionService) planEpicsAndStories(ctx context.Context, project 
 		return fmt.Errorf("保存Epic和Story规划文件失败: %w", err)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "Epic和Story划分完成")
+	//s.addTaskLog(ctx, task.ID, "success", "Epic和Story划分完成")
 	return nil
 }
 
 // developStories 开发Story功能
-func (s *TaskExecutionService) developStories(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) developStories(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始开发Story功能...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始开发Story功能...")
 
 	// 使用 cursor-cli 开发Story功能
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -451,15 +412,15 @@ func (s *TaskExecutionService) developStories(ctx context.Context, project *mode
 		return fmt.Errorf("开发Story功能失败: %w, %s", err, output)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "Story功能开发完成")
+	//s.addTaskLog(ctx, task.ID, "success", "Story功能开发完成")
 	return nil
 }
 
 // fixBugs 修复开发问题
-func (s *TaskExecutionService) fixBugs(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) fixBugs(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始修复开发问题...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始修复开发问题...")
 
 	// 使用 cursor-cli 修复问题
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -470,15 +431,15 @@ func (s *TaskExecutionService) fixBugs(ctx context.Context, project *models.Proj
 		return fmt.Errorf("修复开发问题失败: %w, %s", err, output)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "开发问题修复完成")
+	//s.addTaskLog(ctx, task.ID, "success", "开发问题修复完成")
 	return nil
 }
 
 // runTests 执行自动测试
-func (s *TaskExecutionService) runTests(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) runTests(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始执行自动测试...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始执行自动测试...")
 
 	// 使用 cursor-cli 执行测试
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -489,15 +450,15 @@ func (s *TaskExecutionService) runTests(ctx context.Context, project *models.Pro
 		return fmt.Errorf("执行自动测试失败: %w, %s", err, output)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "自动测试执行完成")
+	//s.addTaskLog(ctx, task.ID, "success", "自动测试执行完成")
 	return nil
 }
 
 // packageProject 打包项目
-func (s *TaskExecutionService) packageProject(ctx context.Context, project *models.Project, task *models.Task) error {
-	projectDir := filepath.Join(s.baseProjectsDir, project.UserID, project.ID)
+func (s *ProjectStageService) packageProject(ctx context.Context, project *models.Project) error {
+	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始打包项目...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始打包项目...")
 
 	// 使用 cursor-cli 打包项目
 	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
@@ -508,42 +469,23 @@ func (s *TaskExecutionService) packageProject(ctx context.Context, project *mode
 		return fmt.Errorf("打包项目失败: %w, %s", err, output)
 	}
 
-	s.addTaskLog(ctx, task.ID, "success", "项目打包完成")
+	//s.addTaskLog(ctx, task.ID, "success", "项目打包完成")
 	return nil
 }
 
-// addTaskLog 添加任务日志
-func (s *TaskExecutionService) addTaskLog(ctx context.Context, taskID, level, message string) {
-	log := &models.TaskLog{
-		ID:        uuid.New().String(),
-		TaskID:    taskID,
-		Level:     level,
-		Message:   message,
-		CreatedAt: time.Now(),
-	}
-
-	if err := s.taskRepo.CreateLog(ctx, log); err != nil {
-		logger.Error("添加任务日志失败",
-			logger.String("taskID", taskID),
-			logger.String("error", err.Error()),
-		)
-	}
-}
-
 // triggerJenkinsBuild 触发 Jenkins 构建
-func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project *models.Project, task *models.Task) {
+func (s *ProjectStageService) triggerJenkinsBuild(ctx context.Context, project *models.Project) {
 	logger.Info("开始触发 Jenkins 构建",
 		logger.String("projectID", project.ID),
-		logger.String("taskID", task.ID),
 	)
 
-	s.addTaskLog(ctx, task.ID, "info", "开始触发 Jenkins 构建和部署...")
+	//s.addTaskLog(ctx, task.ID, "info", "开始触发 Jenkins 构建和部署...")
 
 	// 构建 Jenkins 请求
 	// 将容器内路径转换为主机路径
 	hostProjectPath := s.convertToHostPath(project.ProjectPath)
 
-	buildRequest := &JenkinsBuildRequest{
+	buildRequest := &models.JenkinsBuildRequest{
 		UserID:      project.UserID,
 		ProjectID:   project.ID,
 		ProjectPath: hostProjectPath,
@@ -557,7 +499,7 @@ func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project 
 			logger.String("projectID", project.ID),
 			logger.String("error", err.Error()),
 		)
-		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("序列化 Jenkins 请求失败: %s", err.Error()))
+		//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("序列化 Jenkins 请求失败: %s", err.Error()))
 		return
 	}
 
@@ -584,7 +526,7 @@ func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project 
 			logger.String("projectID", project.ID),
 			logger.String("error", err.Error()),
 		)
-		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("创建 Jenkins 请求失败: %s", err.Error()))
+		//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("创建 Jenkins 请求失败: %s", err.Error()))
 		return
 	}
 
@@ -604,7 +546,7 @@ func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project 
 			logger.String("projectID", project.ID),
 			logger.String("error", err.Error()),
 		)
-		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("发送 Jenkins 请求失败: %s", err.Error()))
+		//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("发送 Jenkins 请求失败: %s", err.Error()))
 		return
 	}
 	defer resp.Body.Close()
@@ -615,7 +557,7 @@ func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project 
 			logger.String("projectID", project.ID),
 			logger.String("statusCode", fmt.Sprintf("%d", resp.StatusCode)),
 		)
-		s.addTaskLog(ctx, task.ID, "success", "Jenkins 构建触发成功，开始构建和部署项目")
+		//s.addTaskLog(ctx, task.ID, "success", "Jenkins 构建触发成功，开始构建和部署项目")
 
 		// 更新项目状态为部署中
 		project.Status = "deploying"
@@ -625,18 +567,17 @@ func (s *TaskExecutionService) triggerJenkinsBuild(ctx context.Context, project 
 			logger.String("projectID", project.ID),
 			logger.String("statusCode", fmt.Sprintf("%d", resp.StatusCode)),
 		)
-		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("Jenkins 构建触发失败，状态码: %d", resp.StatusCode))
+		//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("Jenkins 构建触发失败，状态码: %d", resp.StatusCode))
 	}
 }
 
 // triggerJenkinsBuildWithScript 使用脚本触发 Jenkins 构建（备用方案）
-func (s *TaskExecutionService) triggerJenkinsBuildWithScript(ctx context.Context, project *models.Project, task *models.Task) {
+func (s *ProjectStageService) triggerJenkinsBuildWithScript(ctx context.Context, project *models.Project) {
 	logger.Info("使用脚本触发 Jenkins 构建",
 		logger.String("projectID", project.ID),
-		logger.String("taskID", task.ID),
 	)
 
-	s.addTaskLog(ctx, task.ID, "info", "使用脚本触发 Jenkins 构建...")
+	//s.addTaskLog(ctx, task.ID, "info", "使用脚本触发 Jenkins 构建...")
 
 	// 构建脚本命令
 	scriptPath := "/scripts/jenkins-trigger.sh"
@@ -657,7 +598,7 @@ func (s *TaskExecutionService) triggerJenkinsBuildWithScript(ctx context.Context
 			logger.String("error", err.Error()),
 			logger.String("output", string(output)),
 		)
-		s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("Jenkins 构建脚本执行失败: %s", err.Error()))
+		//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("Jenkins 构建脚本执行失败: %s", err.Error()))
 		return
 	}
 
@@ -665,11 +606,11 @@ func (s *TaskExecutionService) triggerJenkinsBuildWithScript(ctx context.Context
 		logger.String("projectID", project.ID),
 		logger.String("output", string(output)),
 	)
-	s.addTaskLog(ctx, task.ID, "success", "Jenkins 构建脚本执行成功")
+	//s.addTaskLog(ctx, task.ID, "success", "Jenkins 构建脚本执行成功")
 }
 
 // convertToHostPath 将容器内路径转换为主机路径
-func (s *TaskExecutionService) convertToHostPath(containerPath string) string {
+func (s *ProjectStageService) convertToHostPath(containerPath string) string {
 	// 容器内路径: /app/data/projects/USER00000000002/PROJ00000000006
 	// 主机路径: F:/app-maker/app_data/projects/USER00000000002/PROJ00000000006
 
@@ -684,4 +625,24 @@ func (s *TaskExecutionService) convertToHostPath(containerPath string) string {
 
 	// 如果不是预期的路径格式，返回原路径
 	return containerPath
+}
+
+// GetProjectStages 获取项目开发阶段
+func (s *ProjectStageService) GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error) {
+	return s.stageRepo.GetByProjectID(ctx, projectID)
+}
+
+// CreateDevStage 创建开发阶段
+func (s *ProjectStageService) CreateDevStage(ctx context.Context, stage *models.DevStage) error {
+	return s.stageRepo.Create(ctx, stage)
+}
+
+// UpdateDevStage 更新开发阶段
+func (s *ProjectStageService) UpdateDevStage(ctx context.Context, stage *models.DevStage) error {
+	return s.stageRepo.Update(ctx, stage)
+}
+
+// UpdateStageStatus 更新阶段状态
+func (s *ProjectStageService) UpdateStageStatus(ctx context.Context, stageID string, status string) error {
+	return s.stageRepo.UpdateStatus(ctx, stageID, status)
 }
