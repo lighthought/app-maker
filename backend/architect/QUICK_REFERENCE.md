@@ -83,9 +83,7 @@ erDiagram
 | 功能模块 | 主要端点 | 说明 |
 |----------|----------|------|
 | 项目管理 | `/api/v1/projects` | 项目CRUD操作 |
-| 任务管理 | `/api/v1/projects/{id}/tasks` | 任务查询和取消 |
 | 用户管理 | `/api/v1/auth/*` | 注册、登录、认证 |
-| 标签管理 | `/api/v1/tags` | 标签CRUD操作 |
 | 缓存监控 | `/api/v1/cache/*` | 缓存状态监控 |
 
 ## 开发流程
@@ -232,13 +230,7 @@ docker-compose -f docker-compose.prod.yml up -d
    tail -f logs/app.log
    ```
 
-2. **查看任务日志**
-   ```bash
-   # 通过API获取任务日志
-   GET /api/v1/projects/{projectId}/tasks/{taskId}/logs
-   ```
-
-3. **监控缓存状态**
+2. **监控缓存状态**
    ```bash
    # 通过API获取缓存状态
    GET /api/v1/cache/stats

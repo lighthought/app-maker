@@ -35,25 +35,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 用户会话表
-CREATE TABLE user_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash VARCHAR(255) NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
 
--- 用户权限表
-CREATE TABLE user_permissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    permission VARCHAR(100) NOT NULL,
-    granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    granted_by UUID REFERENCES users(id),
-    expires_at TIMESTAMP WITH TIME ZONE
-);
 ```
 
 ### 2.2 项目管理模型
@@ -179,43 +161,6 @@ CREATE TABLE document_comments (
 );
 ```
 
-### 2.5 任务执行模型
-```sql
--- 任务表
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    task_type VARCHAR(50) NOT NULL CHECK (task_type IN (
-        'framework_setup', 'code_generation', 'testing', 'deployment', 'documentation'
-    )),
-    title VARCHAR(200) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN (
-        'pending', 'running', 'completed', 'failed', 'cancelled'
-    )),
-    priority INTEGER DEFAULT 1 CHECK (priority BETWEEN 1 AND 5),
-    assigned_to UUID REFERENCES users(id),
-    started_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    progress INTEGER DEFAULT 0 CHECK (progress BETWEEN 0 AND 100),
-    result JSONB,
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-
--- 任务日志表
-CREATE TABLE task_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    log_level VARCHAR(20) NOT NULL CHECK (log_level IN ('debug', 'info', 'warning', 'error')),
-    message TEXT NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
 ### 2.6 部署和预览模型
 ```sql
 -- 部署环境表
@@ -247,17 +192,6 @@ CREATE TABLE deployments (
     created_by UUID NOT NULL REFERENCES users(id)
 );
 
--- 预览配置表
-CREATE TABLE preview_configs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    config_type VARCHAR(50) NOT NULL CHECK (config_type IN ('web', 'mobile', 'desktop')),
-    settings JSONB NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
 ```
 
 ## 3. 索引设计
@@ -280,11 +214,6 @@ CREATE INDEX idx_agent_sessions_project_id ON agent_sessions(project_id);
 CREATE INDEX idx_agent_sessions_status ON agent_sessions(status);
 CREATE INDEX idx_agent_sessions_started_at ON agent_sessions(started_at);
 
--- 任务表索引
-CREATE INDEX idx_tasks_project_id ON tasks(project_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
-CREATE INDEX idx_tasks_created_at ON tasks(created_at);
 
 -- 文档表索引
 CREATE INDEX idx_documents_project_id ON documents(project_id);
@@ -311,10 +240,6 @@ CREATE INDEX idx_documents_fulltext ON documents USING GIN (
     to_tsvector('english', title || ' ' || COALESCE(content, ''))
 );
 
--- 任务全文搜索索引
-CREATE INDEX idx_tasks_fulltext ON tasks USING GIN (
-    to_tsvector('english', title || ' ' || COALESCE(description, ''))
-);
 ```
 
 ## 4. 约束和触发器
@@ -328,22 +253,10 @@ CHECK (
     (status IN ('planning', 'development', 'testing', 'completed', 'deployed', 'archived'))
 );
 
--- 任务进度约束
-ALTER TABLE tasks ADD CONSTRAINT chk_task_progress 
-CHECK (
-    (status = 'pending' AND progress = 0) OR
-    (status = 'running' AND progress BETWEEN 1 AND 99) OR
-    (status = 'completed' AND progress = 100) OR
-    (status IN ('failed', 'cancelled'))
-);
-
 -- 文档版本约束
 ALTER TABLE documents ADD CONSTRAINT chk_document_version 
 CHECK (version >= 1);
 
--- 用户权限约束
-ALTER TABLE user_permissions ADD CONSTRAINT chk_permission_expiry 
-CHECK (expires_at IS NULL OR expires_at > granted_at);
 ```
 
 ### 4.2 自动更新触发器
@@ -367,8 +280,6 @@ CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
 CREATE TRIGGER update_documents_updated_at BEFORE UPDATE ON documents
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 项目完成时间自动更新触发器
 CREATE OR REPLACE FUNCTION update_project_completed_at()
@@ -385,44 +296,6 @@ CREATE TRIGGER update_projects_completed_at BEFORE UPDATE ON projects
     FOR EACH ROW EXECUTE FUNCTION update_project_completed_at();
 ```
 
-## 5. 分区策略（可选）
-
-### 5.1 按时间分区
-```sql
--- 为大型表启用分区（可选，用于生产环境）
--- 任务日志表按月份分区
-CREATE TABLE task_logs_partitioned (
-    id UUID NOT NULL,
-    task_id UUID NOT NULL,
-    log_level VARCHAR(20) NOT NULL,
-    message TEXT NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL
-) PARTITION BY RANGE (created_at);
-
--- 创建分区
-CREATE TABLE task_logs_2024_01 PARTITION OF task_logs_partitioned
-    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
-
-CREATE TABLE task_logs_2024_02 PARTITION OF task_logs_partitioned
-    FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
-
--- 自动创建分区的函数
-CREATE OR REPLACE FUNCTION create_monthly_partition(table_name text, start_date date)
-RETURNS void AS $$
-DECLARE
-    partition_name text;
-    end_date date;
-BEGIN
-    partition_name := table_name || '_' || to_char(start_date, 'YYYY_MM');
-    end_date := start_date + interval '1 month';
-    
-    EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF %I
-                    FOR VALUES FROM (%L) TO (%L)',
-                    partition_name, table_name, start_date, end_date);
-END;
-$$ LANGUAGE plpgsql;
-```
 
 ## 6. 数据迁移脚本
 
@@ -437,18 +310,12 @@ CREATE TYPE user_role AS ENUM ('user', 'admin', 'moderator');
 CREATE TYPE user_status AS ENUM ('active', 'inactive', 'banned');
 CREATE TYPE project_status AS ENUM ('draft', 'planning', 'development', 'testing', 'completed', 'deployed', 'archived');
 CREATE TYPE project_type AS ENUM ('web', 'mobile', 'desktop', 'api');
-CREATE TYPE task_status AS ENUM ('pending', 'running', 'completed', 'failed', 'cancelled');
-CREATE TYPE document_status AS ENUM ('draft', 'review', 'approved', 'published');
 
 -- 插入初始数据
 INSERT INTO users (id, email, password_hash, name, role, email_verified) VALUES
     ('550e8400-e29b-41d4-a716-446655440000', 'admin@autocodeweb.com', 
      '$2a$10$hashedpassword', 'System Admin', 'admin', true);
 
--- 创建默认配置
-INSERT INTO preview_configs (project_id, name, config_type, settings) VALUES
-    (NULL, 'Default Web Config', 'web', '{"viewport": "1920x1080", "theme": "light"}'),
-    (NULL, 'Default Mobile Config', 'mobile', '{"viewport": "375x667", "theme": "light"}');
 ```
 
 ### 6.2 升级脚本
@@ -505,15 +372,6 @@ FROM agent_sessions s
 WHERE s.project_id = $1
 ORDER BY s.started_at DESC;
 
--- 3. 任务统计查询
-EXPLAIN ANALYZE
-SELECT 
-    COUNT(*) as total_tasks,
-    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_tasks,
-    COUNT(CASE WHEN status = 'running' THEN 1 END) as running_tasks,
-    COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_tasks
-FROM tasks 
-WHERE project_id = $1;
 ```
 
 ### 7.2 缓存策略

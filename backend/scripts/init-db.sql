@@ -105,73 +105,8 @@ CREATE TABLE IF NOT EXISTS projects (
     deleted_at TIMESTAMP
 );
 
--- 创建任务ID序列
-CREATE SEQUENCE IF NOT EXISTS public.tasks_id_num_seq
-    INCREMENT BY 1            -- 步长
-    START 1                   -- 起始值    
-    MINVALUE 1
-    MAXVALUE 99999999999      -- 11位数字容量
-    CACHE 1;
-
--- 创建任务表
-CREATE TABLE IF NOT EXISTS tasks (
-    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('TASK', 'public.tasks_id_num_seq'),
-    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    priority INTEGER DEFAULT 0,
-    description TEXT,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP
-);
-
--- 创建任务日志ID序列
-CREATE SEQUENCE IF NOT EXISTS public.task_logs_id_num_seq
-    INCREMENT BY 1            -- 步长
-    START 1                   -- 起始值    
-    MINVALUE 1
-    MAXVALUE 99999999999      -- 11位数字容量
-    CACHE 1;
-
--- 创建任务日志表
-CREATE TABLE IF NOT EXISTS task_logs (
-    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('LOGS', 'public.task_logs_id_num_seq'),
-    task_id VARCHAR(50) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    level VARCHAR(10) NOT NULL CHECK (level IN ('info', 'success', 'warning', 'error')),
-    message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 创建标签ID序列
-CREATE SEQUENCE IF NOT EXISTS public.tags_id_num_seq
-    INCREMENT BY 1            -- 步长
-    START 1                   -- 起始值    
-    MINVALUE 1
-    MAXVALUE 99999999999      -- 11位数字容量
-    CACHE 1;
--- 创建标签表
-CREATE TABLE IF NOT EXISTS tags (
-    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('TAGS', 'public.tags_id_num_seq'),
-    name VARCHAR(255) UNIQUE NOT NULL,
-    color VARCHAR(7) DEFAULT '#666666',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP
-);
-
--- 创建项目标签关联表
-CREATE TABLE IF NOT EXISTS project_tags (
-    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    tag_id VARCHAR(50) NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (project_id, tag_id)
-);
-
 -- 创建对话消息ID序列
-CREATE SEQUENCE IF NOT EXISTS public.conversation_messages_id_num_seq
+CREATE SEQUENCE IF NOT EXISTS public.project_msgs_id_num_seq
     INCREMENT BY 1            -- 步长
     START 1                   -- 起始值    
     MINVALUE 1
@@ -179,8 +114,8 @@ CREATE SEQUENCE IF NOT EXISTS public.conversation_messages_id_num_seq
     CACHE 1;
 
 -- 创建对话消息表
-CREATE TABLE IF NOT EXISTS conversation_messages (
-    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('MSG', 'public.conversation_messages_id_num_seq'),
+CREATE TABLE IF NOT EXISTS project_msgs (
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('MSG', 'public.project_msgs_id_num_seq'),
     project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     type VARCHAR(20) NOT NULL CHECK (type IN ('user', 'agent', 'system')),
     agent_role VARCHAR(20) CHECK (agent_role IN ('dev', 'pm', 'arch', 'ux', 'qa', 'ops')),
@@ -233,30 +168,14 @@ CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
 
-CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
-
-CREATE INDEX IF NOT EXISTS idx_task_logs_task_id ON task_logs(task_id);
-CREATE INDEX IF NOT EXISTS idx_task_logs_level ON task_logs(level);
-CREATE INDEX IF NOT EXISTS idx_task_logs_created_at ON task_logs(created_at);
-
-CREATE INDEX IF NOT EXISTS idx_conversation_messages_project_id ON conversation_messages(project_id);
-CREATE INDEX IF NOT EXISTS idx_conversation_messages_type ON conversation_messages(type);
-CREATE INDEX IF NOT EXISTS idx_conversation_messages_created_at ON conversation_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_project_msgs_project_id ON project_msgs(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_msgs_type ON project_msgs(type);
+CREATE INDEX IF NOT EXISTS idx_project_msgs_created_at ON project_msgs(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_dev_stages_project_id ON dev_stages(project_id);
 CREATE INDEX IF NOT EXISTS idx_dev_stages_status ON dev_stages(status);
 CREATE INDEX IF NOT EXISTS idx_dev_stages_created_at ON dev_stages(created_at);
 
--- 插入默认标签
-INSERT INTO tags (name, color) VALUES 
-    ('Web应用', '#3B82F6'),
-    ('移动应用', '#10B981'),
-    ('桌面应用', '#F59E0B'),
-    ('API服务', '#8B5CF6')
-ON CONFLICT (name) DO NOTHING;
 
 -- 创建更新时间触发器函数
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -270,9 +189,7 @@ $$ language 'plpgsql';
 -- 为所有表添加更新时间触发器
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_tags_updated_at BEFORE UPDATE ON tags FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_conversation_messages_updated_at BEFORE UPDATE ON conversation_messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_project_msgs_updated_at BEFORE UPDATE ON project_msgs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dev_stages_updated_at BEFORE UPDATE ON dev_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 显示创建的表

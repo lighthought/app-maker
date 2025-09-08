@@ -37,7 +37,7 @@ RUN addgroup -g 1001 -S autocodeweb && \
 WORKDIR /app
 
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/bmad-config && \
+RUN mkdir -p /app/logs && \
     chown -R autocodeweb:autocodeweb /app
 
 # 从构建阶段复制二进制文件

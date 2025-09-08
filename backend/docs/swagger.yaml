@@ -823,7 +823,7 @@ paths:
       summary: 获取项目信息
       tags:
       - 项目管理
-  /api/v1/projects/{projectId}/stages:
+  /api/v1/projects/{id}/stages:
     get:
       consumes:
       - application/json

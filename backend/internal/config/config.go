@@ -130,7 +130,6 @@ func setDefaults() {
 	viper.SetDefault("jwt.expire_hours", 24)
 
 	viper.SetDefault("bmad.npm_package", "bmad-method")
-	viper.SetDefault("bmad.config_path", "./bmad-config")
 
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.file", "./logs/app.log")

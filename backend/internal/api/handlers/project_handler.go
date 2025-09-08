@@ -271,9 +271,9 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/projects/{projectId}/stages [get]
+// @Router /api/v1/projects/{id}/stages [get]
 func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
 		return

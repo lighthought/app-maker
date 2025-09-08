@@ -54,8 +54,6 @@ func (r *projectRepository) GetByID(ctx context.Context, id string) (*models.Pro
 	var project models.Project
 	err := r.db.WithContext(ctx).
 		Preload("User").
-		Preload("Tags").
-		Preload("Tasks").
 		Where("id = ?", id).
 		First(&project).Error
 	if err != nil {
@@ -106,7 +104,7 @@ func (r *projectRepository) List(ctx context.Context, req *models.ProjectListReq
 	query = query.Offset(offset).Limit(req.PageSize)
 
 	// 预加载关联数据
-	query = query.Preload("User").Preload("Tags").Preload("Tasks")
+	query = query.Preload("User")
 
 	// 排序
 	query = query.Order("created_at DESC")

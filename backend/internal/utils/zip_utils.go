@@ -11,11 +11,15 @@ import (
 )
 
 // ZipUtils 压缩工具类
-type ZipUtils struct{}
+type ZipUtils struct {
+	fileUtils *FileUtils
+}
 
 // NewZipUtils 创建压缩工具实例
-func NewZipUtils() *ZipUtils {
-	return &ZipUtils{}
+func NewZipUtils(fileUtils *FileUtils) *ZipUtils {
+	return &ZipUtils{
+		fileUtils: fileUtils,
+	}
 }
 
 // CompressDirectory 压缩指定目录到zip文件
@@ -92,7 +96,7 @@ func (z *ZipUtils) CompressDirectoryToBytes(ctx context.Context, sourceDir strin
 	}
 
 	// 创建临时zip文件
-	tempZipPath := fmt.Sprintf("/app/data/tmp/compress_%s.zip", filepath.Base(sourceDir))
+	tempZipPath := fmt.Sprintf("%s.zip", sourceDir)
 	defer os.Remove(tempZipPath) // 清理临时文件
 
 	// 设置工作目录
@@ -102,7 +106,7 @@ func (z *ZipUtils) CompressDirectoryToBytes(ctx context.Context, sourceDir strin
 	}
 
 	// 使用系统zip命令压缩到临时文件
-	cmd := exec.CommandContext(ctx, "zip", "-r", tempZipPath, ".")
+	cmd := exec.CommandContext(ctx, "zip", "-r", tempZipPath, ".", "-x@exclude_list.txt")
 	cmd.Dir = workDir
 
 	if err := cmd.Run(); err != nil {

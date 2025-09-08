@@ -11,6 +11,7 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
+	"autocodeweb-backend/pkg/logger"
 )
 
 // ProjectFileService 项目文件服务接口
@@ -36,9 +37,11 @@ type fileService struct {
 
 // NewProjectFileService 创建项目文件服务
 func NewFileService(baseDir string) FileService {
+	fileUtils := utils.NewFileUtils(baseDir)
+	zipUtils := utils.NewZipUtils(fileUtils)
 	return &fileService{
-		fileUtils: utils.NewFileUtils(baseDir),
-		zipUtils:  utils.NewZipUtils(),
+		fileUtils: fileUtils,
+		zipUtils:  zipUtils,
 	}
 }
 
@@ -79,6 +82,7 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectID string) (*models.
 	return &config, nil
 }
 
+// GetProjectFiles 获取项目文件列表
 func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, path string) ([]models.FileItem, error) {
 	// 构建项目路径
 	projectPath := s.fileUtils.GetProjectPath(userID, projectID)
@@ -87,7 +91,7 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, pa
 	}
 
 	// 检查路径是否存在
-	if s.fileUtils.IsFileExists(projectPath) == false {
+	if s.fileUtils.IsDirectoryExists(projectPath) == false {
 		return []models.FileItem{}, nil
 	}
 
@@ -258,7 +262,8 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectID, fil
 // DownloadProject 下载项目文件
 func (s *fileService) DownloadProject(ctx context.Context, projectPath string) ([]byte, error) {
 	// 检查项目路径是否存在
-	if s.fileUtils.IsFileExists(projectPath) == false {
+	if s.fileUtils.IsDirectoryExists(projectPath) == false {
+		logger.Error("项目路径为空", logger.String("projectPath", projectPath))
 		return nil, fmt.Errorf("项目路径为空")
 	}
 

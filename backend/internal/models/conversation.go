@@ -8,7 +8,7 @@ import (
 
 // ConversationMessage 对话消息模型
 type ConversationMessage struct {
-	ID              string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('MSG', 'public.conversation_messages_id_num_seq')"`
+	ID              string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('MSG', 'public.project_msgs_id_num_seq')"`
 	ProjectID       string         `json:"project_id" gorm:"type:varchar(50);not null"`
 	Project         Project        `json:"project,omitempty" gorm:"foreignKey:ProjectID"`
 	Type            string         `json:"type" gorm:"size:20;not null"` // user, agent, system
@@ -41,7 +41,7 @@ type DevStage struct {
 
 // TableName 指定表名
 func (ConversationMessage) TableName() string {
-	return "conversation_messages"
+	return "project_msgs"
 }
 
 func (DevStage) TableName() string {
@@ -52,7 +52,7 @@ func (DevStage) TableName() string {
 func (cm *ConversationMessage) BeforeCreate(tx *gorm.DB) error {
 	if cm.ID == "" {
 		var result string
-		err := tx.Raw("SELECT generate_table_id('MSG', 'conversation_messages_id_num_seq')").Scan(&result).Error
+		err := tx.Raw("SELECT generate_table_id('MSG', 'project_msgs_id_num_seq')").Scan(&result).Error
 		if err != nil {
 			return err
 		}

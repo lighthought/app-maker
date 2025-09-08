@@ -64,7 +64,7 @@ COPY --from=builder /app/data/template.zip ./template.zip
 COPY --from=builder /app/scripts ./scripts
 
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/configs /app/bmad-config /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts && \
+RUN mkdir -p /app/logs /app/configs /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts && \
     chown -R appuser:appgroup /app && \
     chmod +x /app/scripts/*.sh
 

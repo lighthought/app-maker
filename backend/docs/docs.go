@@ -1008,7 +1008,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/projects/{projectId}/stages": {
+        "/api/v1/projects/{id}/stages": {
             "get": {
                 "description": "获取指定项目的开发阶段信息",
                 "consumes": [

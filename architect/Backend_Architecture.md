@@ -160,7 +160,6 @@ type Config struct {
     Database DatabaseConfig `mapstructure:"database"`
     Redis    RedisConfig    `mapstructure:"redis"`
     JWT      JWTConfig      `mapstructure:"jwt"`
-    BMad     BMadConfig     `mapstructure:"bmad"`
     Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -189,11 +188,6 @@ type RedisConfig struct {
 type JWTConfig struct {
     SecretKey string `mapstructure:"secret_key"`
     Expire    int    `mapstructure:"expire_hours"`
-}
-
-type BMadConfig struct {
-    NpmPackage string `mapstructure:"npm_package"`
-    ConfigPath string `mapstructure:"config_path"`
 }
 
 type LogConfig struct {

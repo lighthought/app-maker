@@ -58,7 +58,7 @@ func NewProjectService(
 		templateService:     NewProjectTemplateService(fileService),
 		projectStageService: NewProjectStageService(projectRepo, stageRepo, fileUtils),
 		nameGenerator:       NewProjectNameGenerator(),
-		zipUtils:            utils.NewZipUtils(),
+		zipUtils:            utils.NewZipUtils(fileUtils),
 		fileUtils:           fileUtils,
 	}
 }

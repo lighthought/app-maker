@@ -25,19 +25,13 @@ backend/
 │   │   ├── handlers/      # HTTP处理器
 │   │   │   ├── cache_handler.go      # 缓存管理处理器
 │   │   │   ├── project_handler.go    # 项目管理处理器
-│   │   │   ├── tag_handler.go         # 标签管理处理器
-│   │   │   ├── task_handler.go        # 任务管理处理器
 │   │   │   └── user_handler.go        # 用户管理处理器
 │   │   ├── middleware/    # 中间件
 │   │   │   ├── auth.go                # 认证中间件
 │   │   │   ├── cors.go                # CORS中间件
 │   │   │   └── logger.go              # 日志中间件
 │   │   └── routes/        # 路由定义
-│   │       ├── project_routes.go      # 项目相关路由
-│   │       ├── routes.go              # 主路由注册
-│   │       ├── task_routes.go         # 任务相关路由
-│   │       ├── tag_routes.go          # 标签相关路由
-│   │       └── user_routes.go         # 用户相关路由
+│   │       ├── routes.go              # 路由注册
 │   ├── config/            # 配置管理
 │   │   └── config.go      # 配置结构定义
 │   ├── database/          # 数据库相关
@@ -46,16 +40,10 @@ backend/
 │   ├── models/            # 数据模型
 │   │   ├── common.go      # 通用模型和响应结构
 │   │   ├── project.go      # 项目模型
-│   │   ├── tag.go         # 标签模型
-│   │   ├── task.go        # 任务模型
 │   │   └── user.go        # 用户模型
 │   ├── repositories/      # 数据访问层
 │   │   ├── project_repository.go      # 项目数据访问
-│   │   ├── tag_repository.go         # 标签数据访问
-│   │   ├── task_repository.go        # 任务数据访问
-│   │   ├── task_log_repository.go    # 任务日志数据访问
 │   │   ├── user_repository.go        # 用户数据访问
-│   │   └── user_session_repository.go # 用户会话数据访问
 │   ├── services/          # 业务逻辑层
 │   │   ├── project_service.go        # 项目管理服务
 │   │   ├── project_template_service.go # 项目模板服务
@@ -101,9 +89,6 @@ backend/
 │   └── config-validator.go # 配置验证工具
 ├── logs/                   # 日志文件
 │   └── app.log            # 应用日志
-├── bmad-config/           # BMad-Method配置
-├── bin/                    # 编译输出
-│   └── server             # 可执行文件
 ├── go.mod                 # Go模块文件
 ├── go.sum                 # Go依赖校验
 ├── Dockerfile             # Docker 构建文件
@@ -392,26 +377,13 @@ docker-compose up -d
 - `GET /api/v1/projects` - 获取项目列表
 - `POST /api/v1/projects` - 创建新项目
 - `GET /api/v1/projects/{id}` - 获取项目详情
-- `PUT /api/v1/projects/{id}` - 更新项目
 - `DELETE /api/v1/projects/{id}` - 删除项目
-
-#### 任务管理
-- `GET /api/v1/projects/{projectId}/tasks` - 获取项目任务列表
-- `GET /api/v1/projects/{projectId}/tasks/{taskId}` - 获取任务详情
-- `GET /api/v1/projects/{projectId}/tasks/{taskId}/logs` - 获取任务日志
-- `POST /api/v1/projects/{projectId}/tasks/{taskId}/cancel` - 取消任务
 
 #### 用户管理
 - `POST /api/v1/auth/register` - 用户注册
 - `POST /api/v1/auth/login` - 用户登录
 - `GET /api/v1/auth/profile` - 获取用户信息
 - `PUT /api/v1/auth/profile` - 更新用户信息
-
-#### 标签管理
-- `GET /api/v1/tags` - 获取标签列表
-- `POST /api/v1/tags` - 创建标签
-- `PUT /api/v1/tags/{id}` - 更新标签
-- `DELETE /api/v1/tags/{id}` - 删除标签
 
 ## 配置说明
 

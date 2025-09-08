@@ -26,7 +26,6 @@ jwt:
 
 bmad:
   npm_package: "bmad-method"
-  config_path: "./bmad-config"
 
 log:
   level: "debug"

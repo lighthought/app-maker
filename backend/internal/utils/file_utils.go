@@ -61,6 +61,15 @@ func (s *FileUtils) IsFileExists(filePath string) bool {
 	return info.IsDir() == false
 }
 
+// 检查目录是否存在
+func (s *FileUtils) IsDirectoryExists(filePath string) bool {
+	info, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir() == true
+}
+
 // 获取文件信息
 func (s *FileUtils) GetFileInfo(filePath string) (os.FileInfo, error) {
 	info, err := os.Stat(filePath)

@@ -82,10 +82,6 @@ export DATABASE_NAME=your-db-name
 ### 主要表
 1. **users** - 用户表
 2. **projects** - 项目表（包含开发状态跟踪）
-3. **tasks** - 任务表（简化版，用于异步任务管理）
-4. **tags** - 标签表
-5. **project_tags** - 项目标签关联表
-6. **task_logs** - 任务日志表
 
 
 ### 项目表字段说明
