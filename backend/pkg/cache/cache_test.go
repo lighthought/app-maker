@@ -21,12 +21,6 @@ func TestKeyBuilder(t *testing.T) {
 		t.Errorf("期望 project:456:info，得到 %s", projectKey)
 	}
 
-	// 测试任务相关键
-	taskKey := builder.Task("789", "status")
-	if taskKey != "task:789:status" {
-		t.Errorf("期望 task:789:status，得到 %s", taskKey)
-	}
-
 	// 测试会话键
 	sessionKey := builder.Session("session123")
 	if sessionKey != "session:session123" {

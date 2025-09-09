@@ -13,7 +13,6 @@ type Config struct {
 	Redis    RedisConfig    `mapstructure:"redis"`
 	CORS     CORSConfig     `mapstructure:"cors"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
-	BMad     BMadConfig     `mapstructure:"bmad"`
 	Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -54,11 +53,6 @@ type CORSConfig struct {
 	AllowedHeaders   []string `mapstructure:"allowed_headers"`
 	AllowCredentials bool     `mapstructure:"allow_credentials"`
 	MaxAge           int      `mapstructure:"max_age"`
-}
-
-type BMadConfig struct {
-	NpmPackage string `mapstructure:"npm_package"`
-	ConfigPath string `mapstructure:"config_path"`
 }
 
 type LogConfig struct {

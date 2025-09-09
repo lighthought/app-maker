@@ -267,6 +267,7 @@ func (s *fileService) DownloadProject(ctx context.Context, projectPath string) (
 		return nil, fmt.Errorf("项目路径为空")
 	}
 
+	// TODO：改成异步方法，返回任务 ID
 	// 使用 zipUtils 压缩项目文件
 	zipData, err := s.zipUtils.CompressDirectoryToBytes(ctx, projectPath)
 	if err != nil {

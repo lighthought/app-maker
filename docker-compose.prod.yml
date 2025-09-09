@@ -69,7 +69,6 @@ services:
     volumes:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
-      - ./backend/bmad-config:/app/bmad-config
     depends_on:
       postgres:
         condition: service_healthy

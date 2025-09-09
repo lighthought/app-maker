@@ -39,26 +39,6 @@ func (kb *KeyBuilder) ProjectInfo(projectID string) string {
 	return kb.Project(projectID, "info")
 }
 
-// ProjectTasks 项目任务列表缓存键
-func (kb *KeyBuilder) ProjectTasks(projectID string) string {
-	return kb.Project(projectID, "tasks")
-}
-
-// Task 任务相关缓存键
-func (kb *KeyBuilder) Task(taskID string, suffix string) string {
-	return fmt.Sprintf("task:%s:%s", taskID, suffix)
-}
-
-// TaskStatus 任务状态缓存键
-func (kb *KeyBuilder) TaskStatus(taskID string) string {
-	return kb.Task(taskID, "status")
-}
-
-// TaskProgress 任务进度缓存键
-func (kb *KeyBuilder) TaskProgress(taskID string) string {
-	return kb.Task(taskID, "progress")
-}
-
 // Session 会话相关缓存键
 func (kb *KeyBuilder) Session(sessionID string) string {
 	return fmt.Sprintf("session:%s", sessionID)

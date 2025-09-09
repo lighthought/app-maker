@@ -68,7 +68,6 @@ services:
     volumes:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
-      - ./backend/bmad-config:/app/bmad-config
       - ${APP_DATA_HOME:-F:/app-maker/app_data}:/app/data
     depends_on:
       postgres:
