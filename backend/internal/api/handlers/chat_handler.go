@@ -6,6 +6,7 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
+	"autocodeweb-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,7 +44,11 @@ func NewChatHandler(
 func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	projectID := c.Param("projectId")
 	if projectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "项目ID不能为空",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -63,25 +68,30 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	// 获取对话消息
 	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectID, pageSize, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取对话历史失败"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      models.INTERNAL_ERROR,
+			Message:   "获取对话历史失败",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	// 计算分页信息
-	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+	totalPages := (total + pageSize - 1) / pageSize
 	hasNext := page < totalPages
 	hasPrevious := page > 1
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":        0,
-		"message":     "success",
-		"total":       total,
-		"page":        page,
-		"pageSize":    pageSize,
-		"totalPages":  totalPages,
-		"data":        messages,
-		"hasNext":     hasNext,
-		"hasPrevious": hasPrevious,
+	c.JSON(http.StatusOK, models.PaginationResponse{
+		Code:        models.SUCCESS_CODE,
+		Message:     "success",
+		Total:       total,
+		Page:        page,
+		PageSize:    pageSize,
+		TotalPages:  totalPages,
+		Data:        messages,
+		HasNext:     hasNext,
+		HasPrevious: hasPrevious,
+		Timestamp:   utils.GetCurrentTime(),
 	})
 }
 
@@ -100,7 +110,11 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	projectID := c.Param("projectId")
 	if projectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "项目ID不能为空",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -115,7 +129,11 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "请求参数错误",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -133,13 +151,18 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 
 	result, err := h.messageService.AddConversationMessage(c.Request.Context(), projectID, message)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "添加对话消息失败"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      models.INTERNAL_ERROR,
+			Message:   "添加对话消息失败",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
-		"message": "success",
-		"data":    result,
+	c.JSON(http.StatusOK, models.Response{
+		Code:      models.SUCCESS_CODE,
+		Message:   "success",
+		Data:      result,
+		Timestamp: utils.GetCurrentTime(),
 	})
 }

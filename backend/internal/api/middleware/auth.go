@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"autocodeweb-backend/internal/models"
+	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/auth"
 
 	"github.com/gin-gonic/gin"
@@ -15,9 +17,10 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "Authorization header required",
+			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+				Code:      models.UNAUTHORIZED,
+				Message:   "Authorization header required",
+				Timestamp: utils.GetCurrentTime(),
 			})
 			c.Abort()
 			return
@@ -26,9 +29,10 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 解析Bearer token
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "Invalid authorization format",
+			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+				Code:      models.UNAUTHORIZED,
+				Message:   "Invalid authorization format",
+				Timestamp: utils.GetCurrentTime(),
 			})
 			c.Abort()
 			return
@@ -39,9 +43,10 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 验证JWT token
 		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "Invalid token",
+			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+				Code:      models.UNAUTHORIZED,
+				Message:   "Invalid token",
+				Timestamp: utils.GetCurrentTime(),
 			})
 			c.Abort()
 			return

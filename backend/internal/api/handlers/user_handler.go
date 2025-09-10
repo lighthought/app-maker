@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
+	"autocodeweb-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,9 +38,9 @@ func (h *UserHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -52,18 +52,18 @@ func (h *UserHandler) Register(c *gin.Context) {
 			statusCode = http.StatusConflict
 		}
 		c.JSON(statusCode, models.Response{
-			Code:      statusCode,
+			Code:      models.ERROR_CODE,
 			Message:   err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "注册成功",
 		Data:      response,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -82,9 +82,9 @@ func (h *UserHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -98,18 +98,18 @@ func (h *UserHandler) Login(c *gin.Context) {
 			statusCode = http.StatusForbidden
 		}
 		c.JSON(statusCode, models.Response{
-			Code:      statusCode,
-			Message:   err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Code:      models.ERROR_CODE,
+			Message:   "登录失败, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "登录成功",
 		Data:      response,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -131,17 +131,17 @@ func (h *UserHandler) Logout(c *gin.Context) {
 	err := h.userService.Logout(c.Request.Context(), userID, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.Response{
-			Code:      500,
+			Code:      models.ERROR_CODE,
 			Message:   "登出失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "登出成功",
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -167,18 +167,18 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 			statusCode = http.StatusNotFound
 		}
 		c.JSON(statusCode, models.Response{
-			Code:      statusCode,
-			Message:   err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Code:      models.ERROR_CODE,
+			Message:   "获取用户档案失败, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "获取成功",
+		Code:      models.SUCCESS_CODE,
+		Message:   "获取用户档案成功",
 		Data:      response,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -199,9 +199,9 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -216,17 +216,17 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 			statusCode = http.StatusConflict
 		}
 		c.JSON(statusCode, models.Response{
-			Code:      statusCode,
-			Message:   err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Code:      models.ERROR_CODE,
+			Message:   "更新用户档案失败, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "更新成功",
-		Timestamp: time.Now().Format(time.RFC3339),
+		Code:      models.SUCCESS_CODE,
+		Message:   "更新用户档案成功",
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -246,9 +246,9 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	var req models.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -263,17 +263,17 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 			statusCode = http.StatusBadRequest
 		}
 		c.JSON(statusCode, models.Response{
-			Code:      statusCode,
-			Message:   err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Code:      models.ERROR_CODE,
+			Message:   "修改密码失败, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "密码修改成功",
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -296,9 +296,9 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 	userRole := c.GetString("user_role")
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      401,
+			Code:      models.UNAUTHORIZED,
 			Message:   "未授权",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -306,9 +306,9 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 	// 检查权限
 	if userRole != "admin" {
 		c.JSON(http.StatusForbidden, models.Response{
-			Code:      403,
+			Code:      models.FORBIDDEN,
 			Message:   "权限不足",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -320,18 +320,18 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 	response, err := h.userService.GetUserList(c.Request.Context(), page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.Response{
-			Code:      500,
+			Code:      models.ERROR_CODE,
 			Message:   "获取用户列表失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "获取成功",
 		Data:      response,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -355,9 +355,9 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	// 检查权限
 	if userRole != "admin" {
 		c.JSON(http.StatusForbidden, models.Response{
-			Code:      403,
+			Code:      models.FORBIDDEN,
 			Message:   "权限不足",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -366,9 +366,9 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	targetUserID := c.Param("user_id")
 	if targetUserID == "" {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "用户ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -376,9 +376,9 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	// 不能删除自己
 	if targetUserID == currentUserID {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.FORBIDDEN,
 			Message:   "不能删除自己的账户",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -386,17 +386,17 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	err := h.userService.DeleteUser(c.Request.Context(), targetUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.Response{
-			Code:      500,
+			Code:      models.INTERNAL_ERROR,
 			Message:   "删除用户失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "删除成功",
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -415,9 +415,9 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 	refreshToken := c.Query("refresh_token")
 	if refreshToken == "" {
 		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      400,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "刷新令牌不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -431,17 +431,17 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 			statusCode = http.StatusForbidden
 		}
 		c.JSON(statusCode, models.Response{
-			Code:      statusCode,
-			Message:   err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Code:      models.ERROR_CODE,
+			Message:   "令牌刷新失败, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "令牌刷新成功",
 		Data:      response,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }

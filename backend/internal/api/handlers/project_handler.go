@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
+	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -51,9 +51,9 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("requestBody", fmt.Sprintf("%v", c.Request.Body)),
 		)
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "请求参数错误",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Code:      models.VALIDATION_ERROR,
+			Message:   "请求参数错误, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -73,9 +73,9 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("userID", userID),
 		)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
+			Code:      models.INTERNAL_ERROR,
 			Message:   "创建项目失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -87,10 +87,10 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	)
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "项目创建成功",
 		Data:      project,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -112,9 +112,9 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "项目ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -126,25 +126,25 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "access denied" {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
+				Code:      models.FORBIDDEN,
 				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
+				Timestamp: utils.GetCurrentTime(),
 			})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
+			Code:      models.INTERNAL_ERROR,
 			Message:   "获取项目失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "获取项目成功",
 		Data:      project,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -166,9 +166,9 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
+			Code:      models.VALIDATION_ERROR,
 			Message:   "项目ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -180,25 +180,25 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "access denied" {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
+				Code:      models.FORBIDDEN,
 				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
+				Timestamp: utils.GetCurrentTime(),
 			})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
+			Code:      models.INTERNAL_ERROR,
 			Message:   "删除项目失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
+		Code:      models.SUCCESS_CODE,
 		Message:   "项目删除成功",
 		Data:      nil,
-		Timestamp: time.Now().Format(time.RFC3339),
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -240,25 +240,17 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
 
-	projects, pagination, err := h.projectService.GetUserProjects(c.Request.Context(), userID, &req)
+	pagination, err := h.projectService.GetUserProjects(c.Request.Context(), userID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
+			Code:      models.INTERNAL_ERROR,
 			Message:   "获取项目列表失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	// 使用 projects 变量来构建响应
-	_ = projects // 避免未使用变量警告
-
-	c.JSON(http.StatusOK, models.Response{
-		Code:      0,
-		Message:   "获取项目列表成功",
-		Data:      pagination,
-		Timestamp: time.Now().Format(time.RFC3339),
-	})
+	c.JSON(http.StatusOK, pagination)
 }
 
 // GetProjectStages 获取项目开发阶段
@@ -275,19 +267,28 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "项目ID不能为空",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	stages, err := h.projectService.GetProjectStages(c.Request.Context(), projectID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取开发阶段失败"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      models.INTERNAL_ERROR,
+			Message:   "获取开发阶段失败, " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
-		"message": "success",
-		"data":    stages,
+	c.JSON(http.StatusOK, models.Response{
+		Code:      models.SUCCESS_CODE,
+		Message:   "获取开发阶段成功",
+		Data:      stages,
+		Timestamp: utils.GetCurrentTime(),
 	})
 }

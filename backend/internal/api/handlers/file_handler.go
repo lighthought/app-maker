@@ -3,10 +3,9 @@ package handlers
 import (
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
+	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,7 +45,7 @@ func (h *FileHandler) DownloadProject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      http.StatusBadRequest,
 			Message:   "项目ID不能为空",
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
@@ -61,40 +60,39 @@ func (h *FileHandler) DownloadProject(c *gin.Context) {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
 				Code:      http.StatusForbidden,
 				Message:   "访问被拒绝",
-				Timestamp: time.Now().Format(time.RFC3339),
+				Timestamp: utils.GetCurrentTime(),
 			})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      http.StatusInternalServerError,
 			Message:   "获取项目信息失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	// 生成zip文件
-	zipData, err := h.fileService.DownloadProject(c.Request.Context(), project.ProjectPath)
+	// 生成项目压缩任务
+	taskID, err := h.fileService.DownloadProject(c.Request.Context(), projectID, project.ProjectPath)
 	if err != nil {
-		logger.Error("生成项目zip文件失败",
+		logger.Error("生成项目压缩任务失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", projectID),
 		)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      http.StatusInternalServerError,
-			Message:   "生成项目文件失败: " + err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
+			Message:   "生成项目压缩任务失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	// 设置响应头
-	c.Header("Content-Type", "application/zip")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", project.Name))
-	c.Header("Content-Length", fmt.Sprintf("%d", len(zipData)))
-
-	// 返回zip文件
-	c.Data(http.StatusOK, "application/zip", zipData)
+	c.JSON(http.StatusOK, models.Response{
+		Code:      models.SUCCESS_CODE,
+		Message:   "success",
+		Data:      taskID,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }
 
 // GetProjectFiles 获取项目文件列表
@@ -112,7 +110,11 @@ func (h *FileHandler) DownloadProject(c *gin.Context) {
 func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 	projectID := c.Param("projectId")
 	if projectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "项目ID不能为空",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -121,14 +123,19 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 
 	files, err := h.fileService.GetProjectFiles(c.Request.Context(), userID, projectID, path)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文件列表失败"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      models.INTERNAL_ERROR,
+			Message:   "获取文件列表失败",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
-		"message": "success",
-		"data":    files,
+	c.JSON(http.StatusOK, models.Response{
+		Code:      models.SUCCESS_CODE,
+		Message:   "success",
+		Data:      files,
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
 
@@ -147,13 +154,21 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 func (h *FileHandler) GetFileContent(c *gin.Context) {
 	projectID := c.Param("projectId")
 	if projectID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "项目ID不能为空"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "项目ID不能为空",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	filePath := c.Query("filePath")
 	if filePath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "文件路径不能为空"})
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "文件路径不能为空",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -161,13 +176,18 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 
 	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectID, filePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文件内容失败"})
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      models.INTERNAL_ERROR,
+			Message:   "获取文件内容失败",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
-		"message": "success",
-		"data":    content,
+	c.JSON(http.StatusOK, models.Response{
+		Code:      models.SUCCESS_CODE,
+		Message:   "success",
+		Data:      content,
+		Timestamp: utils.GetCurrentTime(),
 	})
 }
