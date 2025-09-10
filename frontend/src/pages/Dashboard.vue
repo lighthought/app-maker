@@ -276,6 +276,14 @@
         </n-card>
       </div>
     </div>
+    
+    <!-- 任务轮询弹窗 -->
+    <TaskProgressModal
+      v-model:show="showTaskModal"
+      :task-id="currentTaskId"
+      :project-id="currentDownloadProjectId"
+      @retry="handleTaskRetry"
+    />
     </div>
   </PageLayout>
 </template>
@@ -286,6 +294,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore } from '@/stores/file'
+import TaskProgressModal from '@/components/TaskProgressModal.vue'
 import { formatDateTime, formatDateShort } from '@/utils/time'
 import { httpService } from '@/utils/http'
 import {
@@ -375,6 +384,11 @@ const updateInterval = ref<number | null>(null)
 const backendStatus = ref<'ok' | 'error' | 'checking'>('checking')
 const backendVersion = ref('')
 
+// 任务轮询相关状态
+const showTaskModal = ref(false)
+const currentTaskId = ref('')
+const currentDownloadProjectId = ref('')
+
 // 状态选项
 const statusOptions = [
   { label: '全部状态', value: '' },
@@ -439,9 +453,27 @@ const editProject = (projectId: string) => {
 
 const downloadProject = async (projectId: string) => {
   try {
-    await fileStore.downloadProject(projectId)
+    const taskId = await projectStore.downloadProject(projectId)
+    if (taskId) {
+      // 显示任务轮询弹窗
+      currentTaskId.value = taskId
+      currentDownloadProjectId.value = projectId
+      showTaskModal.value = true
+    }
   } catch (error) {
     console.error('下载项目失败:', error)
+  }
+}
+
+// 处理任务重试
+const handleTaskRetry = async (taskId: string) => {
+  try {
+    const newTaskId = await projectStore.downloadProject(currentDownloadProjectId.value)
+    if (newTaskId) {
+      currentTaskId.value = newTaskId
+    }
+  } catch (error) {
+    console.error('重试下载项目失败:', error)
   }
 }
 

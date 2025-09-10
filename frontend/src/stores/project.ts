@@ -1,20 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { httpService } from '@/utils/http'
-import type { Project, CreateProjectData, UpdateProjectData, ProjectListRequest, PaginationResponse, ConversationMessage, DevStage } from '@/types/project'
+import type { Project, CreateProjectData, UpdateProjectData, ProjectListRequest, PaginationResponse, PaginationInfo, ConversationMessage, DevStage } from '@/types/project'
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([])
   const currentProject = ref<Project | null>(null)
   const projectStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const pagination = ref<{
-    total: number
-    page: number
-    pageSize: number
-    totalPages: number
-    hasNext: boolean
-    hasPrevious: boolean
-  }>({
+  const pagination = ref<PaginationInfo>({
     total: 0,
     page: 1,
     pageSize: 10,
@@ -30,18 +23,29 @@ export const useProjectStore = defineStore('project', () => {
       const response = await httpService.get<{
         code: number
         message: string
-        data: PaginationResponse<Project>
+        total: number
+        page: number
+        page_size: number
+        total_pages: number
+        data: Project[]
+        has_next: boolean
+        has_previous: boolean
+        timestamp: string
       }>('/projects', { params })
 
       if (response.code === 0 && response.data) {
-        projects.value = response.data.data
+        // 确保 projects.value 是数组
+        if (!Array.isArray(projects.value)) {
+          projects.value = []
+        }
+        projects.value = response.data || []
         pagination.value = {
-          total: response.data.total,
-          page: response.data.page,
-          pageSize: response.data.pageSize,
-          totalPages: response.data.totalPages,
-          hasNext: response.data.hasNext,
-          hasPrevious: response.data.hasPrevious
+          total: response.total,
+          page: response.page,
+          pageSize: response.page_size,
+          totalPages: response.total_pages,
+          hasNext: response.has_next,
+          hasPrevious: response.has_previous
         }
         projectStatus.value = 'success'
       } else {
@@ -65,6 +69,10 @@ export const useProjectStore = defineStore('project', () => {
       }>('/projects', projectData)
 
       if (response.code === 0 && response.data) {
+        // 确保 projects.value 是数组
+        if (!Array.isArray(projects.value)) {
+          projects.value = []
+        }
         projects.value.unshift(response.data)
         projectStatus.value = 'success'
         return response.data
@@ -90,9 +98,12 @@ export const useProjectStore = defineStore('project', () => {
       }>(`/projects/${projectId}`)
 
       if (response.code === 0) {
-        const index = projects.value.findIndex(p => p.id === projectId)
-        if (index !== -1) {
-          projects.value.splice(index, 1)
+        // 确保 projects.value 是数组
+        if (Array.isArray(projects.value)) {
+          const index = projects.value.findIndex(p => p.id === projectId)
+          if (index !== -1) {
+            projects.value.splice(index, 1)
+          }
         }
         projectStatus.value = 'success'
       } else {
@@ -128,6 +139,28 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // 下载项目
+  const downloadProject = async (projectId: string) => {
+    try {
+      // 使用 httpService 的 download 方法
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: string
+      }>(`/projects/download/${projectId}`)
+
+      if (response.code === 0 && response.data) {
+        return response.data
+      } else {
+        console.error('下载项目失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('下载项目失败:', error)
+      return null
+    }
+  }
+
   // 设置当前项目
   const setCurrentProject = (project: Project | null) => {
     currentProject.value = project
@@ -141,7 +174,7 @@ export const useProjectStore = defineStore('project', () => {
         code: number
         message: string
         data: PaginationResponse<ConversationMessage>
-      }>(`/chat/${projectId}/messages`, {
+      }>(`/chat/messages/${projectId}`, {
         params: { page, pageSize }
       })
 
@@ -164,7 +197,7 @@ export const useProjectStore = defineStore('project', () => {
         code: number
         message: string
         data: ConversationMessage
-      }>(`/chat/${projectId}/chat`, message)
+      }>(`/chat/chat/${projectId}`, message)
 
       if (response.code === 0 && response.data) {
         return response.data
@@ -211,6 +244,7 @@ export const useProjectStore = defineStore('project', () => {
     setCurrentProject,
     getProjectMessages,
     addChatMessage,
-    getProjectStages
+    getProjectStages,
+    downloadProject
   }
 })

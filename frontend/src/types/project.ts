@@ -49,9 +49,19 @@ export interface ProjectListRequest {
 export interface PaginationResponse<T> {
   total: number
   page: number
+  page_size: number
+  total_pages: number
+  data: T[]
+  has_next: boolean
+  has_previous: boolean
+}
+
+// 前端使用的分页信息接口（驼峰命名）
+export interface PaginationInfo {
+  total: number
+  page: number
   pageSize: number
   totalPages: number
-  data: T[]
   hasNext: boolean
   hasPrevious: boolean
 }

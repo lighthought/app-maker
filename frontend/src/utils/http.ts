@@ -156,9 +156,10 @@ class HttpService {
   }
   
   // 下载文件方法，返回 blob 数据
-  public async download(url: string): Promise<Blob> {
+  public async download(url: string, params?: any): Promise<Blob> {
     const response = await this.instance.get(url, {
-      responseType: 'blob'
+      responseType: 'blob',
+      params
     })
     // 对于blob响应，返回response.data（blob数据）
     return response.data

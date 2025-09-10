@@ -3,30 +3,32 @@ import { defineStore } from 'pinia'
 
 export const useFilesStore = defineStore('projectFiles', () => {
 
-// 下载项目
-const downloadProject = async (projectId: string) => {
+// 下载文件
+const downloadFile = async (filePath: string) => {
     try {
       // 使用 httpService 的 download 方法
-      const blob = await httpService.download(`/files/download/${projectId}`)
+      const blob = await httpService.download(`/files/download`, { filePath: filePath })
       
       // 验证blob数据
       if (!blob || blob.size === 0) {
         throw new Error('下载的文件为空')
       }
+
+      const filename = filePath.split('/').pop()
       
       // 创建下载链接
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `project-${projectId}.zip`
+      a.download = `${filename}`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
       
-      console.log('项目下载成功:', projectId)
+      console.log('文件下载成功:', filePath, filename)
     } catch (error) {
-      console.error('下载项目失败:', error)
+      console.error('下载文件失败:', error)
       throw error
     }
   }
@@ -92,7 +94,7 @@ const downloadProject = async (projectId: string) => {
   }
 
   return {
-    downloadProject,
+    downloadFile,
     getFileContent,
     getProjectFiles,
   }
