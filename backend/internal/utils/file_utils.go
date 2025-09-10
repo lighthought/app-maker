@@ -10,30 +10,27 @@ import (
 	"strings"
 )
 
-// FileUtils 文件工具类
-type FileUtils struct {
-	baseDir string
-}
-
-// NewFileUtils 创建文件工具实例
-func NewFileUtils(baseDir string) *FileUtils {
-	return &FileUtils{
-		baseDir: baseDir,
-	}
-}
+const (
+	baseDir = "/app/data"
+)
 
 // GetProjectPath 获取项目路径
-func (s *FileUtils) GetProjectPath(userID, projectID string) string {
-	return filepath.Join(s.baseDir, "projects", userID, projectID)
+func GetProjectPath(userID, projectID string) string {
+	return filepath.Join(baseDir, "projects", userID, projectID)
 }
 
 // GetTemplatePath 获取模板路径
-func (s *FileUtils) GetTemplatePath() string {
-	return filepath.Join(s.baseDir, "template.zip")
+func GetTemplatePath() string {
+	return filepath.Join(baseDir, "template.zip")
+}
+
+// GetCachePath 获取缓存路径
+func GetCachePath() string {
+	return filepath.Join(baseDir, "projects", "cache")
 }
 
 // isPathInFolders 检查路径是否在文件夹列表中
-func (s *FileUtils) IsPathInFolders(path string, folders []string) bool {
+func IsPathInFolders(path string, folders []string) bool {
 	for _, folder := range folders {
 		if strings.HasPrefix(folder, path) || path == folder {
 			return true
@@ -43,7 +40,7 @@ func (s *FileUtils) IsPathInFolders(path string, folders []string) bool {
 }
 
 // isPathInFiles 检查路径是否在文件列表中
-func (s *FileUtils) IsPathInFiles(path string, files []string) bool {
+func IsPathInFiles(path string, files []string) bool {
 	for _, file := range files {
 		if file == path {
 			return true
@@ -53,7 +50,7 @@ func (s *FileUtils) IsPathInFiles(path string, files []string) bool {
 }
 
 // 检查文件是否存在
-func (s *FileUtils) IsFileExists(filePath string) bool {
+func IsFileExists(filePath string) bool {
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		return false
@@ -62,7 +59,7 @@ func (s *FileUtils) IsFileExists(filePath string) bool {
 }
 
 // 检查目录是否存在
-func (s *FileUtils) IsDirectoryExists(filePath string) bool {
+func IsDirectoryExists(filePath string) bool {
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		return false
@@ -71,7 +68,7 @@ func (s *FileUtils) IsDirectoryExists(filePath string) bool {
 }
 
 // 获取文件信息
-func (s *FileUtils) GetFileInfo(filePath string) (os.FileInfo, error) {
+func GetFileInfo(filePath string) (os.FileInfo, error) {
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("文件不存在或路径不正确")
@@ -83,7 +80,7 @@ func (s *FileUtils) GetFileInfo(filePath string) (os.FileInfo, error) {
 }
 
 // 确保目标目录存在
-func (s *FileUtils) EnsureDirectoryExists(filePath string) bool {
+func EnsureDirectoryExists(filePath string) bool {
 	if err := os.MkdirAll(filePath, 0755); err != nil {
 		logger.Error("创建目录失败",
 			logger.String("error", err.Error()),
@@ -95,7 +92,7 @@ func (s *FileUtils) EnsureDirectoryExists(filePath string) bool {
 }
 
 // 解压zip文件到指定目录
-func (s *FileUtils) ExtractZipFile(zipPath, projectPath string) bool {
+func ExtractZipFile(zipPath, projectPath string) bool {
 	// 打开模板zip文件
 	zipFile, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -183,7 +180,7 @@ func (s *FileUtils) ExtractZipFile(zipPath, projectPath string) bool {
 }
 
 // 获取文件所有文本字符串内容
-func (s *FileUtils) GetAllTextContent(filePath string) []string {
+func GetAllTextContent(filePath string) []string {
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
 		return []string{}

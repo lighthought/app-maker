@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"time"
 
 	"autocodeweb-backend/internal/api/handlers"
@@ -12,6 +13,7 @@ import (
 	"autocodeweb-backend/pkg/cache"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 )
 
@@ -68,12 +70,17 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 			users.DELETE("/:user_id", userHandler.DeleteUser)
 		}
 
-		// 重新创建 projectService 并传入 taskExecutionService
-		fileService := services.NewFileService("/app/data")
-		projectService := services.NewProjectService(db, fileService)
+		// 重新创建 projectService
+		asyncClient := asynq.NewClient(asynq.RedisClientOpt{
+			Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+		})
+		fileService := services.NewFileService(asyncClient)
+		projectService := services.NewProjectService(db, asyncClient, fileService)
 		projectHandler := handlers.NewProjectHandler(projectService)
-		// 注册项目和标签路由
 
+		// 4.项目路由
 		projects := routers.Group("/projects")
 		projects.Use(authMiddleware) // 应用认证中间件
 		{
@@ -85,28 +92,25 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		}
 
 		fileHandler := handlers.NewFileHandler(fileService, projectService)
+		// 5.文件路由
 		files := routers.Group("/files")
 		files.Use(authMiddleware) // 应用认证中间件
 		{
-			files.GET("/download/:projectId", fileHandler.DownloadProject) // 下载项目文件
-			// 文件相关
+			files.GET("/download/:projectId", fileHandler.DownloadProject)   // 下载项目文件
 			files.GET("/files/:projectId", fileHandler.GetProjectFiles)      // 获取文件列表
 			files.GET("/filecontent/:projectId", fileHandler.GetFileContent) // 获取文件内容
 		}
 
 		// 初始化对话相关依赖
 		messageService := services.NewMessageService(db)
-
 		chatHandler := handlers.NewChatHandler(messageService, fileService)
 
-		// 注册对话路由
+		// 6.对话路由
 		conversations := routers.Group("/chat/:projectId")
 		conversations.Use(authMiddleware) // 应用认证中间件
 		{
-			// 对话消息相关
 			conversations.GET("/messages", chatHandler.GetProjectMessages) // 获取对话历史
 			conversations.POST("/chat", chatHandler.AddChatMessage)        // 添加对话消息
-
 		}
 	}
 }

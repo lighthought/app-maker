@@ -1059,6 +1059,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/tasks/{id}": {
+            "get": {
+                "description": "获取任务状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Task"
+                ],
+                "summary": "获取任务状态",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "任务不存在",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users": {
             "get": {
                 "security": [
@@ -1456,6 +1500,10 @@ const docTemplate = `{
         "models.PaginationResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "data": {},
                 "has_next": {
                     "type": "boolean",
@@ -1465,6 +1513,10 @@ const docTemplate = `{
                     "type": "boolean",
                     "example": false
                 },
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                },
                 "page": {
                     "type": "integer",
                     "example": 1
@@ -1472,6 +1524,10 @@ const docTemplate = `{
                 "page_size": {
                     "type": "integer",
                     "example": 10
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
                 },
                 "total": {
                     "type": "integer",

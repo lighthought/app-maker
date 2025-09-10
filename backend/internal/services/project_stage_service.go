@@ -26,7 +26,6 @@ import (
 type ProjectStageService struct {
 	projectRepo   repositories.ProjectRepository
 	stageRepo     repositories.StageRepository
-	fileUtils     *utils.FileUtils
 	jenkinsConfig *models.JenkinsConfig
 
 	// 线程池控制
@@ -39,7 +38,6 @@ type ProjectStageService struct {
 func NewProjectStageService(
 	projectRepo repositories.ProjectRepository,
 	stageRepo repositories.StageRepository,
-	fileUtils *utils.FileUtils,
 ) *ProjectStageService {
 	maxConcurrency := int64(3) // 限制同时执行3个项目开发任务
 
@@ -56,7 +54,6 @@ func NewProjectStageService(
 	return &ProjectStageService{
 		projectRepo:    projectRepo,
 		stageRepo:      stageRepo,
-		fileUtils:      fileUtils,
 		jenkinsConfig:  jenkinsConfig,
 		semaphore:      semaphore.NewWeighted(maxConcurrency),
 		maxConcurrency: maxConcurrency,
@@ -247,7 +244,7 @@ func (s *ProjectStageService) executeProjectDevelopment(ctx context.Context, pro
 
 // generatePRD 生成PRD文档
 func (s *ProjectStageService) generatePRD(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始生成产品需求文档...")
 
@@ -274,7 +271,7 @@ func (s *ProjectStageService) generatePRD(ctx context.Context, project *models.P
 
 // defineUXStandards 定义UX标准
 func (s *ProjectStageService) defineUXStandards(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义用户体验标准...")
 
@@ -299,7 +296,7 @@ func (s *ProjectStageService) defineUXStandards(ctx context.Context, project *mo
 
 // designArchitecture 设计系统架构
 func (s *ProjectStageService) designArchitecture(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始设计系统架构...")
 
@@ -324,7 +321,7 @@ func (s *ProjectStageService) designArchitecture(ctx context.Context, project *m
 
 // defineDataModel 定义数据模型
 func (s *ProjectStageService) defineDataModel(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义数据模型...")
 
@@ -349,7 +346,7 @@ func (s *ProjectStageService) defineDataModel(ctx context.Context, project *mode
 
 // defineAPIs 定义API接口
 func (s *ProjectStageService) defineAPIs(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义API接口...")
 
@@ -374,7 +371,7 @@ func (s *ProjectStageService) defineAPIs(ctx context.Context, project *models.Pr
 
 // planEpicsAndStories 划分Epic和Story
 func (s *ProjectStageService) planEpicsAndStories(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始划分Epic和Story...")
 
@@ -399,7 +396,7 @@ func (s *ProjectStageService) planEpicsAndStories(ctx context.Context, project *
 
 // developStories 开发Story功能
 func (s *ProjectStageService) developStories(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始开发Story功能...")
 
@@ -418,7 +415,7 @@ func (s *ProjectStageService) developStories(ctx context.Context, project *model
 
 // fixBugs 修复开发问题
 func (s *ProjectStageService) fixBugs(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始修复开发问题...")
 
@@ -437,7 +434,7 @@ func (s *ProjectStageService) fixBugs(ctx context.Context, project *models.Proje
 
 // runTests 执行自动测试
 func (s *ProjectStageService) runTests(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始执行自动测试...")
 
@@ -456,7 +453,7 @@ func (s *ProjectStageService) runTests(ctx context.Context, project *models.Proj
 
 // packageProject 打包项目
 func (s *ProjectStageService) packageProject(ctx context.Context, project *models.Project) error {
-	projectDir := s.fileUtils.GetProjectPath(project.UserID, project.ID)
+	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始打包项目...")
 

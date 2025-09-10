@@ -10,15 +10,15 @@ import (
 	"time"
 
 	"autocodeweb-backend/internal/models"
+	"autocodeweb-backend/internal/tasks"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
+
+	"github.com/hibiken/asynq"
 )
 
 // ProjectFileService 项目文件服务接口
 type FileService interface {
-	// GetFileUtils 获取文件工具
-	GetFileUtils() *utils.FileUtils
-
 	// GetProjectFiles 获取项目文件列表
 	GetProjectFiles(ctx context.Context, userID, projectID, path string) ([]models.FileItem, error)
 
@@ -26,33 +26,24 @@ type FileService interface {
 	GetFileContent(ctx context.Context, userID, projectID, filePath string) (*models.FileContent, error)
 
 	// DownloadProject 项目下载
-	DownloadProject(ctx context.Context, projectPath string) ([]byte, error)
+	DownloadProject(ctx context.Context, projectID, projectPath string) (string, error)
 }
 
 // projectFileService 项目文件服务实现
 type fileService struct {
-	fileUtils *utils.FileUtils
-	zipUtils  *utils.ZipUtils
+	asyncClient *asynq.Client
 }
 
 // NewProjectFileService 创建项目文件服务
-func NewFileService(baseDir string) FileService {
-	fileUtils := utils.NewFileUtils(baseDir)
-	zipUtils := utils.NewZipUtils(fileUtils)
+func NewFileService(asyncClient *asynq.Client) FileService {
 	return &fileService{
-		fileUtils: fileUtils,
-		zipUtils:  zipUtils,
+		asyncClient: asyncClient,
 	}
-}
-
-// GetFileUtils 获取文件工具
-func (s *fileService) GetFileUtils() *utils.FileUtils {
-	return s.fileUtils
 }
 
 // loadPreviewFilesConfig 加载预览文件配置
 func (s *fileService) loadPreviewFilesConfig(userID, projectID string) (*models.PreviewFilesConfig, error) {
-	projectPath := s.fileUtils.GetProjectPath(userID, projectID)
+	projectPath := utils.GetProjectPath(userID, projectID)
 	if projectPath == "" {
 		return nil, fmt.Errorf("项目路径为空")
 	}
@@ -85,13 +76,13 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectID string) (*models.
 // GetProjectFiles 获取项目文件列表
 func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, path string) ([]models.FileItem, error) {
 	// 构建项目路径
-	projectPath := s.fileUtils.GetProjectPath(userID, projectID)
+	projectPath := utils.GetProjectPath(userID, projectID)
 	if path != "" {
 		projectPath = filepath.Join(projectPath, path)
 	}
 
 	// 检查路径是否存在
-	if s.fileUtils.IsDirectoryExists(projectPath) == false {
+	if utils.IsDirectoryExists(projectPath) == false {
 		return []models.FileItem{}, nil
 	}
 
@@ -182,7 +173,7 @@ func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, conf
 
 		if entry.IsDir() {
 			// 检查是否在配置的文件夹列表中
-			if s.fileUtils.IsPathInFolders(entryPath, config.Folders) {
+			if utils.IsPathInFolders(entryPath, config.Folders) {
 				// 检查文件夹是否非空
 				if s.isDirectoryNotEmpty(fullPath) {
 					files = append(files, models.FileItem{
@@ -196,7 +187,7 @@ func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, conf
 			}
 		} else {
 			// 检查是否在配置的文件列表中
-			if s.fileUtils.IsPathInFiles(entryPath, config.Files) {
+			if utils.IsPathInFiles(entryPath, config.Files) {
 				files = append(files, models.FileItem{
 					Name:       entry.Name(),
 					Path:       entryPath,
@@ -235,13 +226,13 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectID, fil
 	}
 
 	// 构建完整文件路径
-	projectPath := s.fileUtils.GetProjectPath(userID, projectID)
+	projectPath := utils.GetProjectPath(userID, projectID)
 	if projectPath == "" {
 		return nil, fmt.Errorf("项目文件路径为空")
 	}
 
 	fullPath := filepath.Join(projectPath, filePath)
-	info, err := s.fileUtils.GetFileInfo(fullPath)
+	info, err := utils.GetFileInfo(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("获取文件信息失败: %w", err)
 	}
@@ -260,19 +251,18 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectID, fil
 }
 
 // DownloadProject 下载项目文件
-func (s *fileService) DownloadProject(ctx context.Context, projectPath string) ([]byte, error) {
+func (s *fileService) DownloadProject(ctx context.Context, projectID, projectPath string) (string, error) {
 	// 检查项目路径是否存在
-	if s.fileUtils.IsDirectoryExists(projectPath) == false {
+	if utils.IsDirectoryExists(projectPath) == false {
 		logger.Error("项目路径为空", logger.String("projectPath", projectPath))
-		return nil, fmt.Errorf("项目路径为空")
+		return "", fmt.Errorf("项目路径为空")
 	}
 
-	// TODO：改成异步方法，返回任务 ID
-	// 使用 zipUtils 压缩项目文件
-	zipData, err := s.zipUtils.CompressDirectoryToBytes(ctx, projectPath)
+	// 异步方法，返回任务 ID
+	info, err := s.asyncClient.Enqueue(tasks.NewProjectDownloadTask(projectID, projectPath))
 	if err != nil {
-		return nil, fmt.Errorf("打包项目文件失败: %w", err)
+		return "", fmt.Errorf("下载项目文件失败: %w", err)
 	}
 
-	return zipData, nil
+	return info.ID, nil
 }

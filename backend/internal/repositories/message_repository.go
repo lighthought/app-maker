@@ -25,7 +25,7 @@ type MessageRepository interface {
 	Delete(ctx context.Context, id string) error
 
 	// CountByProjectID 统计项目的对话消息数量
-	CountByProjectID(ctx context.Context, projectID string) (int64, error)
+	CountByProjectID(ctx context.Context, projectID string) (int, error)
 }
 
 // messageRepository 对话消息仓库实现
@@ -70,11 +70,11 @@ func (r *messageRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.ConversationMessage{}, "id = ?", id).Error
 }
 
-func (r *messageRepository) CountByProjectID(ctx context.Context, projectID string) (int64, error) {
+func (r *messageRepository) CountByProjectID(ctx context.Context, projectID string) (int, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&models.ConversationMessage{}).
 		Where("project_id = ?", projectID).
 		Count(&count).Error
-	return count, err
+	return int(count), err
 }

@@ -24,6 +24,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,15 +35,56 @@ import (
 	"autocodeweb-backend/internal/api/routes"
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/database"
+	"autocodeweb-backend/internal/models"
+	"autocodeweb-backend/internal/worker"
 	"autocodeweb-backend/pkg/cache"
 	"autocodeweb-backend/pkg/logger"
 
 	_ "autocodeweb-backend/docs"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// 初始化异步服务
+func initAsynqWorker(cfg *config.Config) {
+	redisClientOpt := asynq.RedisClientOpt{
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	}
+
+	// 配置 Worker
+	server := asynq.NewServer(
+		redisClientOpt,
+		asynq.Config{
+			Concurrency: cfg.Asynq.Concurrency, // 并发 worker 数量
+			// 可以按权重指定优先处理哪些队列
+			Queues: map[string]int{
+				"critical": models.TaskQueueCritical,
+				"default":  models.TaskQueueDefault,
+				"low":      models.TaskQueueLow,
+			},
+		},
+	)
+
+	// 注册任务处理器
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(models.TypeProjectDownload, worker.HandleProjectDownloadTask)
+	mux.HandleFunc(models.TypeProjectBackup, worker.HandleProjectBackupTask)
+	// ... 注册其他任务处理器
+
+	// 启动服务器
+	go func() {
+		logger.Info("异步服务启动中... ")
+		// 启动 Worker
+		if err := server.Run(mux); err != nil {
+			log.Fatal("Could not start worker: ", err)
+		}
+	}()
+}
 
 // @securityDefinitions.apikey Bearer
 // @in header
@@ -107,6 +149,8 @@ func main() {
 	// 如果缓存初始化失败，设置为 nil
 	if cacheInstance == nil {
 		logger.Warn("缓存系统不可用，相关功能将受限")
+	} else {
+		initAsynqWorker(cfg) // 有缓存，才处理异步任务
 	}
 
 	// 设置Gin模式

@@ -59,6 +59,9 @@ definitions:
     type: object
   models.PaginationResponse:
     properties:
+      code:
+        example: 0
+        type: integer
       data: {}
       has_next:
         example: true
@@ -66,12 +69,18 @@ definitions:
       has_previous:
         example: false
         type: boolean
+      message:
+        example: success
+        type: string
       page:
         example: 1
         type: integer
       page_size:
         example: 10
         type: integer
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
       total:
         example: 100
         type: integer
@@ -857,6 +866,35 @@ paths:
       summary: 获取项目开发阶段
       tags:
       - 开发阶段
+  /api/v1/tasks/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 获取任务状态
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/models.Response'
+        "404":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: 获取任务状态
+      tags:
+      - Task
   /api/v1/users:
     get:
       consumes:

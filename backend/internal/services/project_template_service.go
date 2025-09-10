@@ -25,21 +25,18 @@ type ProjectTemplateService interface {
 // projectTemplateService 项目模板服务实现
 type projectTemplateService struct {
 	fileService FileService
-	fileUtils   *utils.FileUtils
 }
 
 // NewProjectTemplateService 创建项目模板服务实例
 func NewProjectTemplateService(fileService FileService) ProjectTemplateService {
-	fileUtils := fileService.GetFileUtils()
 	return &projectTemplateService{
 		fileService: fileService,
-		fileUtils:   fileUtils,
 	}
 }
 
 // InitializeProject 初始化项目
 func (s *projectTemplateService) InitializeProject(ctx context.Context, project *models.Project) error {
-	templatePath := s.fileUtils.GetTemplatePath()
+	templatePath := utils.GetTemplatePath()
 	logger.Info("==> enter. 开始初始化项目模板",
 		logger.String("projectID", project.ID),
 		logger.String("projectPath", project.ProjectPath),
@@ -47,7 +44,7 @@ func (s *projectTemplateService) InitializeProject(ctx context.Context, project 
 	)
 
 	// 检查模板文件是否存在
-	if !s.fileUtils.IsFileExists(templatePath) {
+	if !utils.IsFileExists(templatePath) {
 		logger.Error("模板文件不存在", logger.String("templatePath", templatePath))
 		return fmt.Errorf("template file not found: %s", templatePath)
 	}
@@ -95,14 +92,14 @@ func (s *projectTemplateService) InitializeProject(ctx context.Context, project 
 
 // ExtractTemplate 解压项目模板
 func (s *projectTemplateService) ExtractTemplate(ctx context.Context, projectID string, projectPath string) error {
-	templatePath := s.fileUtils.GetTemplatePath()
+	templatePath := utils.GetTemplatePath()
 	logger.Info("开始解压模板",
 		logger.String("projectID", projectID),
 		logger.String("projectPath", projectPath),
 		logger.String("templatePath", templatePath),
 	)
 
-	if !s.fileUtils.EnsureDirectoryExists(projectPath) {
+	if !utils.EnsureDirectoryExists(projectPath) {
 		logger.Error("项目目录创建失败", logger.String("projectPath", projectPath))
 		return fmt.Errorf("failed to create project directory: %s", projectPath)
 	}
@@ -112,7 +109,7 @@ func (s *projectTemplateService) ExtractTemplate(ctx context.Context, projectID 
 		logger.String("projectPath", projectPath),
 	)
 
-	if !s.fileUtils.ExtractZipFile(templatePath, projectPath) {
+	if !utils.ExtractZipFile(templatePath, projectPath) {
 		logger.Error("模板解压失败", logger.String("projectID", projectID))
 		return fmt.Errorf("failed to extract template: %s", templatePath)
 	}
@@ -130,7 +127,7 @@ func (s *projectTemplateService) ReplacePlaceholders(ctx context.Context, projec
 	// 读取replace.txt文件，获取需要替换的文件列表
 	replaceFilePath := filepath.Join(projectPath, "replace.txt")
 
-	fileList := s.fileUtils.GetAllTextContent(replaceFilePath)
+	fileList := utils.GetAllTextContent(replaceFilePath)
 	if len(fileList) == 0 {
 		return s.replaceInAllFiles(projectPath, project)
 	}

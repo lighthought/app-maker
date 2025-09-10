@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
+	"autocodeweb-backend/internal/tasks"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 )
 
@@ -23,10 +24,10 @@ type ProjectService interface {
 	CreateProject(ctx context.Context, req *models.CreateProjectRequest, userID string) (*models.ProjectInfo, error)
 	GetProject(ctx context.Context, projectID, userID string) (*models.ProjectInfo, error)
 	DeleteProject(ctx context.Context, projectID, userID string) error
-	ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) ([]*models.ProjectInfo, *models.PaginationResponse, error)
+	ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*models.PaginationResponse, error)
 
 	// 用户项目管理
-	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) ([]*models.ProjectInfo, *models.PaginationResponse, error)
+	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*models.PaginationResponse, error)
 
 	// 项目开发阶段管理
 	GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error)
@@ -41,25 +42,23 @@ type projectService struct {
 	templateService     ProjectTemplateService
 	projectStageService *ProjectStageService
 	nameGenerator       ProjectNameGenerator
-	zipUtils            *utils.ZipUtils
-	fileUtils           *utils.FileUtils
+	asyncClient         *asynq.Client
 }
 
 // NewProjectService 创建项目服务实例
 func NewProjectService(
 	db *gorm.DB,
+	asyncClient *asynq.Client,
 	fileService FileService,
 ) ProjectService {
 	projectRepo := repositories.NewProjectRepository(db)
 	stageRepo := repositories.NewStageRepository(db)
-	fileUtils := fileService.GetFileUtils()
 	return &projectService{
 		projectRepo:         projectRepo,
 		templateService:     NewProjectTemplateService(fileService),
-		projectStageService: NewProjectStageService(projectRepo, stageRepo, fileUtils),
+		projectStageService: NewProjectStageService(projectRepo, stageRepo),
 		nameGenerator:       NewProjectNameGenerator(),
-		zipUtils:            utils.NewZipUtils(fileUtils),
-		fileUtils:           fileUtils,
+		asyncClient:         asyncClient,
 	}
 }
 
@@ -88,7 +87,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	// 替换为最终的项目路径
-	newProject.ProjectPath = s.fileUtils.GetProjectPath(userID, newProject.ID)
+	newProject.ProjectPath = utils.GetProjectPath(userID, newProject.ID)
 	logger.Info("生成项目路径", logger.String("projectPath", newProject.ProjectPath))
 
 	// 自动生成项目配置信息和密码信息
@@ -164,6 +163,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	// 启动项目开发流程（异步）
+	// TODO: 改成使用 asynq 异步执行
 	go func() {
 		if err := s.projectStageService.StartProjectDevelopment(context.Background(), newProject.ID); err != nil {
 			logger.Error("启动项目开发流程失败",
@@ -213,27 +213,7 @@ func (s *projectService) DeleteProject(ctx context.Context, projectID, userID st
 
 	// 如果项目路径存在，先打包缓存
 	if project.ProjectPath != "" {
-		// 异步打包项目到缓存
-		go func(project *models.Project) {
-			if _, err := os.Stat(project.ProjectPath); err == nil {
-				// 创建缓存目录
-				cacheDir := "/app/data/projects/cache"
-
-				// 生成缓存文件名
-				cacheFileName := fmt.Sprintf("%s_%s", project.ID, time.Now().Format("20060102_150405"))
-
-				// 使用 zipUtils 压缩到缓存
-				_, err := s.zipUtils.CompressDirectoryToCache(context.Background(), project.ProjectPath, cacheDir, cacheFileName)
-				if err != nil {
-					logger.Error("异步打包项目到缓存失败",
-						logger.String("projectID", project.ID),
-						logger.ErrorField(err))
-				} else {
-					logger.Info("项目已异步打包到缓存",
-						logger.String("projectID", project.ID))
-				}
-			}
-		}(project)
+		s.asyncClient.Enqueue(tasks.NewProjectBackupTask(projectID, project.ProjectPath))
 	}
 
 	// 删除项目目录
@@ -254,7 +234,7 @@ func (s *projectService) DeleteProject(ctx context.Context, projectID, userID st
 }
 
 // ListProjects 获取项目列表
-func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) ([]*models.ProjectInfo, *models.PaginationResponse, error) {
+func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*models.PaginationResponse, error) {
 	// 设置默认分页参数
 	if req.Page <= 0 {
 		req.Page = 1
@@ -266,7 +246,7 @@ func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectLi
 	// 获取项目列表
 	projects, total, err := s.projectRepo.List(ctx, req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// 转换为响应格式
@@ -278,6 +258,8 @@ func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectLi
 	// 构建分页响应
 	totalPages := (int(total) + req.PageSize - 1) / req.PageSize
 	pagination := &models.PaginationResponse{
+		Code:        models.SUCCESS_CODE,
+		Message:     "success",
 		Total:       int(total),
 		Page:        req.Page,
 		PageSize:    req.PageSize,
@@ -285,13 +267,14 @@ func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectLi
 		Data:        projectInfos,
 		HasNext:     req.Page < totalPages,
 		HasPrevious: req.Page > 1,
+		Timestamp:   utils.GetCurrentTime(),
 	}
 
-	return projectInfos, pagination, nil
+	return pagination, nil
 }
 
 // GetUserProjects 获取用户的项目列表
-func (s *projectService) GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) ([]*models.ProjectInfo, *models.PaginationResponse, error) {
+func (s *projectService) GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*models.PaginationResponse, error) {
 	// 设置默认分页参数
 	if req.Page <= 0 {
 		req.Page = 1
@@ -303,7 +286,7 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 	// 获取用户项目列表
 	projects, total, err := s.projectRepo.GetByUserID(ctx, userID, req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// 转换为响应格式
@@ -315,6 +298,8 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 	// 构建分页响应
 	totalPages := (int(total) + req.PageSize - 1) / req.PageSize
 	pagination := &models.PaginationResponse{
+		Code:        models.SUCCESS_CODE,
+		Message:     "success",
 		Total:       int(total),
 		Page:        req.Page,
 		PageSize:    req.PageSize,
@@ -322,9 +307,10 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 		Data:        projectInfos,
 		HasNext:     req.Page < totalPages,
 		HasPrevious: req.Page > 1,
+		Timestamp:   utils.GetCurrentTime(),
 	}
 
-	return projectInfos, pagination, nil
+	return pagination, nil
 }
 
 // GetProjectStages 获取项目开发阶段

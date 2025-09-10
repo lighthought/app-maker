@@ -1,0 +1,35 @@
+package tasks
+
+import (
+	"autocodeweb-backend/internal/models"
+
+	"github.com/hibiken/asynq"
+)
+
+// 创建发送邮件的任务
+func NewEmailDeliveryTask(userID string, content string) *asynq.Task {
+	payload := models.EmailTaskPayload{
+		UserID:  userID,
+		Content: content,
+	}
+	// 通常我们会返回一个唯一的任务ID，方便后续查询，Asynq会自动生成
+	return asynq.NewTask(models.TypeEmailDelivery, payload.ToBytes())
+}
+
+// 创建下载项目任务
+func NewProjectDownloadTask(projectID, projectPath string) *asynq.Task {
+	payload := models.ProjectTaskPayload{
+		ProjectID:   projectID,
+		ProjectPath: projectPath,
+	}
+	return asynq.NewTask(models.TypeProjectDownload, payload.ToBytes())
+}
+
+// 创建备份项目任务
+func NewProjectBackupTask(projectID, projectPath string) *asynq.Task {
+	payload := models.ProjectTaskPayload{
+		ProjectID:   projectID,
+		ProjectPath: projectPath,
+	}
+	return asynq.NewTask(models.TypeProjectBackup, payload.ToBytes())
+}

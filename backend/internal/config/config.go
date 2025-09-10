@@ -11,6 +11,7 @@ type Config struct {
 	App      AppConfig      `mapstructure:"app"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Redis    RedisConfig    `mapstructure:"redis"`
+	Asynq    AsynqConfig    `mapstructure:"asynq"`
 	CORS     CORSConfig     `mapstructure:"cors"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	Log      LogConfig      `mapstructure:"log"`
@@ -58,6 +59,11 @@ type CORSConfig struct {
 type LogConfig struct {
 	Level string `mapstructure:"level"`
 	File  string `mapstructure:"file"`
+}
+
+// Asynq 异步配置
+type AsynqConfig struct {
+	Concurrency int `mapstructure:"concurrency", default: 10` // 并发数
 }
 
 func Load() (*Config, error) {

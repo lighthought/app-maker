@@ -1,0 +1,55 @@
+package models
+
+import "encoding/json"
+
+// 任务类型常量
+const (
+	TypeEmailDelivery   = "email:deliver"
+	TypeProjectDownload = "project:download" // 下载项目
+	TypeProjectBackup   = "project:backup"   // 备份项目
+)
+
+// 任务优先级
+const (
+	TaskQueueCritical = 6 // 高优先级
+	TaskQueueDefault  = 3 // 中优先级
+	TaskQueueLow      = 1 // 低优先级
+)
+
+// 用于传递任务进度的结构
+type TaskProgress struct {
+	TaskID   string `json:"task_id"`
+	Status   string `json:"status"`   // e.g., "started", "processing", "done", "failed"
+	Progress int    `json:"progress"` // 百分比
+	Message  string `json:"message"`
+}
+
+// 发送邮件任务的负载
+type EmailTaskPayload struct {
+	UserID  string `json:"user_id"`
+	Content string `json:"content"`
+}
+
+// 发送邮件任务的负载转换为 []byte
+func (p *EmailTaskPayload) ToBytes() []byte {
+	bytes, err := json.Marshal(p)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}
+
+// 只有项目ID的负载
+type ProjectTaskPayload struct {
+	ProjectID   string `json:"project_id"`
+	ProjectPath string `json:"project_path"`
+}
+
+// 只有项目ID的负载转换为 []byte
+func (p *ProjectTaskPayload) ToBytes() []byte {
+	bytes, err := json.Marshal(p)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}

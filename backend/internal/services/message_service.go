@@ -12,7 +12,7 @@ import (
 // MessageService 对话消息服务接口
 type MessageService interface {
 	// GetProjectConversations 获取项目对话历史
-	GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int64, error)
+	GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int, error)
 
 	// AddConversationMessage 添加对话消息
 	AddConversationMessage(ctx context.Context, projectID string, message *models.ConversationMessage) (*models.ConversationMessage, error)
@@ -35,7 +35,7 @@ func NewMessageService(db *gorm.DB) MessageService {
 	return &messageService{repo: repo}
 }
 
-func (s *messageService) GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int64, error) {
+func (s *messageService) GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int, error) {
 	offset := (page - 1) * pageSize
 	messages, err := s.repo.GetByProjectID(ctx, projectID, pageSize, offset)
 	if err != nil {
