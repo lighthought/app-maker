@@ -115,6 +115,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      traefik:
+        condition: service_started
     restart: unless-stopped
     networks:
       - app-maker-network
@@ -133,6 +136,9 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    depends_on:
+      traefik:
+        condition: service_started
     networks:
       - app-maker-network
 
@@ -165,6 +171,9 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    depends_on:
+      traefik:
+        condition: service_started
     networks:
       - app-maker-network
     labels:

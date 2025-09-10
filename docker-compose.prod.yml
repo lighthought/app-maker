@@ -22,14 +22,14 @@ services:
       - "traefik.http.routers.traefik.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=admin:$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
 
-  # AutoCodeWeb 前端服务 (生产环境 - Nginx)
+  # AutoCodeWeb 前端服务 (生产环境)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod # Uses the new prod Dockerfile
     container_name: app-maker-frontend-prod
     ports:
-      - "80:80"
+      - "3000:3000"
     depends_on:
       - backend
       - traefik
@@ -43,9 +43,9 @@ services:
       - "traefik.http.routers.frontend-http.entrypoints=web"
       - "traefik.http.routers.frontend-http.rule=Host(`${PROD_DOMAIN_NAME:-thought-light.com}`)"
       - "traefik.http.routers.frontend-http.service=frontend-service"
-      # 声明服务名称为 frontend-service，使用 80 端口提供服务
-      - "traefik.http.services.frontend-service.loadbalancer.server.scheme=http"
-      - "traefik.http.services.frontend-service.loadbalancer.server.port=80"
+      # 声明服务名称为 frontend-service，使用 3000 端口提供服务
+      - "traefik.http.services.app-maker-frontend.loadbalancer.server.scheme=http"
+      - "traefik.http.services.app-maker-frontend.loadbalancer.server.port=3000"
 
   # AutoCodeWeb 后端服务
   backend:
@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: app-maker-backend-prod
     ports:
-      - "8080:8080"
+      - "8098:8080"
     environment:
       - APP_ENVIRONMENT=production
       - APP_SECRET_KEY=${APP_SECRET_KEY}
@@ -92,10 +92,10 @@ services:
       # HTTP 相关
       - "traefik.http.routers.backend-http.entrypoints=web"
       - "traefik.http.routers.backend-http.rule=Host(`api.${PROD_DOMAIN_NAME:-thought-light.com}`)"
-      - "traefik.http.routers.backend-http.service=backend-service"
+      - "traefik.http.routers.backend-http.service=app-maker-backend"
       # 声明服务名称为 backend-service，使用 8080 端口提供服务
-      - "traefik.http.services.backend-service.loadbalancer.server.scheme=http"
-      - "traefik.http.services.backend-service.loadbalancer.server.port=8080"
+      - "traefik.http.services.app-maker-backend.loadbalancer.server.scheme=http"
+      - "traefik.http.services.app-maker-backend.loadbalancer.server.port=8080"
 
   # PostgreSQL 数据库
   postgres:
@@ -113,6 +113,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      traefik:
+        condition: service_started
     restart: unless-stopped
     networks:
       - app-maker-network
@@ -130,6 +133,9 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    depends_on:
+      traefik:
+        condition: service_started
     networks:
       - app-maker-network
 
