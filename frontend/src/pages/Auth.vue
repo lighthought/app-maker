@@ -7,23 +7,10 @@
 
     <!-- 主要内容区域 -->
     <div class="auth-container">
-      <!-- Logo 区域 -->
-      <div class="logo-section">
-        <div class="logo-container">
-          <div class="logo-icon">
-            <n-icon size="48" color="#3182CE">
-              <CodeIcon />
-            </n-icon>
-          </div>
-          <h1 class="logo-text">AutoCode</h1>
-        </div>
-      </div>
-
       <!-- 认证表单区域 -->
       <div class="auth-form-container">
         <div class="form-header">
           <h2>{{ isLogin ? '欢迎回来' : '创建账户' }}</h2>
-          <p>{{ isLogin ? '登录您的账户继续使用' : '开始您的项目之旅' }}</p>
         </div>
 
         <!-- 切换按钮 -->
@@ -68,7 +55,7 @@
               class="form-input"
             >
               <template #prefix>
-                <n-icon><UserIcon /></n-icon>
+                <n-icon size="16"><UserIcon /></n-icon>
               </template>
             </n-input>
           </n-form-item>
@@ -89,7 +76,7 @@
               class="form-input"
             >
               <template #prefix>
-                <n-icon><LockIcon /></n-icon>
+                <n-icon size="16"><LockIcon /></n-icon>
               </template>
             </n-input>
           </n-form-item>
@@ -111,7 +98,7 @@
               class="form-input"
             >
               <template #prefix>
-                <n-icon><LockIcon /></n-icon>
+                <n-icon size="16"><LockIcon /></n-icon>
               </template>
             </n-input>
           </n-form-item>
@@ -132,7 +119,7 @@
               class="form-input"
             >
               <template #prefix>
-                <n-icon><MailIcon /></n-icon>
+                <n-icon size="16"><MailIcon /></n-icon>
               </template>
             </n-input>
           </n-form-item>
@@ -176,9 +163,6 @@
 
         <!-- 社交登录 -->
         <div class="social-login">
-          <div class="divider">
-            <span>或</span>
-          </div>
           <div class="social-buttons">
             <n-button
               ghost
@@ -187,7 +171,7 @@
               class="social-btn"
             >
               <template #icon>
-                <n-icon><GithubIcon /></n-icon>
+                <n-icon size="16"><GithubIcon /></n-icon>
               </template>
               GitHub
             </n-button>
@@ -198,7 +182,7 @@
               class="social-btn"
             >
               <template #icon>
-                <n-icon><GoogleIcon /></n-icon>
+                <n-icon size="16"><GoogleIcon /></n-icon>
               </template>
               Google
             </n-button>
@@ -471,26 +455,6 @@ const socialLogin = (provider: string) => {
   gap: var(--spacing-xxl);
 }
 
-/* Logo 区域 */
-.logo-section {
-  text-align: center;
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-}
-
-.logo-text {
-  color: white;
-  font-size: 2rem;
-  font-weight: bold;
-  margin: 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
 /* 表单容器 */
 .auth-form-container {
   background: rgba(255, 255, 255, 0.95);
@@ -515,19 +479,12 @@ const socialLogin = (provider: string) => {
   margin: 0 0 var(--spacing-sm) 0;
 }
 
-.form-header p {
-  color: var(--text-secondary);
-  margin: 0;
-  font-size: 0.9rem;
-}
-
 /* 切换按钮 */
 .auth-toggle {
   display: flex;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-xl);
   background: var(--background-color);
-  padding: var(--spacing-sm);
   border-radius: var(--border-radius-lg);
 }
 
@@ -541,10 +498,6 @@ const socialLogin = (provider: string) => {
   margin-bottom: var(--spacing-xl);
 }
 
-.form-item {
-  margin-bottom: var(--spacing-lg);
-}
-
 .form-item :deep(.n-form-item-label) {
   color: var(--text-primary);
   font-weight: 500;
@@ -555,6 +508,15 @@ const socialLogin = (provider: string) => {
   border-radius: var(--border-radius-md);
   border: 1px solid var(--border-color);
   transition: all 0.3s ease;
+}
+
+.form-input .n-icon {
+  font-style: normal !important;
+  margin-right: 4px;
+}
+
+.n-input .n-input__input-el {
+  padding-left: 4px;
 }
 
 .form-input:focus-within {
@@ -604,29 +566,6 @@ const socialLogin = (provider: string) => {
   text-align: center;
 }
 
-.divider {
-  position: relative;
-  margin: var(--spacing-lg) 0;
-  text-align: center;
-}
-
-.divider::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--border-color);
-}
-
-.divider span {
-  background: white;
-  padding: 0 var(--spacing-md);
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
 .social-buttons {
   display: flex;
   gap: var(--spacing-md);
@@ -644,6 +583,10 @@ const socialLogin = (provider: string) => {
 .social-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.social-btn .n-icon{
+  font-style: normal !important;
 }
 
 /* 弹窗内容 */
