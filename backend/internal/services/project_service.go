@@ -214,7 +214,7 @@ func (s *projectService) DeleteProject(ctx context.Context, projectID, userID st
 	}
 
 	// 如果项目路径存在，异步打包缓存
-	if project.ProjectPath != "" {
+	if project.ProjectPath != "" && utils.IsDirectoryExists(project.ProjectPath) == true {
 		s.asyncClient.Enqueue(tasks.NewProjectBackupTask(projectID, project.ProjectPath))
 	}
 
