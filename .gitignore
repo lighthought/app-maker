@@ -37,3 +37,4 @@ backend/bin/
 /.env.backup
 /frontend/design/*.pen
 /frontend/design
+/backend/main
