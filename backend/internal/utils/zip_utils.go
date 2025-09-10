@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"autocodeweb-backend/pkg/logger"
 )
@@ -123,5 +124,7 @@ func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName s
 		logger.String("cacheFilePath", cacheFilePath),
 	)
 
-	return cacheFilePath, nil
+	// 从 cacheFilePath 中去掉 baseDir 前缀
+	resultPath := strings.Replace(cacheFilePath, baseDir, "", 1)
+	return resultPath, nil
 }

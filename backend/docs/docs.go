@@ -352,7 +352,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/chat/{projectId}/chat": {
+        "/api/v1/chat/chat/{projectId}": {
             "post": {
                 "description": "为指定项目添加新的对话消息",
                 "consumes": [
@@ -412,7 +412,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/chat/{projectId}/messages": {
+        "/api/v1/chat/messages/{projectId}": {
             "get": {
                 "description": "获取指定项目的对话消息历史记录，支持分页",
                 "consumes": [
@@ -477,9 +477,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/files/download/{projectId}": {
+        "/api/v1/files/download": {
             "get": {
-                "description": "将项目文件打包为zip并下载",
+                "description": "下载指定文件",
                 "consumes": [
                     "application/json"
                 ],
@@ -487,52 +487,27 @@ const docTemplate = `{
                     "application/zip"
                 ],
                 "tags": [
-                    "项目管理"
+                    "项目文件"
                 ],
-                "summary": "下载项目文件",
+                "summary": "下载文件",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "项目ID",
-                        "name": "id",
-                        "in": "path",
+                        "description": "文件路径",
+                        "name": "filePath",
+                        "in": "query",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "项目文件zip包",
+                        "description": "文件",
                         "schema": {
                             "type": "file"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "未授权",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "访问被拒绝",
-                        "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "项目不存在",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -859,6 +834,75 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/download/{projectId}": {
+            "get": {
+                "description": "将项目文件打包为zip并下载",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "项目管理"
+                ],
+                "summary": "下载项目文件",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer 用户令牌",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "项目文件zip包",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "访问被拒绝",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "项目不存在",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }

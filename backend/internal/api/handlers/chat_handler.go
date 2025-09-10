@@ -40,7 +40,7 @@ func NewChatHandler(
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/chat/{projectId}/messages [get]
+// @Router /api/v1/chat/messages/{projectId} [get]
 func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	projectID := c.Param("projectId")
 	if projectID == "" {
@@ -106,7 +106,7 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/chat/{projectId}/chat [post]
+// @Router /api/v1/chat/chat/{projectId} [post]
 func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	projectID := c.Param("projectId")
 	if projectID == "" {

@@ -190,3 +190,23 @@ func GetAllTextContent(filePath string) []string {
 	fileList := strings.Split(string(fileContent), "\n")
 	return fileList
 }
+
+// 获取安全文件路径
+func GetSafeFilePath(filePath string) (string, error) {
+	// 1. 安全清理文件名，防止目录遍历攻击
+	safeFilename := strings.ReplaceAll(filePath, "..", "")
+
+	// 2. 拼接完整的文件路径
+	full_path := filepath.Join(baseDir, safeFilename)
+	logger.Info("获取安全路径",
+		logger.String("filePath", filePath),
+		logger.String("full_path", full_path),
+	)
+
+	// 4. 检查文件是否存在
+	if IsFileExists(full_path) == false {
+		return "", fmt.Errorf("文件不存在")
+	}
+
+	return full_path, nil
+}

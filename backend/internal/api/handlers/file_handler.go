@@ -6,6 +6,7 @@ import (
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,75 +25,57 @@ func NewFileHandler(fileService services.FileService, projectService services.Pr
 	}
 }
 
-// DownloadProject godoc
-// @Summary 下载项目文件
-// @Description 将项目文件打包为zip并下载
-// @Tags 项目管理
+// DownloadFile 下载文件
+// @Summary 下载文件
+// @Description 下载指定文件
+// @Tags 项目文件
 // @Accept json
 // @Produce application/zip
-// @Param Authorization header string true "Bearer 用户令牌"
-// @Param id path string true "项目ID"
-// @Success 200 {file} file "项目文件zip包"
+// @Param filePath query string true "文件路径"
+// @Success 200 {file} file "文件"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 404 {object} models.ErrorResponse "项目不存在"
 // @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/files/download/{projectId} [get]
-func (h *FileHandler) DownloadProject(c *gin.Context) {
-	projectID := c.Param("projectId")
-	if projectID == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "项目ID不能为空",
+// @Router /api/v1/files/download [get]
+func (h *FileHandler) DownloadFile(c *gin.Context) {
+	filePath := c.Query("filePath")
+	if filePath == "" {
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "文件路径不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	// 从中间件获取用户ID
-	userID := c.GetString("user_id")
+	fullPath, err := utils.GetSafeFilePath(filePath)
+	logger.Info("获取安全路径",
+		logger.String("filePath", filePath),
+		logger.String("fullPath", fullPath),
+	)
 
-	// 获取项目信息
-	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectID, userID)
 	if err != nil {
-		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      http.StatusForbidden,
-				Message:   "访问被拒绝",
-				Timestamp: utils.GetCurrentTime(),
-			})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "获取项目信息失败: " + err.Error(),
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Code:      models.VALIDATION_ERROR,
+			Message:   "文件路径不合法: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	// 生成项目压缩任务
-	taskID, err := h.fileService.DownloadProject(c.Request.Context(), projectID, project.ProjectPath)
+	file, err := os.Open(fullPath)
 	if err != nil {
-		logger.Error("生成项目压缩任务失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", projectID),
-		)
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "生成项目压缩任务失败: " + err.Error(),
+		c.JSON(http.StatusNotFound, models.ErrorResponse{
+			Code:      models.NOT_FOUND,
+			Message:   "文件不存在: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
+	defer file.Close()
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
-		Message:   "success",
-		Data:      taskID,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	fileInfo, _ := file.Stat()
+	// 该方法会自动处理 Range 请求头（断点续传）、If-Modified-Since 等
+	http.ServeContent(c.Writer, c.Request, fileInfo.Name(), fileInfo.ModTime(), file)
 }
 
 // GetProjectFiles 获取项目文件列表

@@ -72,8 +72,9 @@ func initAsynqWorker(cfg *config.Config) {
 
 	// 注册任务处理器
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(models.TypeProjectDownload, worker.HandleProjectDownloadTask)
-	mux.HandleFunc(models.TypeProjectBackup, worker.HandleProjectBackupTask)
+	projectWorker := worker.NewProjectWorker()
+	mux.Handle(models.TypeProjectDownload, projectWorker)
+	mux.Handle(models.TypeProjectBackup, projectWorker)
 	// ... 注册其他任务处理器
 
 	// 启动服务器

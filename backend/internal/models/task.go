@@ -9,6 +9,14 @@ const (
 	TypeProjectBackup   = "project:backup"   // 备份项目
 )
 
+// 任务状态常量
+const (
+	TaskStatusPending    = "pending"
+	TaskStatusInProgress = "in_progress"
+	TaskStatusDone       = "done"
+	TaskStatusFailed     = "failed"
+)
+
 // 任务优先级
 const (
 	TaskQueueCritical = 6 // 高优先级
@@ -16,12 +24,21 @@ const (
 	TaskQueueLow      = 1 // 低优先级
 )
 
-// 用于传递任务进度的结构
-type TaskProgress struct {
-	TaskID   string `json:"task_id"`
-	Status   string `json:"status"`   // e.g., "started", "processing", "done", "failed"
-	Progress int    `json:"progress"` // 百分比
-	Message  string `json:"message"`
+// 用于传递任务结果的结构
+type TaskResult struct {
+	TaskID    string `json:"task_id"`
+	Status    string `json:"status"`   // e.g., "pending", "in_progress", "done", "failed"
+	Progress  int    `json:"progress"` // 百分比
+	Message   string `json:"message"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+func (t *TaskResult) ToBytes() []byte {
+	bytes, err := json.Marshal(t)
+	if err != nil {
+		return nil
+	}
+	return bytes
 }
 
 // 发送邮件任务的负载

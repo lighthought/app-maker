@@ -84,11 +84,12 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		projects := routers.Group("/projects")
 		projects.Use(authMiddleware) // 应用认证中间件
 		{
-			projects.POST("/", projectHandler.CreateProject)             // 创建项目
-			projects.GET("/", projectHandler.ListProjects)               // 获取项目列表
-			projects.GET("/:id", projectHandler.GetProject)              // 获取项目详情
-			projects.DELETE("/:id", projectHandler.DeleteProject)        // 删除项目
-			projects.GET("/:id/stages", projectHandler.GetProjectStages) // 获取项目开发阶段
+			projects.POST("/", projectHandler.CreateProject)                     // 创建项目
+			projects.GET("/", projectHandler.ListProjects)                       // 获取项目列表
+			projects.GET("/:id", projectHandler.GetProject)                      // 获取项目详情
+			projects.DELETE("/:id", projectHandler.DeleteProject)                // 删除项目
+			projects.GET("/:id/stages", projectHandler.GetProjectStages)         // 获取项目开发阶段
+			projects.GET("/download/:projectId", projectHandler.DownloadProject) // 下载项目文件
 		}
 
 		fileHandler := handlers.NewFileHandler(fileService, projectService)
@@ -96,7 +97,7 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		files := routers.Group("/files")
 		files.Use(authMiddleware) // 应用认证中间件
 		{
-			files.GET("/download/:projectId", fileHandler.DownloadProject)   // 下载项目文件
+			files.GET("/download", fileHandler.DownloadFile)                 // 下载项目文件
 			files.GET("/files/:projectId", fileHandler.GetProjectFiles)      // 获取文件列表
 			files.GET("/filecontent/:projectId", fileHandler.GetFileContent) // 获取文件内容
 		}
@@ -106,11 +107,19 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 		chatHandler := handlers.NewChatHandler(messageService, fileService)
 
 		// 6.对话路由
-		conversations := routers.Group("/chat/:projectId")
+		conversations := routers.Group("/chat")
 		conversations.Use(authMiddleware) // 应用认证中间件
 		{
-			conversations.GET("/messages", chatHandler.GetProjectMessages) // 获取对话历史
-			conversations.POST("/chat", chatHandler.AddChatMessage)        // 添加对话消息
+			conversations.GET("/messages/:projectId", chatHandler.GetProjectMessages) // 获取对话历史
+			conversations.POST("/chat/:projectId", chatHandler.AddChatMessage)        // 添加对话消息
+		}
+
+		taskHandler := handlers.NewTaskHandler(cfg)
+		// 7.任务路由
+		tasks := routers.Group("/tasks")
+		tasks.Use(authMiddleware) // 应用认证中间件
+		{
+			tasks.GET("/:id", taskHandler.GetTaskStatus) // 获取任务状
 		}
 	}
 }

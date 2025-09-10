@@ -10,9 +10,7 @@ import (
 	"time"
 
 	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/tasks"
 	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
 
 	"github.com/hibiken/asynq"
 )
@@ -24,9 +22,6 @@ type FileService interface {
 
 	// GetFileContent 获取文件内容
 	GetFileContent(ctx context.Context, userID, projectID, filePath string) (*models.FileContent, error)
-
-	// DownloadProject 项目下载
-	DownloadProject(ctx context.Context, projectID, projectPath string) (string, error)
 }
 
 // projectFileService 项目文件服务实现
@@ -248,21 +243,4 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectID, fil
 		Size:       info.Size(),
 		ModifiedAt: info.ModTime().Format(time.RFC3339),
 	}, nil
-}
-
-// DownloadProject 下载项目文件
-func (s *fileService) DownloadProject(ctx context.Context, projectID, projectPath string) (string, error) {
-	// 检查项目路径是否存在
-	if utils.IsDirectoryExists(projectPath) == false {
-		logger.Error("项目路径为空", logger.String("projectPath", projectPath))
-		return "", fmt.Errorf("项目路径为空")
-	}
-
-	// 异步方法，返回任务 ID
-	info, err := s.asyncClient.Enqueue(tasks.NewProjectDownloadTask(projectID, projectPath))
-	if err != nil {
-		return "", fmt.Errorf("下载项目文件失败: %w", err)
-	}
-
-	return info.ID, nil
 }

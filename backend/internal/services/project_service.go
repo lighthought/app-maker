@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"autocodeweb-backend/internal/models"
@@ -34,6 +33,9 @@ type ProjectService interface {
 
 	// 检查项目访问权限
 	CheckProjectAccess(ctx context.Context, projectID, userID string) (*models.Project, error)
+
+	// CreateDownloadProjectTask 创建项目下载任务
+	CreateDownloadProjectTask(ctx context.Context, projectID, projectPath string) (string, error)
 }
 
 // projectService 项目服务实现
@@ -211,23 +213,9 @@ func (s *projectService) DeleteProject(ctx context.Context, projectID, userID st
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
-	// 如果项目路径存在，先打包缓存
+	// 如果项目路径存在，异步打包缓存
 	if project.ProjectPath != "" {
 		s.asyncClient.Enqueue(tasks.NewProjectBackupTask(projectID, project.ProjectPath))
-	}
-
-	// 删除项目目录
-	if project.ProjectPath != "" {
-		if err := os.RemoveAll(project.ProjectPath); err != nil {
-			logger.Error("删除项目目录失败",
-				logger.String("projectID", projectID),
-				logger.String("projectPath", project.ProjectPath),
-				logger.ErrorField(err))
-		} else {
-			logger.Info("项目目录已删除",
-				logger.String("projectID", projectID),
-				logger.String("projectPath", project.ProjectPath))
-		}
 	}
 
 	return s.projectRepo.Delete(ctx, projectID)
@@ -366,4 +354,21 @@ func (s *projectService) convertToProjectInfo(project *models.Project) *models.P
 	}
 
 	return projectInfo
+}
+
+// DownloadProject 下载项目文件
+func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectID, projectPath string) (string, error) {
+	// 检查项目路径是否存在
+	if utils.IsDirectoryExists(projectPath) == false {
+		logger.Error("项目路径为空", logger.String("projectPath", projectPath))
+		return "", fmt.Errorf("项目路径为空")
+	}
+
+	// 异步方法，返回任务 ID
+	info, err := s.asyncClient.Enqueue(tasks.NewProjectDownloadTask(projectID, projectPath))
+	if err != nil {
+		return "", fmt.Errorf("下载项目文件失败: %w", err)
+	}
+
+	return info.ID, nil
 }
