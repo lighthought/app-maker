@@ -2,7 +2,7 @@
 
 ## 系统架构概览
 
-AutoCodeWeb 前端采用现代化的 Vue 3 + TypeScript + Naive UI 技术栈，结合 Pinia 状态管理和 Axios HTTP 客户端，实现响应式、类型安全的多页面应用。
+AutoCodeWeb 前端采用现代化的 Vue 3 + TypeScript + Naive UI 技术栈，结合 Pinia 状态管理和 Axios HTTP 客户端，实现响应式、类型安全的多页面应用。系统支持多 Agent 协作的项目创建和管理，提供完整的用户认证、项目管理、实时对话等功能。
 
 ## 核心架构图
 
@@ -18,12 +18,14 @@ graph TB
         Pinia[Pinia Store]
         UserStore[用户状态]
         ProjectStore[项目状态]
+        FileStore[文件状态]
     end
     
     subgraph "服务层"
         HttpService[HTTP服务]
         ConfigService[配置服务]
         LoggerService[日志服务]
+        TimeService[时间服务]
     end
     
     subgraph "工具层"
@@ -42,6 +44,7 @@ graph TB
         NaiveUI[Naive UI]
         Axios[Axios]
         VueRouter[Vue Router]
+        Marked[Marked]
     end
     
     Pages --> Layout
@@ -53,9 +56,11 @@ graph TB
     
     Pinia --> UserStore
     Pinia --> ProjectStore
+    Pinia --> FileStore
     
     UserStore --> HttpService
     ProjectStore --> HttpService
+    FileStore --> HttpService
     
     HttpService --> Axios
     HttpService --> ConfigService
@@ -197,6 +202,7 @@ classDiagram
     class UserStore {
         +user: User
         +token: string
+        +refreshToken: string
         +isAuthenticated: boolean
         +initFromStorage()
         +validateTokenOnStartup()
@@ -223,6 +229,12 @@ classDiagram
         +getProjectMessages(projectId)
         +addChatMessage(projectId, message)
         +getProjectStages(projectId)
+    }
+
+    class FileStore {
+        +downloadProject(projectId)
+        +getFileContent(projectId, filePath)
+        +getProjectFiles(projectId, path)
     }
 
     class User {
@@ -301,6 +313,13 @@ classDiagram
         +isEnabled()
     }
 
+    class TimeUtils {
+        +formatDateTime(date)
+        +formatDate(date)
+        +formatDateShort(date)
+        +getRelativeTime(date)
+    }
+
     HttpService --> AppConfig
     HttpService --> ApiLogger
 ```
@@ -309,13 +328,6 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class TimeUtils {
-        +formatDateTime(date)
-        +formatDate(date)
-        +formatDateShort(date)
-        +getRelativeTime(date)
-    }
-
     class Router {
         +routes: RouteRecordRaw[]
         +createRouter()
@@ -414,16 +426,16 @@ sequenceDiagram
     ProjectStore-->>ConversationContainer: 对话数据
     
     ProjectEdit->>ProjectPanel: 传递project数据
-    ProjectPanel->>ProjectStore: getProjectFiles(projectId)
-    ProjectStore->>Backend: GET /projects/{id}/files
-    Backend-->>ProjectStore: 返回文件列表
-    ProjectStore-->>ProjectPanel: 文件数据
+    ProjectPanel->>FileStore: getProjectFiles(projectId)
+    FileStore->>Backend: GET /projects/{id}/files
+    Backend-->>FileStore: 返回文件列表
+    FileStore-->>ProjectPanel: 文件数据
     
     User->>ProjectPanel: 点击文件
-    ProjectPanel->>ProjectStore: getFileContent(projectId, filePath)
-    ProjectStore->>Backend: GET /projects/{id}/files/content
-    Backend-->>ProjectStore: 返回文件内容
-    ProjectStore-->>ProjectPanel: 文件内容
+    ProjectPanel->>FileStore: getFileContent(projectId, filePath)
+    FileStore->>Backend: GET /projects/{id}/files/content
+    Backend-->>FileStore: 返回文件内容
+    FileStore-->>ProjectPanel: 文件内容
 ```
 
 ## 技术栈说明
@@ -449,6 +461,11 @@ sequenceDiagram
 - **Axios**: 基于 Promise 的 HTTP 客户端
 - **拦截器**: 支持请求/响应拦截和错误处理
 - **自动重试**: 支持 token 刷新和请求重试
+
+### 6. 工具库
+- **@vueuse/core**: Vue 组合式 API 工具集
+- **marked**: Markdown 解析器
+- **@iconify/vue**: 图标库组件
 
 ## 目录结构说明
 
@@ -477,10 +494,11 @@ frontend/src/
 │   ├── CreateProject.vue  # 创建项目页面
 │   ├── Dashboard.vue      # 仪表板页面
 │   ├── Home.vue           # 首页
-│   ├── ProjectEdit.vue     # 项目编辑页面
+│   └── ProjectEdit.vue    # 项目编辑页面
 ├── router/                 # 路由配置
 │   └── index.ts           # 路由定义
 ├── stores/                 # 状态管理
+│   ├── file.ts            # 文件状态
 │   ├── project.ts         # 项目状态
 │   └── user.ts            # 用户状态
 ├── styles/                 # 样式文件
@@ -583,3 +601,150 @@ frontend/src/
 - **多环境**: 支持开发、测试、生产环境
 - **CDN 部署**: 静态资源使用 CDN 加速
 - **容器化**: 支持 Docker 容器化部署
+
+## 实际组件架构
+
+### 1. 页面组件实现
+```typescript
+// 实际实现的页面组件
+- Home.vue: 首页，包含产品介绍、快速创建、用户项目展示
+- Auth.vue: 认证页，支持登录/注册切换、表单验证、社交登录
+- Dashboard.vue: 仪表板，项目统计、搜索筛选、分页展示
+- CreateProject.vue: 创建项目，智能输入框、需求输入
+- ProjectEdit.vue: 项目编辑，分屏布局、对话交互、文件查看
+```
+
+### 2. 布局组件实现
+```typescript
+// 实际实现的布局组件
+- PageLayout.vue: 主布局，包含侧边栏、顶部导航、内容区域
+- Header.vue: 顶部导航，用户菜单、通知、设置
+- Sidebar.vue: 侧边栏，菜单导航、Logo展示
+```
+
+### 3. 业务组件实现
+```typescript
+// 实际实现的业务组件
+- SmartInput.vue: 智能输入框，支持多行输入、发送按钮
+- ConversationContainer.vue: 对话容器，消息列表、开发阶段
+- ConversationMessage.vue: 对话消息，支持Markdown渲染
+- DevStages.vue: 开发阶段，进度可视化
+- ProjectPanel.vue: 项目面板，文件树、代码展示、预览
+- UserSettingsModal.vue: 用户设置弹窗
+```
+
+### 4. 状态管理实现
+```typescript
+// 实际实现的Store
+- user.ts: 用户状态，认证、权限、个人信息
+- project.ts: 项目状态，项目列表、详情、对话、阶段
+- file.ts: 文件状态，文件列表、内容、下载
+```
+
+### 5. 工具函数实现
+```typescript
+// 实际实现的工具函数
+- http.ts: HTTP服务，拦截器、错误处理、token管理
+- config.ts: 配置管理，API地址、日志开关
+- log.ts: 日志工具，请求/响应日志
+- time.ts: 时间工具，格式化、相对时间
+```
+
+## 实际数据流示例
+
+### 用户登录流程
+```typescript
+// 1. 用户在Auth.vue输入登录信息
+const formData = { email: 'user@example.com', password: 'password' }
+
+// 2. 调用UserStore的login方法
+await userStore.login(formData)
+
+// 3. UserStore通过HttpService发送请求
+const response = await httpService.post('/auth/login', formData)
+
+// 4. HttpService自动添加认证头和处理响应
+// 5. 成功后保存token和用户信息到localStorage
+// 6. 路由守卫检查认证状态，跳转到Dashboard
+```
+
+### 项目创建流程
+```typescript
+// 1. 用户在CreateProject.vue输入项目描述
+const projectDescription = "创建一个电商网站"
+
+// 2. 调用ProjectStore的createProject方法
+const project = await projectStore.createProject({ requirements: projectDescription })
+
+// 3. ProjectStore通过HttpService发送请求
+const response = await httpService.post('/projects', { requirements: projectDescription })
+
+// 4. 成功后更新项目列表，跳转到ProjectEdit页面
+router.push(`/project/${project.id}`)
+```
+
+### 项目编辑页面数据流
+```typescript
+// 1. ProjectEdit.vue加载项目数据
+const project = await projectStore.getProject(projectId)
+
+// 2. ConversationContainer获取对话历史
+const messages = await projectStore.getProjectMessages(projectId)
+
+// 3. ConversationContainer获取开发阶段
+const stages = await projectStore.getProjectStages(projectId)
+
+// 4. ProjectPanel获取文件列表
+const files = await fileStore.getProjectFiles(projectId)
+
+// 5. 用户点击文件时获取文件内容
+const content = await fileStore.getFileContent(projectId, filePath)
+```
+- **用户认证**: 完整的登录、注册、登出流程，支持token自动刷新和验证
+- **项目管理**: 项目创建、列表、详情、删除功能，支持搜索和筛选
+- **实时对话**: 与AI Agent的交互界面，支持Markdown渲染和消息展开
+- **文件管理**: 项目文件查看、内容展示、项目下载功能
+- **开发进度**: 可视化项目开发阶段和进度跟踪
+- **项目预览**: 通过iframe嵌入实时预览项目效果
+
+### 2. 页面功能实现
+- **首页**: 产品介绍、快速创建项目、用户项目展示、中英文切换
+- **认证页**: 登录/注册切换、表单验证、社交登录按钮、协议弹窗
+- **仪表板**: 项目统计卡片、搜索筛选、分页展示、系统状态监控
+- **创建项目**: 智能输入框、项目需求输入、自动跳转到项目编辑
+- **项目编辑**: 分屏布局、对话交互、文件查看、代码展示
+
+### 3. 组件特性实现
+- **响应式设计**: 适配桌面、平板、手机各种屏幕尺寸
+- **主题系统**: 统一的色彩和间距系统，支持CSS变量
+- **国际化**: 中英文切换支持，动态语言切换
+- **无障碍**: 符合WCAG标准的可访问性设计
+
+### 4. 技术实现细节
+- **TypeScript**: 完整的类型定义和类型安全，严格模式
+- **Pinia**: 现代化的状态管理，支持响应式数据
+- **Vue 3**: Composition API 和响应式系统，更好的逻辑复用
+- **Naive UI**: 丰富的UI组件库，支持主题定制
+- **SCSS**: 模块化的样式系统，支持变量和混入
+- **Axios**: 统一的HTTP客户端，支持拦截器和错误处理
+- **路由守卫**: 认证检查和权限控制，自动跳转
+- **Docker**: 容器化部署，支持开发和生产环境
+
+## 部署架构
+
+### 1. 开发环境
+- **Vite Dev Server**: 开发服务器，支持热重载
+- **Nginx**: 反向代理，API转发
+- **Docker**: 容器化部署
+
+### 2. 生产环境
+- **静态构建**: Vite 构建优化
+- **Nginx**: 静态文件服务和API代理
+- **CDN**: 静态资源加速
+- **Docker**: 生产环境容器
+
+### 3. 构建优化
+- **代码分割**: 按需加载
+- **资源压缩**: Gzip压缩
+- **缓存策略**: 静态资源长期缓存
+- **安全头**: 安全响应头设置

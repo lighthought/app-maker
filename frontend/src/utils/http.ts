@@ -55,11 +55,6 @@ class HttpService {
           return response
         }
         
-        // 对于健康检查请求，返回原始响应数据
-        if (response.config.url === '/health') {
-          return response.data
-        }
-        
         // 直接返回响应数据，让业务层处理成功/失败逻辑
         return response.data
       },
