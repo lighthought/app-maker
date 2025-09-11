@@ -32,7 +32,7 @@ func GetCachePath() string {
 // isPathInFolders 检查路径是否在文件夹列表中
 func IsPathInFolders(path string, folders []string) bool {
 	for _, folder := range folders {
-		if strings.HasPrefix(folder, path) || path == folder {
+		if strings.HasPrefix(path, folder) || path == folder {
 			return true
 		}
 	}

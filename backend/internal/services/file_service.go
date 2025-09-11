@@ -11,6 +11,7 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
+	"autocodeweb-backend/pkg/logger"
 
 	"github.com/hibiken/asynq"
 )
@@ -78,6 +79,7 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, pa
 
 	// 检查路径是否存在
 	if utils.IsDirectoryExists(projectPath) == false {
+		logger.Error("项目的子目录路径不存在", logger.String("projectPath", projectPath))
 		return []models.FileItem{}, nil
 	}
 
@@ -149,8 +151,11 @@ func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, conf
 	// 读取目录内容
 	entries, err := os.ReadDir(projectPath)
 	if err != nil {
+		logger.Error("读取目录内容失败", logger.String("projectPath", projectPath), logger.String("currentPath", currentPath))
 		return nil, err
 	}
+
+	logger.Info("读取目录内容:", logger.String("projectPath", projectPath), logger.String("currentPath", currentPath))
 
 	for _, entry := range entries {
 		// 跳过隐藏文件
@@ -161,36 +166,36 @@ func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, conf
 		entryPath := filepath.Join(currentPath, entry.Name())
 		fullPath := filepath.Join(projectPath, entry.Name())
 
+		logger.Info("读取目录内容:", logger.String("entryName", entry.Name()), logger.String("entryPath", entryPath), logger.String("fullPath", fullPath))
+
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
+		bIsDir := entry.IsDir()
+		fileItemType := "file"
+		if bIsDir {
+			fileItemType = "folder"
+		}
+		if utils.IsPathInFolders(entryPath, config.Folders) {
+			files = append(files, models.FileItem{
+				Name:       entry.Name(),
+				Path:       entryPath,
+				Type:       fileItemType,
+				Size:       0,
+				ModifiedAt: info.ModTime().Format(time.RFC3339),
+			})
+			continue
+		}
 
-		if entry.IsDir() {
-			// 检查是否在配置的文件夹列表中
-			if utils.IsPathInFolders(entryPath, config.Folders) {
-				// 检查文件夹是否非空
-				if s.isDirectoryNotEmpty(fullPath) {
-					files = append(files, models.FileItem{
-						Name:       entry.Name(),
-						Path:       entryPath,
-						Type:       "folder",
-						Size:       0,
-						ModifiedAt: info.ModTime().Format(time.RFC3339),
-					})
-				}
-			}
-		} else {
-			// 检查是否在配置的文件列表中
-			if utils.IsPathInFiles(entryPath, config.Files) {
-				files = append(files, models.FileItem{
-					Name:       entry.Name(),
-					Path:       entryPath,
-					Type:       "file",
-					Size:       info.Size(),
-					ModifiedAt: info.ModTime().Format(time.RFC3339),
-				})
-			}
+		if !bIsDir && utils.IsPathInFiles(entryPath, config.Files) {
+			files = append(files, models.FileItem{
+				Name:       entry.Name(),
+				Path:       entryPath,
+				Type:       fileItemType,
+				Size:       info.Size(),
+				ModifiedAt: info.ModTime().Format(time.RFC3339),
+			})
 		}
 	}
 
