@@ -34,6 +34,7 @@ func NewChatHandler(
 // @Tags 对话消息
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param projectId path string true "项目ID"
 // @Param page query int false "页码" default(1)
 // @Param pageSize query int false "每页数量" default(50)
@@ -101,6 +102,7 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 // @Tags 对话消息
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param projectId path string true "项目ID"
 // @Param message body object true "对话消息" SchemaExample({"type":"user","content":"用户消息内容","isMarkdown":false})
 // @Success 200 {object} map[string]interface{} "成功响应"

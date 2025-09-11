@@ -354,6 +354,11 @@ const docTemplate = `{
         },
         "/api/v1/chat/chat/{projectId}": {
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "为指定项目添加新的对话消息",
                 "consumes": [
                     "application/json"
@@ -414,6 +419,11 @@ const docTemplate = `{
         },
         "/api/v1/chat/messages/{projectId}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "获取指定项目的对话消息历史记录，支持分页",
                 "consumes": [
                     "application/json"
@@ -479,6 +489,11 @@ const docTemplate = `{
         },
         "/api/v1/files/download": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "下载指定文件",
                 "consumes": [
                     "application/json"
@@ -523,6 +538,11 @@ const docTemplate = `{
         },
         "/api/v1/files/filecontent/{projectId}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "获取指定文件的内容",
                 "consumes": [
                     "application/json"
@@ -581,6 +601,11 @@ const docTemplate = `{
         },
         "/api/v1/files/files/{projectId}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "获取指定项目的文件树结构",
                 "consumes": [
                     "application/json"
@@ -671,6 +696,11 @@ const docTemplate = `{
         },
         "/api/v1/projects": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "获取项目列表，支持分页和筛选",
                 "consumes": [
                     "application/json"
@@ -683,13 +713,6 @@ const docTemplate = `{
                 ],
                 "summary": "获取项目列表",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "integer",
                         "default": 1,
@@ -778,6 +801,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "创建新项目",
                 "consumes": [
                     "application/json"
@@ -790,13 +818,6 @@ const docTemplate = `{
                 ],
                 "summary": "创建项目",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "项目创建请求",
                         "name": "project",
@@ -849,6 +870,11 @@ const docTemplate = `{
         },
         "/api/v1/projects/download/{projectId}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "将项目文件打包为zip并下载",
                 "consumes": [
                     "application/json"
@@ -861,13 +887,6 @@ const docTemplate = `{
                 ],
                 "summary": "下载项目文件",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "项目ID",
@@ -918,6 +937,11 @@ const docTemplate = `{
         },
         "/api/v1/projects/{id}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "根据项目ID获取项目详细信息",
                 "consumes": [
                     "application/json"
@@ -930,13 +954,6 @@ const docTemplate = `{
                 ],
                 "summary": "获取项目信息",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "项目ID",
@@ -991,6 +1008,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "删除指定项目",
                 "consumes": [
                     "application/json"
@@ -1003,13 +1025,6 @@ const docTemplate = `{
                 ],
                 "summary": "删除项目",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer 用户令牌",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "项目ID",
@@ -1054,6 +1069,11 @@ const docTemplate = `{
         },
         "/api/v1/projects/{id}/stages": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "获取指定项目的开发阶段信息",
                 "consumes": [
                     "application/json"
@@ -1105,6 +1125,11 @@ const docTemplate = `{
         },
         "/api/v1/tasks/{id}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "获取任务状态",
                 "consumes": [
                     "application/json"
@@ -1151,7 +1176,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "获取用户列表（需要管理员权限）",
@@ -1219,7 +1244,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "修改当前用户的密码",
@@ -1270,7 +1295,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "用户登出并清除会话",
@@ -1304,7 +1329,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "获取当前用户的档案信息",
@@ -1354,7 +1379,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "更新当前用户的档案信息",
@@ -1411,7 +1436,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "Bearer": []
                     }
                 ],
                 "description": "删除指定用户（需要管理员权限）",

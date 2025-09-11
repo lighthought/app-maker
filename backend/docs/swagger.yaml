@@ -441,6 +441,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - Bearer: []
       summary: 添加对话消息
       tags:
       - 对话消息
@@ -485,6 +487,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - Bearer: []
       summary: 获取项目对话历史
       tags:
       - 对话消息
@@ -514,6 +518,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 下载文件
       tags:
       - 项目文件
@@ -553,6 +559,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - Bearer: []
       summary: 获取文件内容
       tags:
       - 项目文件
@@ -591,6 +599,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - Bearer: []
       summary: 获取项目文件列表
       tags:
       - 项目文件
@@ -622,11 +632,6 @@ paths:
       - application/json
       description: 获取项目列表，支持分页和筛选
       parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - default: 1
         description: 页码
         in: query
@@ -681,6 +686,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 获取项目列表
       tags:
       - 项目管理
@@ -689,11 +696,6 @@ paths:
       - application/json
       description: 创建新项目
       parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 项目创建请求
         in: body
         name: project
@@ -724,6 +726,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 创建项目
       tags:
       - 项目管理
@@ -733,11 +737,6 @@ paths:
       - application/json
       description: 删除指定项目
       parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 项目ID
         in: path
         name: id
@@ -766,6 +765,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 删除项目
       tags:
       - 项目管理
@@ -774,11 +775,6 @@ paths:
       - application/json
       description: 根据项目ID获取项目详细信息
       parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 项目ID
         in: path
         name: id
@@ -812,6 +808,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 获取项目信息
       tags:
       - 项目管理
@@ -846,6 +844,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - Bearer: []
       summary: 获取项目开发阶段
       tags:
       - 开发阶段
@@ -855,11 +855,6 @@ paths:
       - application/json
       description: 将项目文件打包为zip并下载
       parameters:
-      - description: Bearer 用户令牌
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: 项目ID
         in: path
         name: id
@@ -892,6 +887,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 下载项目文件
       tags:
       - 项目管理
@@ -921,6 +918,8 @@ paths:
           description: 服务器内部错误
           schema:
             $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
       summary: 获取任务状态
       tags:
       - Task
@@ -961,7 +960,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
       summary: 获取用户列表
       tags:
       - 用户管理
@@ -992,7 +991,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
       summary: 删除用户
       tags:
       - 用户管理
@@ -1024,7 +1023,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
       summary: 修改密码
       tags:
       - 用户管理
@@ -1045,7 +1044,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
       summary: 用户登出
       tags:
       - 用户管理
@@ -1075,7 +1074,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
       summary: 获取用户档案
       tags:
       - 用户管理
@@ -1110,7 +1109,7 @@ paths:
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
-      - BearerAuth: []
+      - Bearer: []
       summary: 更新用户档案
       tags:
       - 用户管理

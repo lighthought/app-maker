@@ -119,7 +119,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security Bearer
 // @Success 200 {object} models.Response
 // @Failure 401 {object} models.ErrorResponse
 // @Router /api/v1/users/logout [post]
@@ -151,7 +151,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
-// @Security BearerAuth
+// @Security Bearer
 // @Success 200 {object} models.Response{data=models.UserInfo}
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
@@ -188,8 +188,8 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param request body models.UpdateProfileRequest true "更新档案请求"
-// @Security BearerAuth
 // @Success 200 {object} models.Response
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -236,8 +236,8 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param request body models.ChangePasswordRequest true "修改密码请求"
-// @Security BearerAuth
 // @Success 200 {object} models.Response
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -283,9 +283,9 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
-// @Security BearerAuth
 // @Success 200 {object} models.Response{data=models.PaginationResponse}
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 403 {object} models.ErrorResponse
@@ -341,8 +341,8 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 // @Tags 用户管理
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param user_id path string true "用户ID"
-// @Security BearerAuth
 // @Success 200 {object} models.Response
 // @Failure 401 {object} models.ErrorResponse
 // @Failure 403 {object} models.ErrorResponse

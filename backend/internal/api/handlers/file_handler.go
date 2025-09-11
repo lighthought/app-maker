@@ -31,6 +31,7 @@ func NewFileHandler(fileService services.FileService, projectService services.Pr
 // @Tags 项目文件
 // @Accept json
 // @Produce application/zip
+// @Security Bearer
 // @Param filePath query string true "文件路径"
 // @Success 200 {file} file "文件"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
@@ -84,6 +85,7 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 // @Tags 项目文件
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param projectId path string true "项目ID"
 // @Param path query string false "目录路径"
 // @Success 200 {object} map[string]interface{} "成功响应"
@@ -128,6 +130,7 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 // @Tags 项目文件
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param projectId path string true "项目ID"
 // @Param filePath query string true "文件路径"
 // @Success 200 {object} map[string]interface{} "成功响应"

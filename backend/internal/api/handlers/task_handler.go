@@ -39,6 +39,7 @@ func NewTaskHandler(cfg *config.Config) *TaskHandler {
 // @Tags Task
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param id path string true "任务ID"
 // @Success 200 {object} models.Response "成功响应"
 // @Failure 404 {object} models.ErrorResponse "任务不存在"

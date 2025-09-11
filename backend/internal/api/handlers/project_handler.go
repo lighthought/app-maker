@@ -31,7 +31,7 @@ func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
 // @Tags 项目管理
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
+// @Security Bearer
 // @Param project body models.CreateProjectRequest true "项目创建请求"
 // @Success 200 {object} models.Response{data=models.ProjectInfo} "项目创建成功"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
@@ -100,7 +100,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 // @Tags 项目管理
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
+// @Security Bearer
 // @Param id path string true "项目ID"
 // @Success 200 {object} models.Response{data=models.ProjectInfo} "获取项目成功"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
@@ -154,7 +154,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 // @Tags 项目管理
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
+// @Security Bearer
 // @Param id path string true "项目ID"
 // @Success 200 {object} models.Response "项目删除成功"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
@@ -208,7 +208,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 // @Tags 项目管理
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer 用户令牌"
+// @Security Bearer
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
 // @Param status query string false "项目状态" Enums(draft, in_progress, completed, failed)
@@ -259,6 +259,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 // @Tags 开发阶段
 // @Accept json
 // @Produce json
+// @Security Bearer
 // @Param projectId path string true "项目ID"
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
@@ -299,7 +300,7 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 // @Tags 项目管理
 // @Accept json
 // @Produce application/zip
-// @Param Authorization header string true "Bearer 用户令牌"
+// @Security Bearer
 // @Param id path string true "项目ID"
 // @Success 200 {file} file "项目文件zip包"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
