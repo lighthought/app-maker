@@ -48,18 +48,15 @@
         </div>
         
         <div class="tree-content">
-          <div
+          <FileTreeNode
             v-for="file in fileTree"
             :key="file.path"
-            class="tree-item"
-            :class="{ 'tree-item--active': selectedFile?.path === file.path }"
-            @click="selectFile(file)"
-          >
-            <n-icon size="16" :color="getFileIconColor(file.type)">
-              <component :is="getFileIcon(file.type)" />
-            </n-icon>
-            <span class="file-name">{{ file.name }}</span>
-          </div>
+            :node="file"
+            :selected-file="selectedFile"
+            :project-id="project?.id"
+            @select-file="selectFile"
+            @expand-folder="selectFile"
+          />
         </div>
       </div>
 
@@ -83,7 +80,14 @@
         </div>
         
         <div class="editor-content">
-          <pre v-if="selectedFile?.content" class="code-content"><code :class="getLanguageClass(selectedFile.type)">{{ selectedFile.content }}</code></pre>
+          <MonacoEditor
+            v-if="selectedFile?.content"
+            :value="selectedFile.content"
+            :language="getLanguage(selectedFile.path)"
+            :read-only="true"
+            theme="vs"
+            height="100%"
+          />
           <div v-else class="empty-editor">
             <n-icon size="48" color="#CBD5E0">
               <FileIcon />
@@ -146,21 +150,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted } from 'vue'
+import { ref, computed, h, onMounted, defineComponent, type PropType } from 'vue'
 import { NIcon, NButton, NButtonGroup, NTag } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
-import { useFilesStore } from '@/stores/file'
+import { useFilesStore, type FileTreeNode } from '@/stores/file'
 import type { Project } from '@/types/project'
+import MonacoEditor from './MonacoEditor.vue'
 
 interface Props {
   project?: Project
-}
-
-interface FileItem {
-  name: string
-  path: string
-  type: 'file' | 'folder'
-  content?: string
 }
 
 const props = defineProps<Props>()
@@ -169,25 +167,18 @@ const fileStore = useFilesStore()
 
 // 响应式数据
 const activeTab = ref<'code' | 'preview'>('code')
-const selectedFile = ref<FileItem | null>(null)
-const fileTree = ref<FileItem[]>([])
+const selectedFile = ref<FileTreeNode | null>(null)
+const fileTree = ref<FileTreeNode[]>([])
 const previewLoading = ref(false)
 
 
-// 加载项目文件
+// 加载项目文件树
 const loadProjectFiles = async () => {
   if (!props.project?.id) return
   
   try {
-    const files = await fileStore.getProjectFiles(props.project.id)
-    if (files) {
-      fileTree.value = files.map(file => ({
-        name: file.name,
-        path: file.path,
-        type: file.type,
-        content: undefined // 内容按需加载
-      }))
-    }
+    const tree = await fileStore.getProjectFileTree(props.project.id)
+    fileTree.value = tree
   } catch (error) {
     console.error('加载项目文件失败:', error)
   }
@@ -233,18 +224,46 @@ const getFileIconColor = (type?: string) => {
   return colorMap[type as keyof typeof colorMap] || '#666'
 }
 
-// 获取语言类名
-const getLanguageClass = (type?: string) => {
+// 获取语言类型（用于Monaco Editor）
+const getLanguage = (filePath?: string): string => {
+  if (!filePath) return 'plaintext'
+  
+  const extension = filePath.split('.').pop()?.toLowerCase()
   const languageMap: Record<string, string> = {
-    'src/App.vue': 'vue',
-    'src/main.ts': 'typescript',
-    'package.json': 'json'
+    'js': 'javascript',
+    'jsx': 'javascript',
+    'ts': 'typescript',
+    'tsx': 'typescript',
+    'vue': 'html',
+    'html': 'html',
+    'css': 'css',
+    'scss': 'scss',
+    'sass': 'sass',
+    'less': 'less',
+    'json': 'json',
+    'xml': 'xml',
+    'yaml': 'yaml',
+    'yml': 'yaml',
+    'md': 'markdown',
+    'py': 'python',
+    'java': 'java',
+    'go': 'go',
+    'rs': 'rust',
+    'php': 'php',
+    'rb': 'ruby',
+    'sh': 'shell',
+    'bash': 'shell',
+    'sql': 'sql',
+    'dockerfile': 'dockerfile',
+    'gitignore': 'plaintext',
+    'env': 'plaintext'
   }
-  return languageMap[selectedFile.value?.path || ''] || 'text'
+  
+  return languageMap[extension || ''] || 'plaintext'
 }
 
-// 选择文件
-const selectFile = async (file: FileItem) => {
+// 选择文件或展开文件夹
+const selectFile = async (file: FileTreeNode) => {
   if (file.type === 'file') {
     selectedFile.value = file
     
@@ -258,6 +277,22 @@ const selectFile = async (file: FileItem) => {
       } catch (error) {
         console.error('加载文件内容失败:', error)
       }
+    }
+  } else if (file.type === 'folder') {
+    // 展开或收起文件夹
+    if (!file.expanded && !file.loaded) {
+      // 展开文件夹
+      try {
+        await fileStore.expandFolder(props.project!.id, file.path, fileTree.value)
+        file.expanded = true
+        console.log('展开文件夹:', file.path)
+      } catch (error) {
+        console.error('展开文件夹失败:', error)
+      }
+    } else {
+      // 切换展开状态
+      file.expanded = !file.expanded
+      console.log('切换展开状态:', file.path, file.expanded)
     }
   }
 }
@@ -368,6 +403,116 @@ const ExternalLinkIcon = () => h('svg', {
   h('path', { d: 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z' })
 ])
 
+const ChevronRightIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z' })
+])
+
+const ChevronDownIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z' })
+])
+
+// 文件树节点组件
+const FileTreeNode = defineComponent({
+  name: 'FileTreeNode',
+  props: {
+    node: {
+      type: Object as PropType<FileTreeNode>,
+      required: true
+    },
+    selectedFile: {
+      type: Object as PropType<FileTreeNode | null>,
+      default: null
+    },
+    projectId: {
+      type: String,
+      default: ''
+    },
+    level: {
+      type: Number,
+      default: 0
+    }
+  },
+  emits: ['select-file', 'expand-folder'],
+  setup(props, { emit }): () => any {
+    const handleClick = () => {
+      if (props.node.type === 'file') {
+        emit('select-file', props.node)
+      } else {
+        emit('expand-folder', props.node)
+      }
+    }
+
+    return (): any => {
+      const { node, selectedFile, level } = props
+      const isSelected = selectedFile?.path === node.path
+      const indentStyle = { paddingLeft: `${level * 16 + 8}px` }
+
+      return h('div', [
+        // 当前节点
+        h('div', {
+          class: [
+            'tree-item',
+            { 'tree-item--active': isSelected },
+            { 'tree-item--folder': node.type === 'folder' }
+          ],
+          style: indentStyle,
+          onClick: handleClick
+        }, [
+          // 展开/收起图标（文件夹默认显示，但根据内容状态决定显示哪个图标）
+          node.type === 'folder' && h('span', {
+            class: 'expand-icon',
+            style: { 
+              opacity: node.loaded && (!node.children || node.children.length === 0) ? 0 : 1,
+              transition: 'opacity 0.2s ease'
+            }
+          }, [
+            h(NIcon, { 
+              size: 12 
+            }, { 
+              default: node.expanded ? ChevronDownIcon : ChevronRightIcon 
+            })
+          ]),
+          
+          // 文件/文件夹图标
+          h(NIcon, { 
+            size: 16, 
+            color: getFileIconColor(node.type) 
+          }, { 
+            default: getFileIcon(node.type) 
+          }),
+          
+          // 文件名
+          h('span', { class: 'file-name' }, node.name)
+        ]),
+
+        // 子节点（如果文件夹已展开且有子节点）
+        node.type === 'folder' && node.expanded && node.children && node.children.length > 0 && 
+        h('div', { class: 'tree-children' }, 
+          node.children.map((child: FileTreeNode) => 
+            h(FileTreeNode, {
+              key: child.path,
+              node: child,
+              selectedFile: selectedFile,
+              projectId: props.projectId,
+              level: level + 1,
+              onSelectFile: (file: FileTreeNode) => emit('select-file', file),
+              onExpandFolder: (folder: FileTreeNode) => emit('expand-folder', folder)
+            })
+          )
+        )
+      ])
+    }
+  }
+})
+
 // 初始化
 onMounted(async () => {
   await loadProjectFiles()
@@ -453,6 +598,8 @@ onMounted(async () => {
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   transition: background-color 0.2s ease;
+  position: relative;
+  min-height: 32px;
 }
 
 .tree-item:hover {
@@ -462,14 +609,50 @@ onMounted(async () => {
 .tree-item--active {
   background: var(--primary-color);
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.file-name {
-  font-size: 0.9rem;
+.tree-item--active:hover {
+  background: var(--primary-color);
+  opacity: 0.9;
+}
+
+.tree-item--folder {
+  font-weight: 500;
+}
+
+/* 修复图标垂直对齐 */
+.tree-item .n-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1rem;
+}
+
+.expand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.tree-item .file-name {
+  font-size: 1rem;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+}
+
+.tree-children {
+  /* 子节点容器，用于缩进 */
+  position: relative;
 }
 
 .code-editor {
@@ -506,19 +689,9 @@ onMounted(async () => {
 
 .editor-content {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   background: #f8f9fa;
-}
-
-.code-content {
-  margin: 0;
-  padding: var(--spacing-lg);
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--text-primary);
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  border-radius: var(--border-radius-md);
 }
 
 .empty-editor {

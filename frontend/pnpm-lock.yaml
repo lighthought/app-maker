@@ -20,6 +20,9 @@ importers:
       marked:
         specifier: ^16.2.1
         version: 16.2.1
+      monaco-editor:
+        specifier: ^0.53.0
+        version: 0.53.0
       naive-ui:
         specifier: ^2.37.3
         version: 2.42.0(vue@3.5.20(typescript@5.9.2))
@@ -45,6 +48,9 @@ importers:
       vite:
         specifier: ^5.0.8
         version: 5.4.19(@types/node@20.19.11)(sass@1.91.0)
+      vite-plugin-monaco-editor:
+        specifier: ^1.1.0
+        version: 1.1.0(monaco-editor@0.53.0)
       vue-tsc:
         specifier: ^1.8.25
         version: 1.8.27(typescript@5.9.2)
@@ -447,6 +453,9 @@ packages:
   '@types/node@20.19.11':
     resolution: {integrity: sha512-uug3FEEGv0r+jrecvUUpbY8lLisvIjg6AAic6a2bSP5OEOLeJsDSnvhCDov7ipFFMXS3orMpzlmi0ZcuGkBbow==}
 
+  '@types/trusted-types@1.0.6':
+    resolution: {integrity: sha512-230RC8sFeHoT6sSUlRO6a8cAnclO06eeiq1QDfiv2FGCLWFvvERWgwIQD4FWqD9A69BN7Lzee4OXwoMVnnsWDw==}
+
   '@types/web-bluetooth@0.0.20':
     resolution: {integrity: sha512-g9gZnnXVq7gM7v3tJCWV/qw7w+KeOlSHAhgF9RytFyifW6AF61hdT2ucrYhPq9hLs5JIryeupHV3qGk95dH9ow==}
 
@@ -719,6 +728,9 @@ packages:
     resolution: {integrity: sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow==}
     engines: {node: '>=16 || 14 >=14.17'}
 
+  monaco-editor@0.53.0:
+    resolution: {integrity: sha512-0WNThgC6CMWNXXBxTbaYYcunj08iB5rnx4/G56UOPeL9UVIUGGHA1GR0EWIh9Ebabj7NpCRawQ5b0hfN1jQmYQ==}
+
   muggle-string@0.3.1:
     resolution: {integrity: sha512-ckmWDJjphvd/FvZawgygcUeQCxzvohjFO5RxTjj4eq8kw359gFF3E1brjfI+viLMxss5JrHTDRHZvu2/tuy0Qg==}
 
@@ -806,6 +818,11 @@ packages:
     resolution: {integrity: sha512-H9V1zGRLQZg9b+GdMk8MXDN2Lva0zx72MPahDKc30v+DtwKjfyOSXWRIX4t2mhDubM1H09gPhWeth/BJWPHGUw==}
     peerDependencies:
       vue: ^3.0.11
+
+  vite-plugin-monaco-editor@1.1.0:
+    resolution: {integrity: sha512-IvtUqZotrRoVqwT0PBBDIZPNraya3BxN/bfcNfnxZ5rkJiGcNtO5eAOWWSgT7zullIAEqQwxMU83yL9J5k7gww==}
+    peerDependencies:
+      monaco-editor: '>=0.33.0'
 
   vite@5.4.19:
     resolution: {integrity: sha512-qO3aKv3HoQC8QKiNSTuUM1l9o/XX3+c+VTgLHbJWHZGeTPVAg2XwazI9UWzoxjIJCGCV2zU60uqMzjeLZuULqA==}
@@ -1121,6 +1138,8 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
     optional: true
+
+  '@types/trusted-types@1.0.6': {}
 
   '@types/web-bluetooth@0.0.20': {}
 
@@ -1439,6 +1458,10 @@ snapshots:
     dependencies:
       brace-expansion: 2.0.2
 
+  monaco-editor@0.53.0:
+    dependencies:
+      '@types/trusted-types': 1.0.6
+
   muggle-string@0.3.1: {}
 
   naive-ui@2.42.0(vue@3.5.20(typescript@5.9.2)):
@@ -1552,6 +1575,10 @@ snapshots:
     dependencies:
       evtd: 0.2.4
       vue: 3.5.20(typescript@5.9.2)
+
+  vite-plugin-monaco-editor@1.1.0(monaco-editor@0.53.0):
+    dependencies:
+      monaco-editor: 0.53.0
 
   vite@5.4.19(@types/node@20.19.11)(sass@1.91.0):
     dependencies:
