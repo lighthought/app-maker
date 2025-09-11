@@ -38,3 +38,6 @@ backend/bin/
 /frontend/design/*.pen
 /frontend/design
 /backend/main
+
+/agents-server/dist/
+/agents-server/node_modules/

@@ -1,0 +1,150 @@
+import Queue from 'bull';
+import { AgentTask, AgentType, DevStage } from '../models/project.model';
+import { PMController } from '../controllers/pm.controller';
+import { CommandExecutionService } from '../services/command-execution.service';
+import { FileSystemService } from '../services/file-system.service';
+import { DocumentService } from '../services/document.service';
+import { NotificationService } from '../services/notification.service';
+import logger from '../utils/logger.util';
+
+export class TaskQueueManager {
+  private queues: Map<AgentType, Queue.Queue<AgentTask>> = new Map();
+  private controllers: Map<AgentType, any> = new Map();
+
+  constructor(
+    redisUrl: string,
+    commandService: CommandExecutionService,
+    fileService: FileSystemService,
+    documentService: DocumentService,
+    notificationService: NotificationService
+  ) {
+    this.initializeQueues(redisUrl);
+    this.initializeControllers(commandService, fileService, documentService, notificationService);
+    this.setupProcessors();
+  }
+
+  private initializeQueues(redisUrl: string): void {
+    const agentTypes: AgentType[] = [AgentType.PM, AgentType.UX, AgentType.ARCHITECT, AgentType.PO, AgentType.DEV];
+    
+    agentTypes.forEach(agentType => {
+      const queue = new Queue<AgentTask>(`agent-${agentType}`, redisUrl, {
+        defaultJobOptions: {
+          removeOnComplete: 10,
+          removeOnFail: 5,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000
+          }
+        }
+      });
+
+      this.queues.set(agentType, queue);
+      logger.info(`Queue initialized for agent: ${agentType}`);
+    });
+  }
+
+  private initializeControllers(
+    commandService: CommandExecutionService,
+    fileService: FileSystemService,
+    documentService: DocumentService,
+    notificationService: NotificationService
+  ): void {
+    // 初始化PM控制器
+    const pmController = new PMController(commandService, fileService, documentService, notificationService);
+    this.controllers.set(AgentType.PM, pmController);
+
+    // TODO: 初始化其他控制器
+    // const uxController = new UXController(...);
+    // this.controllers.set('ux', uxController);
+  }
+
+  private setupProcessors(): void {
+    this.queues.forEach((queue, agentType) => {
+      queue.process(async (job) => {
+        try {
+          logger.info(`Processing ${agentType} task: ${job.id}`);
+          
+          const controller = this.controllers.get(agentType);
+          if (!controller) {
+            throw new Error(`No controller found for agent type: ${agentType}`);
+          }
+
+          const result = await controller.execute(job.data.context);
+          
+          // 更新任务进度
+          await job.progress(100);
+          
+          logger.info(`${agentType} task completed: ${job.id}`);
+          return result;
+        } catch (error) {
+          logger.error(`${agentType} task failed: ${job.id}`, error);
+          throw error;
+        }
+      });
+
+      // 监听队列事件
+      queue.on('completed', (job, result) => {
+        logger.info(`Task completed: ${job.id}`);
+      });
+
+      queue.on('failed', (job, err) => {
+        logger.error(`Task failed: ${job.id}`, err);
+      });
+
+      queue.on('progress', (job, progress) => {
+        logger.info(`Task progress: ${job.id} - ${progress}%`);
+      });
+    });
+  }
+
+  async addTask(task: AgentTask): Promise<void> {
+    const queue = this.queues.get(task.agentType);
+    if (!queue) {
+      throw new Error(`No queue found for agent type: ${task.agentType}`);
+    }
+
+    await queue.add(task, {
+      jobId: task.id,
+      delay: 0
+    });
+
+    logger.info(`Task added to queue: ${task.id} (${task.agentType})`);
+  }
+
+  async getQueueStats(agentType: AgentType): Promise<any> {
+    const queue = this.queues.get(agentType);
+    if (!queue) {
+      throw new Error(`No queue found for agent type: ${agentType}`);
+    }
+
+    return {
+      waiting: await queue.getWaiting(),
+      active: await queue.getActive(),
+      completed: await queue.getCompleted(),
+      failed: await queue.getFailed()
+    };
+  }
+
+  async pauseQueue(agentType: AgentType): Promise<void> {
+    const queue = this.queues.get(agentType);
+    if (queue) {
+      await queue.pause();
+      logger.info(`Queue paused: ${agentType}`);
+    }
+  }
+
+  async resumeQueue(agentType: AgentType): Promise<void> {
+    const queue = this.queues.get(agentType);
+    if (queue) {
+      await queue.resume();
+      logger.info(`Queue resumed: ${agentType}`);
+    }
+  }
+
+  async closeQueues(): Promise<void> {
+    const closePromises = Array.from(this.queues.values()).map(queue => queue.close());
+    await Promise.all(closePromises);
+    logger.info('All queues closed');
+  }
+}
