@@ -212,8 +212,8 @@ func (r *projectRepository) GetAvailablePorts(ctx context.Context, backendPort, 
 // GetNextAvailablePorts 获取下一个可用的端口
 func (r *projectRepository) GetNextAvailablePorts(ctx context.Context) (int, int, error) {
 	// 从默认端口开始查找
-	backendPort := 8081
-	frontendPort := 3001
+	backendPort := 8501
+	frontendPort := 9501
 
 	// 查找可用的后端端口
 	for {
