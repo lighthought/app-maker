@@ -77,6 +77,10 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		UserID:       userID,
 		Status:       "draft",
 		ProjectPath:  filePath,
+		BackendPort:  9501,
+		FrontendPort: 3501,
+		RedisPort:    7501,
+		PostgresPort: 5501,
 	}
 
 	logger.Info("数据库新建项目")

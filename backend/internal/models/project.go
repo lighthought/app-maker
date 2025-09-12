@@ -16,10 +16,10 @@ type Project struct {
 	DevStatus        string         `json:"dev_status" gorm:"size:50;default:'pending'"`    // 开发子状态
 	DevProgress      int            `json:"dev_progress" gorm:"default:0"`                  // 开发进度 0-100
 	CurrentTaskID    string         `json:"current_task_id" gorm:"type:varchar(50)"`        // 当前执行的任务ID
-	BackendPort      int            `json:"backend_port" gorm:"not null"`
-	FrontendPort     int            `json:"frontend_port" gorm:"not null"`
-	RedisPort        int            `json:"redis_port" gorm:"not null"`
-	PostgresPort     int            `json:"postgres_port" gorm:"not null"`
+	BackendPort      int            `json:"backend_port" gorm:"not null;default:9501"`
+	FrontendPort     int            `json:"frontend_port" gorm:"not null;default:3501"`
+	RedisPort        int            `json:"redis_port" gorm:"not null;default:7501"`
+	PostgresPort     int            `json:"postgres_port" gorm:"not null;default:5501"`
 	ApiBaseUrl       string         `json:"api_base_url" gorm:"size:200"`
 	AppSecretKey     string         `json:"app_secret_key" gorm:"size:100"`
 	DatabasePassword string         `json:"database_password" gorm:"size:100"`
@@ -191,10 +191,16 @@ func (p *Project) BeforeCreate(tx *gorm.DB) error {
 		p.Status = "draft"
 	}
 	if p.BackendPort == 0 {
-		p.BackendPort = 8080
+		p.BackendPort = 9501
 	}
 	if p.FrontendPort == 0 {
-		p.FrontendPort = 3000
+		p.FrontendPort = 3501
+	}
+	if p.RedisPort == 0 {
+		p.RedisPort = 7501
+	}
+	if p.PostgresPort == 0 {
+		p.PostgresPort = 5501
 	}
 	if p.ID == "" {
 		var result string

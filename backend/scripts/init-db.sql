@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS projects (
     frontend_port INTEGER DEFAULT 3501 CHECK (frontend_port >= 3501 AND frontend_port <= 5500),
     api_base_url VARCHAR(200) DEFAULT '/api/v1',
     app_secret_key VARCHAR(255),
-    database_port INTEGER DEFAULT 5501 CHECK (database_port >= 5501 AND database_port <= 7500),
+    postgres_port INTEGER DEFAULT 5501 CHECK (postgres_port >= 5501 AND postgres_port <= 7500),
     database_password VARCHAR(255),
     redis_password VARCHAR(255),
     redis_port INTEGER DEFAULT 7501 CHECK (redis_port >= 7501 AND redis_port <= 9500),

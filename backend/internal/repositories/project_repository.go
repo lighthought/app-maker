@@ -161,7 +161,7 @@ func (r *projectRepository) IsPortAvailable(ctx context.Context, port int, portT
 	case "redis":
 		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("redis_port = ?", port)
 	case "postgres":
-		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("database_port = ?", port)
+		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("postgres_port = ?", port)
 	default:
 		return false, fmt.Errorf("invalid port type: %s", portType)
 	}
