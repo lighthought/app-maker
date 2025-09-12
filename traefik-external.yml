@@ -11,6 +11,8 @@ http:
     jenkins:
       rule: "Host(`jenkins.app-maker.localhost`)"
       service: jenkins-service
+      middlewares:
+        - jenkins-headers
       entryPoints:
         - web
 
@@ -28,8 +30,17 @@ http:
     jenkins-service:
       loadBalancer:
         servers:
-          - url: "http://host.docker.internal:5016"
+          - url: "http://host.docker.internal:5016/"
         healthCheck:
           path: "/health"
           interval: "30s"
           timeout: "5s"
+
+  # 中间件配置
+  middlewares:
+    jenkins-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Host: "jenkins.app-maker.localhost"
+          X-Forwarded-Proto: "http"
+          X-Forwarded-Port: "80"
