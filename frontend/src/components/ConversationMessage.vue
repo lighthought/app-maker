@@ -86,7 +86,7 @@
 
 <script setup lang="ts">
 import { computed, h } from 'vue'
-import { NIcon, NButton } from 'naive-ui'
+import { NIcon, NButton, useMessage } from 'naive-ui'
 import { marked } from 'marked'
 import type { ConversationMessage } from '@/types/project'
 import { formatDateTime } from '@/utils/time'
@@ -96,6 +96,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// 获取message实例
+const messageApi = useMessage()
 
 // 消息样式类
 const messageClass = computed(() => ({
@@ -264,9 +267,18 @@ const copyMarkdown = async () => {
   if (props.message.markdownContent) {
     try {
       await navigator.clipboard.writeText(props.message.markdownContent)
-      // 可以添加成功提示
+      // 显示复制成功提示
+      messageApi.success('代码复制成功', {
+        duration: 2000,
+        closable: false
+      })
     } catch (err) {
       console.error('复制失败:', err)
+      // 显示复制失败提示
+      messageApi.error('复制失败，请重试', {
+        duration: 2000,
+        closable: false
+      })
     }
   }
 }

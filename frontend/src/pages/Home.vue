@@ -201,7 +201,7 @@ const features = ref([
     id: 3,
     icon: RocketIcon,
     title: '快速部署',
-    description: '一键部署到云端，支持多种部署方式'
+    description: '支持一键云端部署，或下载后本地部署'
   },
   {
     id: 4,
