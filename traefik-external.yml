@@ -41,6 +41,6 @@ http:
     jenkins-headers:
       headers:
         customRequestHeaders:
-          X-Forwarded-Host: "localhost"
+          X-Forwarded-Host: "jenkins.app-maker.localhost"
           X-Forwarded-Proto: "http"
           X-Forwarded-Port: "80"
