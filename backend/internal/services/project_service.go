@@ -102,7 +102,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	logger.Info("自动生成项目名", logger.String("projectName", newProject.Name))
 
 	// 自动获取可用端口
-	availableBackendPort, availableFrontendPort, err := s.projectRepo.GetNextAvailablePorts(ctx)
+	ports, err := s.projectRepo.GetNextAvailablePorts(ctx)
 	if err != nil {
 		logger.Error("获取可用端口失败",
 			logger.String("error", err.Error()),
@@ -111,12 +111,16 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	logger.Info("自动分配端口",
-		logger.Int("backendPort", availableBackendPort),
-		logger.Int("frontendPort", availableFrontendPort),
+		logger.Int("backendPort", ports.BackendPort),
+		logger.Int("frontendPort", ports.FrontendPort),
+		logger.Int("redisPort", ports.RedisPort),
+		logger.Int("postgresPort", ports.PostgresPort),
 	)
 
-	newProject.BackendPort = availableBackendPort
-	newProject.FrontendPort = availableFrontendPort
+	newProject.BackendPort = ports.BackendPort
+	newProject.FrontendPort = ports.FrontendPort
+	newProject.RedisPort = ports.RedisPort
+	newProject.PostgresPort = ports.PostgresPort
 
 	// TODO: 获取下一个可用的子网段
 	if newProject.Subnetwork == "" {
@@ -164,8 +168,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		return nil, err
 	}
 
-	// 启动项目开发流程（异步）
-	// TODO: 改成使用 asynq 异步执行
+	// TODO: 改成使用 asynq 异步调用 agents-server 的接口
 	go func() {
 		if err := s.projectStageService.StartProjectDevelopment(context.Background(), newProject.ID); err != nil {
 			logger.Error("启动项目开发流程失败",

@@ -209,6 +209,8 @@ func (s *projectTemplateService) replaceInFile(filePath string, project *models.
 		"${BACKEND_PORT}":      fmt.Sprintf("%d", project.BackendPort),
 		"${FRONTEND_PORT}":     fmt.Sprintf("%d", project.FrontendPort),
 		"${PROJECT_ID}":        project.ID,
+		"${REDIS_PORT}":        fmt.Sprintf("%d", project.RedisPort),
+		"${DATABASE_PORT}":     fmt.Sprintf("%d", project.PostgresPort),
 		"${DATABASE_NAME}":     project.Name,
 		"${DATABASE_USER}":     project.Name,
 		"${USER_ID}":           project.UserID,

@@ -99,19 +99,9 @@ install_bmad_method() {
         return 0
     fi
     
-    # 初始化 package.json（如果不存在）
-    if [ ! -f "package.json" ]; then
-        log_info "初始化 package.json..."
-        npm init -y
-    fi
-    
-    # 安装 qwen-code 依赖
-    log_info "安装 qwen-code 依赖..."
-    npm i @qwen-code/qwen-code
-    
     # 安装 bmad-method
     log_info "安装 bmad-method..."
-    npx bmad-method install -f -i qwen-code -d .
+    npx bmad-method install -f -i claude -d .
     
     # 验证安装
     if check_bmad_installed "$project_dir"; then
@@ -173,49 +163,6 @@ setup_backend_project() {
     return 0
 }
 
-# 创建开发脚本
-create_dev_scripts() {
-    local project_dir="$1"
-    
-    log_info "创建开发脚本..."
-    
-    cd "$project_dir"
-    
-    # 创建启动脚本
-    cat > start-dev.sh << 'EOF'
-#!/bin/bash
-
-# 项目开发启动脚本
-
-set -e
-
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$PROJECT_DIR"
-
-echo "🚀 启动项目开发环境..."
-echo "项目目录: $PROJECT_DIR"
-
-# 检查 bmad-method
-if [ ! -d ".bmad-core" ] || [ ! -d ".bmad-core/agents" ]; then
-    echo "📦 安装 bmad-method..."
-    npm i @qwen-code/qwen-code
-    npx bmad-method install -f -i qwen-code -d .
-fi
-
-# 启动 cursor-cli 聊天
-echo "💬 启动 Cursor CLI 聊天..."
-echo "项目ID: $(basename "$PROJECT_DIR")"
-echo "使用命令: cursor chat --project $PROJECT_DIR"
-
-# 这里可以添加更多的开发环境启动逻辑
-echo "✅ 开发环境准备就绪"
-EOF
-    
-    chmod +x start-dev.sh
-    
-    log_success "开发脚本创建完成"
-}
-
 # 主函数
 main() {
     local project_dir="$1"
@@ -247,15 +194,11 @@ main() {
     # 初始化后端项目
     setup_backend_project "$project_dir"
     
-    # 创建配置
-    create_dev_scripts "$project_dir"
-    
     log_success "项目开发环境设置完成！"
     echo ""
     echo "下一步操作："
     echo "1. 进入项目目录: cd $project_dir"
-    echo "2. 启动开发环境: ./start-dev.sh"
-    echo "3. 使用 qwen-code CLI: qwen-code chat --project $project_dir"
+    echo "3. 使用 claude: claude --dangerously-skip-permissions"
 }
 
 # 执行主函数

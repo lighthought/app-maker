@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"autocodeweb-backend/internal/models"
@@ -25,9 +26,8 @@ type ProjectRepository interface {
 	UpdateStatus(ctx context.Context, id string, status string) error
 
 	// 端口管理
-	GetAvailablePorts(ctx context.Context, backendPort, frontendPort int) (int, int, error)
 	IsPortAvailable(ctx context.Context, port int, portType string) (bool, error)
-	GetNextAvailablePorts(ctx context.Context) (int, int, error)
+	GetNextAvailablePorts(ctx context.Context) (*models.Ports, error)
 
 	// 用户权限检查
 	IsOwner(ctx context.Context, projectID, userID string) (bool, error)
@@ -140,15 +140,28 @@ func (r *projectRepository) GetByUserID(ctx context.Context, userID string, req 
 }
 
 // IsPortAvailable 检查端口是否可用
+// TODO: 改成通过当前表中最大的，获取到下一个可用的端口
 func (r *projectRepository) IsPortAvailable(ctx context.Context, port int, portType string) (bool, error) {
 	var count int64
 	var query *gorm.DB
+
+	// 常用的端口
+	commonPorts := []int{80, 443, 3000, 5432, 6379, 8080, 8081, 8082, 8083, 8888, 8098}
+
+	// 检查端口是否在常用端口中
+	if slices.Contains(commonPorts, port) {
+		return false, nil
+	}
 
 	switch portType {
 	case "backend":
 		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("backend_port = ?", port)
 	case "frontend":
 		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("frontend_port = ?", port)
+	case "redis":
+		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("redis_port = ?", port)
+	case "postgres":
+		query = r.db.WithContext(ctx).Model(&models.Project{}).Where("database_port = ?", port)
 	default:
 		return false, fmt.Errorf("invalid port type: %s", portType)
 	}
@@ -161,102 +174,67 @@ func (r *projectRepository) IsPortAvailable(ctx context.Context, port int, portT
 	return count == 0, nil
 }
 
-// GetAvailablePorts 获取可用的端口
-func (r *projectRepository) GetAvailablePorts(ctx context.Context, backendPort, frontendPort int) (int, int, error) {
-	// 检查后端端口
-	for {
-		available, err := r.IsPortAvailable(ctx, backendPort, "backend")
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to check backend port %d: %w", backendPort, err)
-		}
-		if available {
-			break
-		}
-		logger.Info("后端端口被占用，尝试下一个端口", logger.Int("port", backendPort))
-		backendPort++
-	}
-
-	// 检查前端端口
-	for {
-		available, err := r.IsPortAvailable(ctx, frontendPort, "frontend")
-		if err != nil {
-			return 0, 0, fmt.Errorf("failed to check frontend port %d: %w", frontendPort, err)
-		}
-		if available {
-			break
-		}
-		logger.Info("前端端口被占用，尝试下一个端口", logger.Int("port", frontendPort))
-		frontendPort++
-	}
-
-	// 确保前后端端口不冲突
-	if backendPort == frontendPort {
-		frontendPort++
-		// 再次检查前端端口是否可用
-		for {
-			available, err := r.IsPortAvailable(ctx, frontendPort, "frontend")
-			if err != nil {
-				return 0, 0, fmt.Errorf("failed to check frontend port %d: %w", frontendPort, err)
-			}
-			if available {
-				break
-			}
-			logger.Info("前端端口被占用，尝试下一个端口", logger.Int("port", frontendPort))
-			frontendPort++
-		}
-	}
-
-	return backendPort, frontendPort, nil
-}
-
 // GetNextAvailablePorts 获取下一个可用的端口
-func (r *projectRepository) GetNextAvailablePorts(ctx context.Context) (int, int, error) {
+func (r *projectRepository) GetNextAvailablePorts(ctx context.Context) (*models.Ports, error) {
 	// 从默认端口开始查找
-	backendPort := 8501
-	frontendPort := 9501
+	ports := models.Ports{
+		BackendPort:  9501,
+		FrontendPort: 3501,
+		RedisPort:    7501,
+		PostgresPort: 5501,
+	}
 
 	// 查找可用的后端端口
 	for {
-		available, err := r.IsPortAvailable(ctx, backendPort, "backend")
+		available, err := r.IsPortAvailable(ctx, ports.BackendPort, "backend")
 		if err != nil {
-			return 0, 0, fmt.Errorf("failed to check backend port %d: %w", backendPort, err)
+			return nil, fmt.Errorf("failed to check backend port %d: %w", ports.BackendPort, err)
 		}
 		if available {
 			break
 		}
-		logger.Info("后端端口被占用，尝试下一个端口", logger.Int("port", backendPort))
-		backendPort++
+		logger.Info("后端端口被占用，尝试下一个端口", logger.Int("port", ports.BackendPort))
+		ports.BackendPort++
 	}
 
 	// 查找可用的前端端口
 	for {
-		available, err := r.IsPortAvailable(ctx, frontendPort, "frontend")
+		available, err := r.IsPortAvailable(ctx, ports.FrontendPort, "frontend")
 		if err != nil {
-			return 0, 0, fmt.Errorf("failed to check frontend port %d: %w", frontendPort, err)
+			return nil, fmt.Errorf("failed to check frontend port %d: %w", ports.FrontendPort, err)
 		}
 		if available {
 			break
 		}
-		logger.Info("前端端口被占用，尝试下一个端口", logger.Int("port", frontendPort))
-		frontendPort++
+		logger.Info("前端端口被占用，尝试下一个端口", logger.Int("port", ports.FrontendPort))
+		ports.FrontendPort++
 	}
 
-	// 确保前后端端口不冲突
-	if backendPort == frontendPort {
-		frontendPort++
-		// 再次检查前端端口是否可用
-		for {
-			available, err := r.IsPortAvailable(ctx, frontendPort, "frontend")
-			if err != nil {
-				return 0, 0, fmt.Errorf("failed to check frontend port %d: %w", frontendPort, err)
-			}
-			if available {
-				break
-			}
-			logger.Info("前端端口被占用，尝试下一个端口", logger.Int("port", frontendPort))
-			frontendPort++
+	// 查找可用的Redis端口
+	for {
+		available, err := r.IsPortAvailable(ctx, ports.RedisPort, "redis")
+		if err != nil {
+			return nil, fmt.Errorf("failed to check redis port %d: %w", ports.RedisPort, err)
 		}
+		if available {
+			break
+		}
+		logger.Info("Redis端口被占用，尝试下一个端口", logger.Int("port", ports.RedisPort))
+		ports.RedisPort++
 	}
 
-	return backendPort, frontendPort, nil
+	// 查找可用的Postgres端口
+	for {
+		available, err := r.IsPortAvailable(ctx, ports.PostgresPort, "postgres")
+		if err != nil {
+			return nil, fmt.Errorf("failed to check postgres port %d: %w", ports.PostgresPort, err)
+		}
+		if available {
+			break
+		}
+		logger.Info("Postgres端口被占用，尝试下一个端口", logger.Int("port", ports.PostgresPort))
+		ports.PostgresPort++
+	}
+
+	return &ports, nil
 }

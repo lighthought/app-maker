@@ -18,6 +18,8 @@ type Project struct {
 	CurrentTaskID    string         `json:"current_task_id" gorm:"type:varchar(50)"`        // 当前执行的任务ID
 	BackendPort      int            `json:"backend_port" gorm:"not null"`
 	FrontendPort     int            `json:"frontend_port" gorm:"not null"`
+	RedisPort        int            `json:"redis_port" gorm:"not null"`
+	PostgresPort     int            `json:"postgres_port" gorm:"not null"`
 	ApiBaseUrl       string         `json:"api_base_url" gorm:"size:200"`
 	AppSecretKey     string         `json:"app_secret_key" gorm:"size:100"`
 	DatabasePassword string         `json:"database_password" gorm:"size:100"`

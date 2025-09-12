@@ -88,7 +88,7 @@ func (s *ProjectStageService) StartProjectDevelopment(ctx context.Context, proje
 	}
 
 	// 使用线程池异步执行开发流程
-	go s.executeWithSemaphore(context.Background(), project)
+	//go s.executeWithSemaphore(context.Background(), project)
 
 	return nil
 }

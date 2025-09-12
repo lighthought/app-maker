@@ -11,3 +11,11 @@ type BaseModel struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }
+
+// Ports 端口模型
+type Ports struct {
+	BackendPort  int `json:"backend_port"`
+	FrontendPort int `json:"frontend_port"`
+	RedisPort    int `json:"redis_port"`
+	PostgresPort int `json:"postgres_port"`
+}
