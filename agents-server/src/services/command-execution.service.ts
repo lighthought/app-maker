@@ -7,12 +7,12 @@ const execAsync = promisify(exec);
 
 export class CommandExecutionService {
   private toolPaths: {
-    cursorCli: string;
+    claudeCli: string;
     npm: string;
     git: string;
   };
 
-  constructor(toolPaths: { cursorCli: string; npm: string; git: string }) {
+  constructor(toolPaths: { claudeCli: string; npm: string; git: string }) {
     this.toolPaths = toolPaths;
   }
 
@@ -45,8 +45,8 @@ export class CommandExecutionService {
     }
   }
 
-  async executeCursorCommand(projectPath: string, message: string): Promise<string> {
-    const command = `"${this.toolPaths.cursorCli}" chat --project "${projectPath}" --message "${message}"`;
+  async executeClaudeCommand(projectPath: string, message: string): Promise<string> {
+    const command = `"${this.toolPaths.claudeCli}" "${message}"`;
     
     const result = await this.executeCommand(command, {
       cwd: projectPath

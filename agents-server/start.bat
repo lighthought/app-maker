@@ -25,6 +25,14 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+REM 检查claude是否安装
+claude --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Error: claude is not installed. Please run: npm install -g claude
+    pause
+    exit /b 1
+)
+
 REM 安装依赖（如果node_modules不存在）
 if not exist "node_modules" (
     echo Installing dependencies...

@@ -10,7 +10,6 @@ import { defaultConfig } from './config/app.config';
 import { RedisConnection } from './config/redis.config';
 import { CommandExecutionService } from './services/command-execution.service';
 import { FileSystemService } from './services/file-system.service';
-import { DocumentService } from './services/document.service';
 import { NotificationService } from './services/notification.service';
 import { TaskQueueManager } from './queues/task-queue.manager';
 import { AgentRoutes } from './routes/agent.routes';
@@ -29,6 +28,7 @@ export class AgentsServer {
   private redisConnection: RedisConnection;
   private taskQueueManager!: TaskQueueManager;
   private config = defaultConfig;
+  private commandService: CommandExecutionService;
 
   constructor() {
     this.app = express();
@@ -37,7 +37,7 @@ export class AgentsServer {
       cors: this.config.app.cors
     });
     this.redisConnection = new RedisConnection(this.config.redis);
-    
+    this.commandService = new CommandExecutionService(this.config.tools);
     this.setupMiddleware();
     this.setupServices();
     this.setupRoutes();
@@ -58,17 +58,14 @@ export class AgentsServer {
 
   private setupServices(): void {
     // 初始化服务
-    const commandService = new CommandExecutionService(this.config.tools);
     const fileService = new FileSystemService(this.config.projectDataPath);
-    const documentService = new DocumentService(fileService);
     const notificationService = new NotificationService(this.config.backendApiUrl, this.io);
 
     // 初始化任务队列管理器
     this.taskQueueManager = new TaskQueueManager(
       this.config.redis.url,
-      commandService,
+      this.commandService,
       fileService,
-      documentService,
       notificationService
     );
   }
@@ -81,7 +78,7 @@ export class AgentsServer {
     }));
 
     // API路由
-    const agentRoutes = new AgentRoutes(this.taskQueueManager);
+    const agentRoutes = new AgentRoutes(this.taskQueueManager, this.commandService);
     this.app.use('/api/v1/agents', agentRoutes.getRouter());
 
     // 根路径

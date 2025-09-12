@@ -151,6 +151,106 @@ const swaggerDefinition: SwaggerDefinition = {
             example: 'agents-server'
           }
         }
+      },
+      ProjectSetupRequest: {
+        type: 'object',
+        required: ['projectId', 'projectPath'],
+        properties: {
+          projectId: {
+            type: 'string',
+            description: '项目ID',
+            example: 'project-001'
+          },
+          projectPath: {
+            type: 'string',
+            description: '项目完整路径',
+            example: 'F:/app-maker/app_data/projects/project-001'
+          },
+          userId: {
+            type: 'string',
+            description: '用户ID',
+            example: 'user-001'
+          },
+          options: {
+            type: 'object',
+            description: '安装选项',
+            properties: {
+              installBmad: {
+                type: 'boolean',
+                description: '是否安装bmad-method',
+                default: true
+              },
+              installFrontend: {
+                type: 'boolean',
+                description: '是否安装前端依赖',
+                default: true
+              },
+              installBackend: {
+                type: 'boolean',
+                description: '是否安装后端依赖',
+                default: true
+              }
+            }
+          }
+        }
+      },
+      ProjectSetupResponse: {
+        type: 'object',
+        properties: {
+          projectId: {
+            type: 'string',
+            description: '项目ID'
+          },
+          status: {
+            type: 'string',
+            enum: ['success', 'partial', 'failed'],
+            description: '整体状态'
+          },
+          results: {
+            type: 'object',
+            properties: {
+              bmad: {
+                type: 'object',
+                properties: {
+                  installed: {
+                    type: 'boolean',
+                    description: '是否安装成功'
+                  },
+                  message: {
+                    type: 'string',
+                    description: '安装结果消息'
+                  }
+                }
+              },
+              frontend: {
+                type: 'object',
+                properties: {
+                  installed: {
+                    type: 'boolean',
+                    description: '是否安装成功'
+                  },
+                  message: {
+                    type: 'string',
+                    description: '安装结果消息'
+                  }
+                }
+              },
+              backend: {
+                type: 'object',
+                properties: {
+                  installed: {
+                    type: 'boolean',
+                    description: '是否安装成功'
+                  },
+                  message: {
+                    type: 'string',
+                    description: '安装结果消息'
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -158,6 +258,10 @@ const swaggerDefinition: SwaggerDefinition = {
     {
       name: 'Agents',
       description: 'Agent任务管理相关接口'
+    },
+    {
+      name: 'Projects',
+      description: '项目管理相关接口'
     },
     {
       name: 'Health',

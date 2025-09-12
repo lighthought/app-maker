@@ -3,7 +3,6 @@ import { AgentTask, AgentType, DevStage } from '../models/project.model';
 import { PMController } from '../controllers/pm.controller';
 import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
-import { DocumentService } from '../services/document.service';
 import { NotificationService } from '../services/notification.service';
 import logger from '../utils/logger.util';
 
@@ -15,11 +14,10 @@ export class TaskQueueManager {
     redisUrl: string,
     commandService: CommandExecutionService,
     fileService: FileSystemService,
-    documentService: DocumentService,
     notificationService: NotificationService
   ) {
     this.initializeQueues(redisUrl);
-    this.initializeControllers(commandService, fileService, documentService, notificationService);
+    this.initializeControllers(commandService, fileService, notificationService);
     this.setupProcessors();
   }
 
@@ -47,11 +45,10 @@ export class TaskQueueManager {
   private initializeControllers(
     commandService: CommandExecutionService,
     fileService: FileSystemService,
-    documentService: DocumentService,
     notificationService: NotificationService
   ): void {
     // 初始化PM控制器
-    const pmController = new PMController(commandService, fileService, documentService, notificationService);
+    const pmController = new PMController(commandService, fileService, notificationService);
     this.controllers.set(AgentType.PM, pmController);
 
     // TODO: 初始化其他控制器

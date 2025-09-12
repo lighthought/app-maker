@@ -2,25 +2,21 @@ import { PMAgentController } from './base.controller';
 import { ProjectContext, AgentResult, TaskStatus } from '../models/project.model';
 import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
-import { DocumentService } from '../services/document.service';
 import { NotificationService } from '../services/notification.service';
 import logger from '../utils/logger.util';
 
 export class PMController implements PMAgentController {
   private commandService: CommandExecutionService;
   private fileService: FileSystemService;
-  private documentService: DocumentService;
   private notificationService: NotificationService;
 
   constructor(
     commandService: CommandExecutionService,
     fileService: FileSystemService,
-    documentService: DocumentService,
     notificationService: NotificationService
   ) {
     this.commandService = commandService;
     this.fileService = fileService;
-    this.documentService = documentService;
     this.notificationService = notificationService;
   }
 
@@ -28,11 +24,9 @@ export class PMController implements PMAgentController {
     try {
       logger.info(`PM Agent executing for project: ${context.projectId}`);
       
-      // 从现有项目路径读取项目信息
-      const projectInfo = await this.readProjectInfo(context.projectPath);
-      
+      const projectPath = context.projectPath;
       // 基于项目信息生成PRD文档
-      const prdContent = await this.generatePRD(projectInfo, context.stageInput);
+      const prdContent = await this.generatePRD(projectPath, context.stageInput);
       
       // 保存PRD文档到项目目录
       const prdFilePath = `${context.projectPath}/docs/PRD.md`;
@@ -76,11 +70,12 @@ export class PMController implements PMAgentController {
 
   async generatePRD(projectInfo: any, stageInput: any): Promise<string> {
     try {
+      const message = `@bmad/pm.mdc 请根据以下需求生成PRD 到 docs/PRD.md：${stageInput.requirements} \r\n\r\n技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。`;
+
       // 使用文档服务生成PRD
-      const prdContent = await this.documentService.generateDocumentOutput(
+      const prdContent = await this.commandService.executeClaudeCommand(
         projectInfo.projectPath || '',
-        'prd',
-        stageInput
+        message
       );
 
       return prdContent;
@@ -90,54 +85,6 @@ export class PMController implements PMAgentController {
     }
   }
 
-  async readProjectInfo(projectPath: string): Promise<any> {
-    try {
-      // 读取项目package.json获取基本信息
-      const packageJsonPath = `${projectPath}/package.json`;
-      if (await this.fileService.fileExists(packageJsonPath)) {
-        const packageContent = await this.fileService.readFile(packageJsonPath);
-        const packageJson = JSON.parse(packageContent);
-        
-        return {
-          name: packageJson.name,
-          description: packageJson.description,
-          type: packageJson.type || 'web-app',
-          techStack: this.extractTechStack(packageJson)
-        };
-      }
-      
-      // 如果没有package.json，返回默认信息
-      return {
-        name: 'Project',
-        description: 'A web application project',
-        type: 'web-app',
-        techStack: 'Vue.js + Node.js'
-      };
-    } catch (error) {
-      logger.error('Failed to read project info', error);
-      return {
-        name: 'Project',
-        description: 'A web application project',
-        type: 'web-app',
-        techStack: 'Vue.js + Node.js'
-      };
-    }
-  }
-
-  private extractTechStack(packageJson: any): string {
-    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
-    const techStack: string[] = [];
-    
-    if (dependencies.vue) techStack.push('Vue.js');
-    if (dependencies.react) techStack.push('React');
-    if (dependencies.angular) techStack.push('Angular');
-    if (dependencies.express) techStack.push('Express.js');
-    if (dependencies['@nestjs/core']) techStack.push('NestJS');
-    if (dependencies.typescript) techStack.push('TypeScript');
-    if (dependencies.node) techStack.push('Node.js');
-    
-    return techStack.join(' + ') || 'Vue.js + Node.js';
-  }
 
   async clarifyRequirements(questions: string[]): Promise<string> {
     // TODO: 实现需求澄清逻辑
