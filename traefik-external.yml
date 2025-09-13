@@ -7,14 +7,6 @@ http:
       service: ollama-service
       entryPoints:
         - web
-    # Jenkins 服务
-    jenkins:
-      rule: "Host(`jenkins.app-maker.localhost`)"
-      service: jenkins-service
-      middlewares:
-        - jenkins-headers
-      entryPoints:
-        - web
 
   services:
     # Ollama AI 服务
@@ -26,21 +18,4 @@ http:
           path: "/api/tags"
           interval: "30s"
           timeout: "5s"
-    # Jenkins 服务
-    jenkins-service:
-      loadBalancer:
-        servers:
-          - url: "http://host.docker.internal:5016/"
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-          timeout: "5s"
 
-  # 中间件配置
-  middlewares:
-    jenkins-headers:
-      headers:
-        customRequestHeaders:
-          X-Forwarded-Host: "jenkins.app-maker.localhost"
-          X-Forwarded-Proto: "http"
-          X-Forwarded-Port: "80"

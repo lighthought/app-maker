@@ -45,6 +45,7 @@ type projectService struct {
 	projectStageService *ProjectStageService
 	nameGenerator       ProjectNameGenerator
 	asyncClient         *asynq.Client
+	gitService          *GitService
 }
 
 // NewProjectService 创建项目服务实例
@@ -55,12 +56,14 @@ func NewProjectService(
 ) ProjectService {
 	projectRepo := repositories.NewProjectRepository(db)
 	stageRepo := repositories.NewStageRepository(db)
+	gitService := NewGitService()
 	return &projectService{
 		projectRepo:         projectRepo,
 		templateService:     NewProjectTemplateService(fileService),
 		projectStageService: NewProjectStageService(projectRepo, stageRepo),
 		nameGenerator:       NewProjectNameGenerator(),
 		asyncClient:         asyncClient,
+		gitService:          gitService,
 	}
 }
 
@@ -171,6 +174,9 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		)
 		return nil, err
 	}
+
+	// 提交代码到GitLab，触发自动编译打包
+	go s.commitProjectToGit(context.Background(), newProject)
 
 	// TODO: 改成使用 asynq 异步调用 agents-server 的接口
 	go func() {
@@ -378,4 +384,43 @@ func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectI
 	}
 
 	return info.ID, nil
+}
+
+// commitProjectToGit 提交项目代码到GitLab
+func (s *projectService) commitProjectToGit(ctx context.Context, project *models.Project) {
+	logger.Info("开始提交项目代码到GitLab",
+		logger.String("projectID", project.ID),
+		logger.String("userID", project.UserID),
+	)
+
+	// 构建Git配置
+	gitConfig := &GitConfig{
+		UserID:        project.UserID,
+		ProjectID:     project.ID,
+		ProjectPath:   project.ProjectPath,
+		CommitMessage: fmt.Sprintf("Auto commit by App Maker - %s", project.Name),
+	}
+
+	// 初始化Git仓库
+	if err := s.gitService.InitializeGit(ctx, gitConfig); err != nil {
+		logger.Error("初始化Git仓库失败",
+			logger.String("projectID", project.ID),
+			logger.String("error", err.Error()),
+		)
+		return
+	}
+
+	// 提交并推送代码
+	if err := s.gitService.CommitAndPush(ctx, gitConfig); err != nil {
+		logger.Error("提交代码到GitLab失败",
+			logger.String("projectID", project.ID),
+			logger.String("error", err.Error()),
+		)
+		return
+	}
+
+	logger.Info("项目代码已成功提交到GitLab",
+		logger.String("projectID", project.ID),
+		logger.String("userID", project.UserID),
+	)
 }

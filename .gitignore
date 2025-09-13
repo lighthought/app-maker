@@ -30,14 +30,23 @@ go.work.sum
 
 # env file
 .env
+.env.backup
+
+#backend
 backend/logs/
 backend/bin/
-/.vite/deps_temp_169df612
-/backend/server
-/.env.backup
-/frontend/design/*.pen
-/frontend/design
 /backend/main
+/backend/server
 
+#frontend
+frontend/design/*.pen
+frontend/design
+frontend/dist/
+frontend/node_modules/
+
+#agents-server
 /agents-server/dist/
 /agents-server/node_modules/
+
+#.vite
+/.vite/deps_temp_169df612

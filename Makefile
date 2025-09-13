@@ -244,27 +244,6 @@ run-bin:
 	@echo "Running backend binary..."
 	cd backend && ./bin/server
 
-# Jenkins自动化构建
-jenkins-build:
-	@echo "Jenkins automated build..."
-	@echo "Usage: make jenkins-build ENV=dev TAG=v1.0.0 PUSH=true"
-	@if [ "$(ENV)" = "" ]; then \
-		echo "Error: Please specify environment (ENV=dev or ENV=prod)"; \
-		exit 1; \
-	fi
-	@chmod +x backend/scripts/jenkins-build.sh
-	@./backend/scripts/jenkins-build.sh -e $(ENV) -t $(TAG) $(if $(PUSH),-p,)
-
-# 部署服务
-deploy:
-	@echo "Deploying services..."
-	@echo "Usage: make deploy ENV=dev TAG=latest FORCE=false"
-	@if [ "$(ENV)" = "" ]; then \
-		echo "Error: Please specify environment (ENV=dev or ENV=prod)"; \
-		exit 1; \
-	fi
-	@chmod +x backend/scripts/deploy.sh
-	@./backend/scripts/deploy.sh -e $(ENV) -t $(TAG) $(if $(FORCE),-f,)
 
 # 健康检查
 health-check:
