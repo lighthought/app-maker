@@ -1,10 +1,17 @@
-.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services gitlab-status jenkins-status data-status
+.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services gitlab-status jenkins-status data-status docker-check docker-start docker-stop docker-status docker-ensure docker-service-start docker-service-stop docker-service-restart docker-install-check
 
 # 默认目标
 help:
 	@echo "AutoCodeWeb Full-Stack Application Build Tool"
 	@echo "=========================================="
 	@echo "Available Commands:"
+	@echo "  docker-check   - Check Docker Desktop status"
+	@echo "  docker-start   - Start Docker Desktop (Windows)"
+	@echo "  docker-stop    - Stop Docker Desktop (Windows)"
+	@echo "  docker-status  - Show Docker service status"
+	@echo "  docker-ensure  - Ensure Docker Desktop is running (auto-start if needed)"
+	@echo "  docker-service-start/stop/restart - Manage Docker Windows service"
+	@echo "  docker-install-check - Check Docker Desktop installation"
 	@echo "  network-create - Create Docker network (app-maker-network)"
 	@echo "  network-check  - Check if Docker network exists"
 	@echo "  external-services - Show external services configuration"
@@ -28,6 +35,94 @@ help:
 	@echo "  logs-dev      - View development environment logs"
 	@echo "  logs-prod     - View production environment logs"
 	@echo "  restart-front-dev - Restart frontend development environment (rebuild)"
+
+# Docker Desktop 检查和启动功能
+docker-check:
+	@echo "Checking Docker Desktop status..."
+	@docker version >nul 2>&1 && echo "[OK] Docker Desktop is running" || echo "[ERROR] Docker Desktop is not running"
+	@docker info >nul 2>&1 && echo "[OK] Docker daemon is accessible" || echo "[ERROR] Docker daemon is not accessible"
+
+# 智能 Docker 检查 - 如果 Docker 不可用则自动启动
+docker-ensure:
+	@echo "Ensuring Docker Desktop is available..."
+	@docker version >nul 2>&1 && echo "[OK] Docker Desktop is already running" || ( \
+		echo "[WARNING] Docker Desktop is not running, attempting to start..." && \
+		$(MAKE) docker-start \
+	)
+
+docker-start:
+	@echo "Starting Docker Desktop..."
+	@echo "Checking if Docker Desktop is already running..."
+	@docker version >nul 2>&1 && (echo "[OK] Docker Desktop is already running") || ( \
+		echo "[INFO] Starting Docker Desktop..." && \
+		( \
+			if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" ( \
+				start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe" \
+			) else if exist "C:\Program Files (x86)\Docker\Docker\Docker Desktop.exe" ( \
+				start "" "C:\Program Files (x86)\Docker\Docker\Docker Desktop.exe" \
+			) else ( \
+				echo "[ERROR] Docker Desktop not found in standard locations" && \
+				echo "Please ensure Docker Desktop is installed" && \
+				exit /b 1 \
+			) \
+		) && \
+		echo "[INFO] Waiting for Docker Desktop to start..." && \
+		timeout /t 15 /nobreak >nul && \
+		echo "[INFO] Checking Docker status..." && \
+		docker version >nul 2>&1 && echo "[OK] Docker Desktop started successfully!" || echo "[WARNING] Docker Desktop may still be starting. Please wait a moment and try again." \
+	)
+
+docker-stop:
+	@echo "Stopping Docker Desktop..."
+	@taskkill /F /IM "Docker Desktop.exe" >nul 2>&1 && echo "[OK] Docker Desktop stopped" || echo "[WARNING] Docker Desktop was not running or could not be stopped"
+
+docker-status:
+	@echo "Docker Service Status:"
+	@echo "====================="
+	@echo "Docker Desktop Process:"
+	@tasklist /FI "IMAGENAME eq Docker Desktop.exe" 2>nul | findstr "Docker Desktop.exe" >nul && echo "[OK] Docker Desktop process is running" || echo "[ERROR] Docker Desktop process is not running"
+	@echo ""
+	@echo "Docker Daemon Status:"
+	@docker version >nul 2>&1 && echo "[OK] Docker daemon is accessible" || echo "[ERROR] Docker daemon is not accessible"
+	@echo ""
+	@echo "Docker Service Status:"
+	@sc query "com.docker.service" >nul 2>&1 && ( \
+		sc query "com.docker.service" | findstr "RUNNING" >nul && echo "[OK] Docker service is running" || echo "[WARNING] Docker service exists but not running" \
+	) || echo "[ERROR] Docker service not found"
+	@echo ""
+	@echo "Docker Desktop Installation:"
+	@if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" ( \
+		echo "[OK] Docker Desktop is installed" \
+	) else ( \
+		echo "[ERROR] Docker Desktop not found at default location" \
+	)
+
+# Windows 特定的 Docker 服务管理
+docker-service-start:
+	@echo "Starting Docker services..."
+	@net start "com.docker.service" >nul 2>&1 && echo "[OK] Docker service started" || echo "[WARNING] Docker service start failed or already running"
+
+docker-service-stop:
+	@echo "Stopping Docker services..."
+	@net stop "com.docker.service" >nul 2>&1 && echo "[OK] Docker service stopped" || echo "[WARNING] Docker service stop failed or not running"
+
+docker-service-restart:
+	@echo "Restarting Docker services..."
+	@net stop "com.docker.service" >nul 2>&1
+	@timeout /t 3 /nobreak >nul
+	@net start "com.docker.service" >nul 2>&1 && echo "[OK] Docker service restarted" || echo "[WARNING] Docker service restart failed"
+
+# 检查 Docker Desktop 安装路径
+docker-install-check:
+	@echo "Checking Docker Desktop installation..."
+	@if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" ( \
+		echo "[OK] Docker Desktop found at: C:\Program Files\Docker\Docker\Docker Desktop.exe" \
+	) else if exist "C:\Program Files (x86)\Docker\Docker\Docker Desktop.exe" ( \
+		echo "[OK] Docker Desktop found at: C:\Program Files (x86)\Docker\Docker\Docker Desktop.exe" \
+	) else ( \
+		echo "[ERROR] Docker Desktop not found in standard locations" && \
+		echo "Please ensure Docker Desktop is installed" \
+	)
 
 # 检查Docker网络是否存在
 network-check:
@@ -115,10 +210,10 @@ data-status:
 	@echo "  App Data: %APP_DATA_HOME% (default: F:/app-maker/data)"
 	@echo ""
 	@echo "Directory Status:"
-	@if exist "%GITLAB_HOME%" (echo "✅ GitLab directory exists: %GITLAB_HOME%") else (echo "❌ GitLab directory missing: %GITLAB_HOME%")
-	@if exist "%POSTGRES_DATA_HOME%" (echo "✅ PostgreSQL data exists: %POSTGRES_DATA_HOME%") else (echo "⚠️ PostgreSQL data directory: %POSTGRES_DATA_HOME% (will be created)")
-	@if exist "%REDIS_DATA_HOME%" (echo "✅ Redis data exists: %REDIS_DATA_HOME%") else (echo "⚠️ Redis data directory: %REDIS_DATA_HOME% (will be created)")
-	@if exist "%APP_DATA_HOME%" (echo "✅ App data exists: %APP_DATA_HOME%") else (echo "⚠️ App data directory: %APP_DATA_HOME% (will be created)")
+	@if exist "%GITLAB_HOME%" (echo "[OK] GitLab directory exists: %GITLAB_HOME%") else (echo "[ERROR] GitLab directory missing: %GITLAB_HOME%")
+	@if exist "%POSTGRES_DATA_HOME%" (echo "[OK] PostgreSQL data exists: %POSTGRES_DATA_HOME%") else (echo "[WARNING] PostgreSQL data directory: %POSTGRES_DATA_HOME% (will be created)")
+	@if exist "%REDIS_DATA_HOME%" (echo "[OK] Redis data exists: %REDIS_DATA_HOME%") else (echo "[WARNING] Redis data directory: %REDIS_DATA_HOME% (will be created)")
+	@if exist "%APP_DATA_HOME%" (echo "[OK] App data exists: %APP_DATA_HOME%") else (echo "[WARNING] App data directory: %APP_DATA_HOME% (will be created)")
 
 # 生成Swagger文档
 swagger:
@@ -126,17 +221,17 @@ swagger:
 	cd backend && swag init -g cmd/server/main.go -o docs
 
 # 构建开发环境镜像
-build-dev: network-create swagger
+build-dev: docker-ensure network-create swagger
 	@echo "Building development environment images..."
 	docker-compose build
 
 # 构建生产环境镜像
-build-prod: network-create swagger
+build-prod: docker-ensure network-create swagger
 	@echo "Building production environment images..."
 	docker-compose -f docker-compose.prod.yml build
 
 # 启动开发环境
-run-dev: network-create
+run-dev: docker-ensure network-create
 	@echo "Starting development environment..."
 	@echo "Frontend: http://localhost:3000 (Direct) or http://app-maker.localhost (via Traefik)"
 	@echo "Backend API: http://localhost:8098 (Direct) or http://api.app-maker.localhost (via Traefik)"
@@ -145,7 +240,7 @@ run-dev: network-create
 	docker-compose up -d
 
 # 启动生产环境
-run-prod: network-create
+run-prod: docker-ensure network-create
 	@echo "Starting production environment..."
 	@echo "Frontend: http://localhost (Direct) or http://thought-light.com (via Traefik)"
 	@echo "Backend API: http://localhost:8080 (Direct) or http://api.thought-light.com (via Traefik)"
