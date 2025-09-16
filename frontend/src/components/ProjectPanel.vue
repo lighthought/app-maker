@@ -3,12 +3,6 @@
     <!-- 面板头部 -->
     <div class="panel-header">
       <div class="header-left">
-        <h3>{{ project?.name || '项目面板' }}</h3>
-        <n-tag :type="getStatusType(project?.status)" size="small">
-          {{ getStatusText(project?.status) }}
-        </n-tag>
-      </div>
-      <div class="header-right">
         <n-button-group>
           <n-button
             :type="activeTab === 'code' ? 'primary' : 'default'"
@@ -586,26 +580,16 @@ onMounted(async () => {
 
 .panel-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  background: var(--background-color);
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 10;
 }
 
 .header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.header-left h3 {
-  margin: 0;
-  color: var(--primary-color);
-  font-size: 1.1rem;
-}
-
-.header-right {
   display: flex;
   align-items: center;
 }

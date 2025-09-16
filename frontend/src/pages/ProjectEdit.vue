@@ -1,29 +1,33 @@
 <template>
   <div class="project-edit-page">
-    <!-- 顶部导航栏 -->
-    <div class="top-navbar">
-      <div class="navbar-left">
-        <n-button text @click="goBack" class="back-button">
-          <template #icon>
-            <n-icon><ArrowLeftIcon /></n-icon>
-          </template>
-          返回
-        </n-button>
-        <div class="project-title">
-          {{ project?.name || '项目编辑' }}
-        </div>
-      </div>
-    </div>
-
     <!-- 主内容区域 - 分屏布局 -->
     <div class="main-content">
       <div class="split-container">
         <!-- 左侧对话窗口 -->
         <div class="left-panel" :style="{ width: leftWidth + '%' }">
-          <ConversationContainer
-            :project-id="projectId"
-            :requirements="project?.requirements || ''"
-          />
+          <!-- 左侧顶部导航 -->
+          <div class="left-header">
+            <n-button text @click="goBack" class="back-button">
+              <template #icon>
+                <n-icon><ArrowLeftIcon /></n-icon>
+              </template>
+              返回
+            </n-button>
+            <div class="project-info">
+              <h2 class="project-title">{{ project?.name || '项目编辑' }}</h2>
+              <n-tag :type="getStatusType(project?.status)" size="small">
+                {{ getStatusText(project?.status) }}
+              </n-tag>
+            </div>
+          </div>
+          
+          <!-- 对话容器 -->
+          <div class="conversation-wrapper">
+            <ConversationContainer
+              :project-id="projectId"
+              :requirements="project?.requirements || ''"
+            />
+          </div>
         </div>
         
         <!-- 分割器 -->
@@ -47,7 +51,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NButton, NIcon } from 'naive-ui'
+import { NButton, NIcon, NTag } from 'naive-ui'
 import ConversationContainer from '@/components/ConversationContainer.vue'
 import ProjectPanel from '@/components/ProjectPanel.vue'
 import { useProjectStore } from '@/stores/project'
@@ -68,6 +72,28 @@ const isResizing = ref(false)
 
 // 计算属性
 const projectId = computed(() => route.params.id as string)
+
+// 获取状态类型
+const getStatusType = (status?: string): 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error' => {
+  const statusMap: Record<string, 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error'> = {
+    draft: 'default',
+    in_progress: 'primary',
+    completed: 'success',
+    failed: 'error'
+  }
+  return statusMap[status || 'draft'] || 'default'
+}
+
+// 获取状态文本
+const getStatusText = (status?: string) => {
+  const statusMap: Record<string, string> = {
+    draft: '草稿',
+    in_progress: '进行中',
+    completed: '已完成',
+    failed: '失败'
+  }
+  return statusMap[status || 'draft'] || '草稿'
+}
 
 // 图标组件
 const ArrowLeftIcon = () => h('svg', { 
@@ -164,22 +190,29 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* 顶部导航栏 */
-.top-navbar {
+/* 左侧头部 */
+.left-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 24px;
+  gap: 16px;
+  padding: 16px 20px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   z-index: 10;
 }
 
-.navbar-left {
+.project-info {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+.project-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
 }
 
 .back-button {
@@ -191,11 +224,9 @@ onUnmounted(() => {
   color: #334155;
 }
 
-.project-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
+.conversation-wrapper {
+  flex: 1;
+  overflow: hidden;
 }
 
 /* 主内容区域 - 分屏布局 */
