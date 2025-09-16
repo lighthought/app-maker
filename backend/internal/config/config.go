@@ -14,6 +14,7 @@ type Config struct {
 	Asynq    AsynqConfig    `mapstructure:"asynq"`
 	CORS     CORSConfig     `mapstructure:"cors"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
+	AI       AIConfig       `mapstructure:"ai"`
 	Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -63,7 +64,19 @@ type LogConfig struct {
 
 // Asynq 异步配置
 type AsynqConfig struct {
-	Concurrency int `mapstructure:"concurrency", default: 10` // 并发数
+	Concurrency int `mapstructure:"concurrency"` // 并发数
+}
+
+// AIConfig AI 配置
+type AIConfig struct {
+	Ollama OllamaConfig `mapstructure:"ollama"`
+}
+
+// OllamaConfig Ollama 配置
+type OllamaConfig struct {
+	BaseURL string `mapstructure:"base_url"`
+	Model   string `mapstructure:"model"`
+	Timeout int    `mapstructure:"timeout"`
 }
 
 func Load() (*Config, error) {
@@ -130,6 +143,10 @@ func setDefaults() {
 	viper.SetDefault("jwt.expire_hours", 24)
 
 	viper.SetDefault("bmad.npm_package", "bmad-method")
+
+	viper.SetDefault("ai.ollama.base_url", "http://host.docker.internal:11434")
+	viper.SetDefault("ai.ollama.model", "llama3.2:latest")
+	viper.SetDefault("ai.ollama.timeout", 30)
 
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.file", "./logs/app.log")

@@ -5,7 +5,8 @@ FROM golang:1.23-alpine3.19 AS builder
 WORKDIR /app
 
 # 安装必要的系统依赖
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache git ca-certificates tzdata zip
+
 
 # 复制 go mod 文件
 COPY go.mod go.sum ./

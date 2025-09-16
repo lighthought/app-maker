@@ -27,22 +27,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/m
 # 第二阶段：运行阶段
 FROM alpine:latest
 
-# 安装 Node.js、npm、Go 和其他必要工具
-RUN apk add --no-cache \
-    ca-certificates \
-    tzdata \
-    zip \
-    nodejs \
-    npm \
-    curl \
-    git \
-    bash \
-    python3 \
-    make \
-    g++ \
-    go 
-    #\
-   # && npm install -g npx  // npx 现在是 npm 的一部分
+# 安装 ca-certificates 和 tzdata
+RUN apk --no-cache add ca-certificates tzdata zip bash git curl
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S appgroup && \

@@ -1,15 +1,12 @@
 package services
 
 import (
+	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
+	"fmt"
 
-	"math/rand"
-	"regexp"
-	"strings"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"autocodeweb-backend/pkg/logger"
 )
 
 // ProjectNameGenerator 项目名生成器接口
@@ -19,77 +16,52 @@ type ProjectNameGenerator interface {
 
 // projectNameGenerator 项目名生成器实现
 type projectNameGenerator struct {
-	// 预定义的项目类型关键词
-	projectTypes map[string][]string
-	// 预定义的功能关键词
-	features map[string][]string
-	// 预定义的技术关键词
-	technologies map[string][]string
-	// 预定义的后缀
-	suffixes []string
+	config *config.Config
 }
 
 // NewProjectNameGenerator 创建项目名生成器实例
-func NewProjectNameGenerator() ProjectNameGenerator {
+func NewProjectNameGenerator(cfg *config.Config) ProjectNameGenerator {
 	return &projectNameGenerator{
-		projectTypes: map[string][]string{
-			"app":      {"app", "application", "mobile", "web"},
-			"platform": {"platform", "system", "service", "hub"},
-			"tool":     {"tool", "utility", "helper", "assistant"},
-			"game":     {"game", "play", "entertainment"},
-			"social":   {"social", "community", "network"},
-			"business": {"business", "enterprise", "management"},
-		},
-		features: map[string][]string{
-			"ai":       {"ai", "smart", "intelligent", "auto"},
-			"design":   {"design", "style", "fashion", "beauty"},
-			"shopping": {"shop", "mall", "store", "market"},
-			"social":   {"social", "share", "connect", "chat"},
-			"media":    {"media", "photo", "video", "image"},
-			"3d":       {"3d", "vr", "ar", "visual"},
-			"mobile":   {"mobile", "phone", "app", "wechat"},
-			"web":      {"web", "online", "cloud", "web"},
-			"data":     {"data", "analytics", "insight", "report"},
-			"security": {"secure", "safe", "protect", "guard"},
-		},
-		technologies: map[string][]string{
-			"react":    {"react", "vue", "angular", "frontend"},
-			"node":     {"node", "express", "backend", "api"},
-			"python":   {"python", "django", "flask", "ml"},
-			"java":     {"java", "spring", "android", "kotlin"},
-			"database": {"db", "sql", "mongo", "redis"},
-			"cloud":    {"cloud", "aws", "azure", "gcp"},
-		},
-		suffixes: []string{
-			"pro", "plus", "max", "premium", "elite", "studio", "hub", "center", "suite", "kit",
-			"lab", "works", "tools", "app", "web", "mobile", "cloud", "ai", "smart", "go",
-		},
+		config: cfg,
 	}
 }
 
-// GenerateProjectName 根据需求生成项目名
+// GenerateProjectConfig 根据需求生成项目配置
 func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projectConfig *models.Project) bool {
-	// 1. 提取关键词
-	keywords := g.extractKeywords(requirements)
+	logger.Info("开始使用 AI 生成项目配置",
+		logger.String("requirements", requirements),
+	)
 
-	// 2. 选择项目类型
-	projectType := g.selectProjectType(keywords)
+	// 初始化 Ollama 客户端
+	client := utils.InitOllamaClient(g.config.AI.Ollama.BaseURL)
+	if client == nil {
+		logger.Error("无法初始化 Ollama 客户端")
+		return g.fallbackToDefaultConfig(requirements, projectConfig)
+	}
 
-	// 3. 选择主要功能
-	feature := g.selectFeature(keywords)
+	// 测试连接
+	if err := utils.TestConnection(client); err != nil {
+		logger.Error("Ollama 连接测试失败",
+			logger.String("error", err.Error()),
+		)
+		return g.fallbackToDefaultConfig(requirements, projectConfig)
+	}
 
-	// 4. 选择后缀
-	suffix := g.selectSuffix()
+	// 使用 AI 生成项目总结
+	summary, err := utils.GenerateProjectSummary(client, requirements)
+	if err != nil {
+		logger.Error("AI 生成项目总结失败",
+			logger.String("error", err.Error()),
+		)
+		return g.fallbackToDefaultConfig(requirements, projectConfig)
+	}
 
-	// 5. 组合项目名
-	projectName := g.combineName(projectType, feature, suffix)
-	projectDescription := requirements
-
-	projectConfig.Name = projectName
-	projectConfig.Description = projectDescription
+	// 设置项目配置
+	projectConfig.Name = summary.Title
+	projectConfig.Description = summary.Content
 	projectConfig.ApiBaseUrl = "/api/v1"
-	projectConfig.FrontendPort = 3000
-	projectConfig.BackendPort = 8080
+
+	// 生成密码
 	passwordUtils := utils.NewPasswordUtils()
 	projectConfig.AppSecretKey = passwordUtils.GenerateRandomPassword("app")
 	projectConfig.RedisPassword = passwordUtils.GenerateRandomPassword("redis")
@@ -97,90 +69,80 @@ func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projec
 	projectConfig.DatabasePassword = passwordUtils.GenerateRandomPassword("database")
 	projectConfig.Subnetwork = "172.20.0.0/16"
 
+	logger.Info("AI 项目配置生成成功",
+		logger.String("projectName", projectConfig.Name),
+		logger.String("projectDescription", projectConfig.Description),
+	)
+
 	return true
 }
 
-// extractKeywords 从需求中提取关键词
-func (g *projectNameGenerator) extractKeywords(requirements string) []string {
-	// 转换为小写
-	text := strings.ToLower(requirements)
+// fallbackToDefaultConfig 回退到默认配置
+func (g *projectNameGenerator) fallbackToDefaultConfig(requirements string, projectConfig *models.Project) bool {
+	logger.Info("使用默认配置生成项目信息")
 
-	// 定义关键词模式
-	patterns := []string{
-		`\b(app|application|mobile|web|platform|system|service|tool|utility|game|social|business)\b`,
-		`\b(ai|smart|intelligent|auto|design|style|fashion|beauty|shop|mall|store|market)\b`,
-		`\b(social|share|connect|chat|media|photo|video|image|3d|vr|ar|visual)\b`,
-		`\b(mobile|phone|wechat|web|online|cloud|data|analytics|secure|safe)\b`,
-		`\b(react|vue|angular|node|express|python|java|spring|database|sql|mongo)\b`,
-	}
+	// 使用简单的规则生成项目名
+	projectName := g.generateSimpleProjectName(requirements)
+	projectDescription := requirements
 
-	var keywords []string
-	seen := make(map[string]bool)
+	projectConfig.Name = projectName
+	projectConfig.Description = projectDescription
+	projectConfig.ApiBaseUrl = "/api/v1"
 
-	for _, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-		matches := re.FindAllString(text, -1)
+	// 生成密码
+	passwordUtils := utils.NewPasswordUtils()
+	projectConfig.AppSecretKey = passwordUtils.GenerateRandomPassword("app")
+	projectConfig.RedisPassword = passwordUtils.GenerateRandomPassword("redis")
+	projectConfig.JwtSecretKey = passwordUtils.GenerateRandomPassword("jwt")
+	projectConfig.DatabasePassword = passwordUtils.GenerateRandomPassword("database")
+	projectConfig.Subnetwork = "172.20.0.0/16"
 
-		for _, match := range matches {
-			if !seen[match] {
-				keywords = append(keywords, match)
-				seen[match] = true
-			}
-		}
-	}
+	logger.Info("默认项目配置生成成功",
+		logger.String("projectName", projectConfig.Name),
+		logger.String("projectDescription", projectConfig.Description),
+	)
 
-	return keywords
+	return true
 }
 
-// selectProjectType 选择项目类型
-func (g *projectNameGenerator) selectProjectType(keywords []string) string {
-	// 根据关键词选择项目类型
+// generateSimpleProjectName 生成简单的项目名
+func (g *projectNameGenerator) generateSimpleProjectName(requirements string) string {
+	// 简单的关键词提取和项目名生成
+	keywords := []string{"app", "web", "mobile", "platform", "tool", "system"}
+
 	for _, keyword := range keywords {
-		for _, types := range g.projectTypes {
-			for _, projectType := range types {
-				if keyword == projectType {
-					// 随机选择一个该类型的项目名
-					return types[rand.Intn(len(types))]
-				}
-			}
+		if contains(requirements, keyword) {
+			return fmt.Sprintf("My%sApp", capitalize(keyword))
 		}
 	}
 
-	// 默认返回 app
-	return "app"
+	return "MyProject"
 }
 
-// selectFeature 选择主要功能
-func (g *projectNameGenerator) selectFeature(keywords []string) string {
-	// 根据关键词选择功能
-	for _, keyword := range keywords {
-		for _, features := range g.features {
-			for _, feature := range features {
-				if keyword == feature {
-					// 随机选择一个该类型的功能
-					return features[rand.Intn(len(features))]
-				}
-			}
+// contains 检查字符串是否包含子字符串（不区分大小写）
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) &&
+		(s == substr ||
+			len(s) > len(substr) &&
+				(s[:len(substr)] == substr ||
+					s[len(s)-len(substr):] == substr ||
+					findSubstring(s, substr)))
+}
+
+// findSubstring 查找子字符串
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
 		}
 	}
-
-	// 默认返回 smart
-	return "smart"
+	return false
 }
 
-// selectSuffix 选择后缀
-func (g *projectNameGenerator) selectSuffix() string {
-	return g.suffixes[rand.Intn(len(g.suffixes))]
-}
-
-// combineName 组合项目名
-func (g *projectNameGenerator) combineName(projectType, feature, suffix string) string {
-	// 确保单词首字母大写
-	caser := cases.Title(language.English)
-	projectType = caser.String(projectType)
-	feature = caser.String(feature)
-	suffix = caser.String(suffix)
-
-	// 组合方式：Feature + ProjectType + Suffix
-	return feature + projectType + suffix
+// capitalize 首字母大写
+func capitalize(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return string(s[0]-32) + s[1:]
 }

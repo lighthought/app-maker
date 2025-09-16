@@ -77,7 +77,7 @@ func Register(engine *gin.Engine, cfg *config.Config, cacheInstance cache.Cache,
 			DB:       cfg.Redis.DB,
 		})
 		fileService := services.NewFileService(asyncClient)
-		projectService := services.NewProjectService(db, asyncClient, fileService)
+		projectService := services.NewProjectService(db, asyncClient, fileService, cfg)
 		projectHandler := handlers.NewProjectHandler(projectService)
 
 		// 4.项目路由

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/tasks"
@@ -53,6 +54,7 @@ func NewProjectService(
 	db *gorm.DB,
 	asyncClient *asynq.Client,
 	fileService FileService,
+	cfg *config.Config,
 ) ProjectService {
 	projectRepo := repositories.NewProjectRepository(db)
 	stageRepo := repositories.NewStageRepository(db)
@@ -61,7 +63,7 @@ func NewProjectService(
 		projectRepo:         projectRepo,
 		templateService:     NewProjectTemplateService(fileService),
 		projectStageService: NewProjectStageService(projectRepo, stageRepo),
-		nameGenerator:       NewProjectNameGenerator(),
+		nameGenerator:       NewProjectNameGenerator(cfg),
 		asyncClient:         asyncClient,
 		gitService:          gitService,
 	}
