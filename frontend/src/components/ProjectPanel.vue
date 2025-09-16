@@ -48,7 +48,26 @@
         </div>
         
         <div class="tree-content">
+          <!-- 加载状态 -->
+          <div v-if="isLoadingFiles" class="loading-state">
+            <n-spin size="small" />
+            <span>加载文件列表中...</span>
+          </div>
+          
+          <!-- 暂无数据状态 -->
+          <div v-else-if="fileTree.length === 0 && !isLoadingFiles" class="empty-state">
+            <n-icon size="32" color="#CBD5E0">
+              <FolderIcon />
+            </n-icon>
+            <p>暂无文件数据</p>
+            <n-button text size="small" @click="refreshFiles">
+              手动刷新
+            </n-button>
+          </div>
+          
+          <!-- 文件树 -->
           <FileTreeNode
+            v-else
             v-for="file in fileTree"
             :key="file.path"
             :node="file"
@@ -150,8 +169,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted, defineComponent, type PropType } from 'vue'
-import { NIcon, NButton, NButtonGroup, NTag, useMessage } from 'naive-ui'
+import { ref, computed, h, onMounted, watch, defineComponent, type PropType } from 'vue'
+import { NIcon, NButton, NButtonGroup, NTag, NSpin, useMessage } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore, type FileTreeNode } from '@/stores/file'
 import type { Project } from '@/types/project'
@@ -174,17 +193,26 @@ const activeTab = ref<'code' | 'preview'>('code')
 const selectedFile = ref<FileTreeNode | null>(null)
 const fileTree = ref<FileTreeNode[]>([])
 const previewLoading = ref(false)
+const isLoadingFiles = ref(false)
 
 
 // 加载项目文件树
 const loadProjectFiles = async () => {
-  if (!props.project?.id) return
+  if (!props.project?.id) {
+    console.log('项目ID不存在，跳过文件加载')
+    return
+  }
   
+  isLoadingFiles.value = true
   try {
     const tree = await fileStore.getProjectFileTree(props.project.id)
     fileTree.value = tree
+    console.log('文件树加载完成:', tree.length, '个文件/文件夹')
   } catch (error) {
     console.error('加载项目文件失败:', error)
+    fileTree.value = []
+  } finally {
+    isLoadingFiles.value = false
   }
 }
 
@@ -526,9 +554,23 @@ const FileTreeNode = defineComponent({
   }
 })
 
+// 监听项目数据变化，当项目加载完成后自动加载文件
+watch(() => props.project, (newProject) => {
+  if (newProject?.id) {
+    console.log('项目数据已加载，开始加载文件:', newProject.id)
+    loadProjectFiles()
+  }
+}, { immediate: true })
+
 // 初始化
 onMounted(async () => {
-  await loadProjectFiles()
+  // 如果项目数据已经存在，直接加载文件
+  if (props.project?.id) {
+    console.log('组件挂载时项目数据已存在，开始加载文件:', props.project.id)
+    await loadProjectFiles()
+  } else {
+    console.log('组件挂载时项目数据尚未加载，等待项目数据...')
+  }
 })
 </script>
 
@@ -812,5 +854,35 @@ onMounted(async () => {
 .file-tree .tree-content::-webkit-scrollbar-thumb:hover,
 .editor-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* 加载状态和空状态样式 */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.empty-state p {
+  margin: var(--spacing-md) 0 var(--spacing-sm) 0;
+  font-size: 0.9rem;
+}
+
+.empty-state .n-button {
+  margin-top: var(--spacing-sm);
 }
 </style>
