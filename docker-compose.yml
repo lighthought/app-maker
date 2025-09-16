@@ -165,6 +165,13 @@ services:
         # 禁用 HTTPS 重定向，因为我们在 Traefik 后面
         nginx['redirect_http_to_https'] = false
         nginx['listen_port'] = 80
+        # 添加以下配置
+        postgresql['shared_buffers'] = "256MB"
+        postgresql['max_connections'] = 200
+        gitlab_rails['db_pool'] = 10
+        # 禁用不必要的服务以节省资源
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
         # 配置 GitLab 与 Jenkins 集成
         gitlab_rails['webhook_timeout'] = 10
         gitlab_rails['git_timeout'] = 10
