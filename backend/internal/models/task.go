@@ -4,9 +4,10 @@ import "encoding/json"
 
 // 任务类型常量
 const (
-	TypeEmailDelivery   = "email:deliver"
-	TypeProjectDownload = "project:download" // 下载项目
-	TypeProjectBackup   = "project:backup"   // 备份项目
+	TypeEmailDelivery      = "email:deliver"
+	TypeProjectDownload    = "project:download"    // 下载项目
+	TypeProjectBackup      = "project:backup"      // 备份项目
+	TypeProjectDevelopment = "project:development" // 开发项目
 )
 
 // 任务状态常量

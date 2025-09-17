@@ -47,3 +47,16 @@ func NewProjectBackupTask(projectID, projectPath string) *asynq.Task {
 		asynq.MaxRetry(1),
 		asynq.Retention(1*time.Hour))
 }
+
+// 创建项目开发任务
+func NewProjectDevelopmentTask(projectID, projectPath string) *asynq.Task {
+	payload := models.ProjectTaskPayload{
+		ProjectID:   projectID,
+		ProjectPath: projectPath,
+	}
+	return asynq.NewTask(models.TypeProjectDevelopment,
+		payload.ToBytes(),
+		asynq.Queue("default"),
+		asynq.MaxRetry(1),
+		asynq.Retention(1*time.Hour))
+}

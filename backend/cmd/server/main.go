@@ -75,6 +75,7 @@ func initAsynqWorker(cfg *config.Config) {
 	projectWorker := worker.NewProjectWorker()
 	mux.Handle(models.TypeProjectDownload, projectWorker)
 	mux.Handle(models.TypeProjectBackup, projectWorker)
+	mux.Handle(models.TypeProjectDevelopment, projectWorker)
 	// ... 注册其他任务处理器
 
 	// 启动服务器

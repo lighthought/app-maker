@@ -28,6 +28,8 @@ func (h *ProjectTaskHandler) ProcessTask(ctx context.Context, task *asynq.Task) 
 		return h.HandleProjectDownloadTask(ctx, task)
 	case models.TypeProjectBackup:
 		return h.HandleProjectBackupTask(ctx, task)
+	case models.TypeProjectDevelopment:
+		return h.HandleProjectDevelopmentTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
@@ -69,6 +71,20 @@ func (s *ProjectTaskHandler) HandleProjectDownloadTask(ctx context.Context, t *a
 		s.updateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
 	}
 	s.updateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
+	return nil
+}
+
+// HandleProjectDevelopmentTask 处理项目开发任务
+func (s *ProjectTaskHandler) HandleProjectDevelopmentTask(ctx context.Context, t *asynq.Task) error {
+	resultWriter := t.ResultWriter()
+	logger.Info("处理项目开发任务", logger.String("taskID", resultWriter.TaskID()))
+	// if err := s.projectStageService.StartProjectDevelopment(context.Background(), project.ID); err != nil {
+	// 	logger.Error("启动项目开发流程失败",
+	// 		logger.String("error", err.Error()),
+	// 		logger.String("projectID", project.ID),
+	// 	)
+	// }
+	s.updateResult(resultWriter, models.TaskStatusDone, 100, "项目开发任务完成")
 	return nil
 }
 
