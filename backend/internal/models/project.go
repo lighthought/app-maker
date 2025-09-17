@@ -29,6 +29,7 @@ type Project struct {
 	PreviewUrl       string         `json:"preview_url" gorm:"size:500"`
 	ProjectPath      string         `json:"project_path" gorm:"size:500;not null"`
 	UserID           string         `json:"user_id" gorm:"type:varchar(50);not null"`
+	GitlabRepoURL    string         `json:"gitlab_repo_url" gorm:"size:500"`
 	User             User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"autoUpdateTime"`

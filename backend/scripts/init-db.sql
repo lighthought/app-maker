@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS projects (
     jwt_secret_key VARCHAR(255),
     subnetwork VARCHAR(50) DEFAULT '172.20.0.0/16',
     preview_url VARCHAR(500),
+    gitlab_repo_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -120,7 +121,7 @@ CREATE TABLE IF NOT EXISTS project_msgs (
     id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('MSG', 'public.project_msgs_id_num_seq'),
     project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     type VARCHAR(20) NOT NULL CHECK (type IN ('user', 'agent', 'system')),
-    agent_role VARCHAR(20) CHECK (agent_role IN ('dev', 'pm', 'arch', 'ux', 'qa', 'ops')),
+    agent_role VARCHAR(20) CHECK (agent_role IN ('analyst','dev', 'pm', 'po', 'architect', 'ux-expert', 'qa', 'sm', 'bmad-master')),
     agent_name VARCHAR(100),
     content TEXT,
     is_markdown BOOLEAN DEFAULT FALSE,

@@ -27,8 +27,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/m
 # 第二阶段：运行阶段
 FROM alpine:latest
 
-# 安装 ca-certificates 和 tzdata
-RUN apk --no-cache add ca-certificates tzdata zip bash git curl
+# 安装 ca-certificates、tzdata、SSH 客户端和密钥生成工具
+RUN apk --no-cache add ca-certificates tzdata zip bash git curl openssh-client
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S appgroup && \
@@ -50,9 +50,11 @@ COPY --from=builder /app/data/template.zip ./template.zip
 COPY --from=builder /app/scripts ./scripts
 
 # 创建必要的目录
-RUN mkdir -p /app/logs /app/configs /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts && \
+RUN mkdir -p /app/logs /app/configs /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts /home/appuser/.ssh && \
     chown -R appuser:appgroup /app && \
-    chmod +x /app/scripts/*.sh
+    chown -R appuser:appgroup /home/appuser/.ssh && \
+    chmod +x /app/scripts/*.sh && \
+    chmod 700 /home/appuser/.ssh
 
 # 创建启动脚本，在容器启动时复制 template.zip
 RUN echo '#!/bin/bash' > /app/start.sh && \
