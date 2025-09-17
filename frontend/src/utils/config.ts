@@ -29,11 +29,17 @@ export class AppConfig {
     return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8098/api/v1'
   }
 
+  // 获取 API 超时时间
+  getApiTimeout(): number {
+    return 1000 * (import.meta.env.VITE_API_TIMEOUT || 60)
+  }
+
   // 获取当前配置信息
-  getConfig(): { apiLogEnabled: boolean; apiBaseUrl: string } {
+  getConfig(): { apiLogEnabled: boolean; apiBaseUrl: string; apiTimeout: number } {
     return {
       apiLogEnabled: this.apiLogEnabled,
-      apiBaseUrl: this.getApiBaseUrl()
+      apiBaseUrl: this.getApiBaseUrl(),
+      apiTimeout: this.getApiTimeout()
     }
   }
 }

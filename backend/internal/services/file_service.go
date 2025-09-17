@@ -79,8 +79,8 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, pa
 
 	// 检查路径是否存在
 	if utils.IsDirectoryExists(projectPath) == false {
-		logger.Error("项目的子目录路径不存在", logger.String("projectPath", projectPath))
-		return []models.FileItem{}, nil
+		logger.Info("项目的子目录路径不存在", logger.String("projectPath", projectPath))
+		return []models.FileItem{}, fmt.Errorf("项目的子目录路径不存在: %s", projectPath)
 	}
 
 	// 加载预览文件配置

@@ -13,9 +13,10 @@ class HttpService {
   }> = []
   
   constructor() {
+    const config = AppConfig.getInstance().getConfig()
     this.instance = axios.create({
-      baseURL: AppConfig.getInstance().getApiBaseUrl(),
-      timeout: 10000,
+      baseURL: config.apiBaseUrl,
+      timeout: config.apiTimeout,
       headers: {
         'Content-Type': 'application/json'
       }

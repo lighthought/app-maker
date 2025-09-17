@@ -28,6 +28,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod # Uses the new prod Dockerfile
     container_name: app-maker-frontend-prod
+    environment:
+      - VITE_API_BASE_URL=/api/v1
+      - VITE_API_TIMEOUT=60
     ports:
       - "3000:3000"
     depends_on:

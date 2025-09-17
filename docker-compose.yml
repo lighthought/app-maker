@@ -30,6 +30,7 @@ services:
     container_name: app-maker-frontend-dev
     environment:
       - VITE_API_BASE_URL=/api/v1
+      - VITE_API_TIMEOUT=60
     ports:
       - "3000:3000"
     depends_on:
@@ -67,15 +68,17 @@ services:
       - LOG_LEVEL=debug
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
-      - GITLAB_URL=${GITLAB_URL}
-      - GITLAB_USERNAME=${GITLAB_USERNAME}
-      - GITLAB_EMAIL=${GITLAB_EMAIL}
-      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_URL=${GITLAB_URL:-git@gitlab.app-maker.localhost}
+      - GITLAB_USERNAME=${GITLAB_USERNAME:-John}
+      - GITLAB_EMAIL=${GITLAB_EMAIL:-qqjack2012@gmail.com}
+      - SSH_KEY_PATH=${SSH_KEY_PATH:-/home/appuser/.ssh/id_rsa}
+      - SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS:-/home/appuser/.ssh/known_hosts}
       - OLLAMA_URL=${OLLAMA_URL}
     volumes:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
       - app_data:/app/data
+      - ssh_keys:/home/appuser/.ssh
     extra_hosts:
       - "gitlab.app-maker.localhost:${GITLAB_HOST}"
     depends_on:
@@ -157,6 +160,8 @@ volumes:
   redis_data:
     driver: local
   app_data:
+    driver: local
+  ssh_keys:
     driver: local
   
 
