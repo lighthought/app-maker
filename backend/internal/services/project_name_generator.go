@@ -32,39 +32,10 @@ func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projec
 		logger.String("requirements", requirements),
 	)
 
-	// 初始化 Ollama 客户端
-	client, err := utils.InitOllamaClient(g.config.AI.Ollama.BaseURL)
-	if err != nil {
-		logger.Error("无法初始化 Ollama 客户端",
-			logger.String("error", err.Error()),
-		)
-		return g.fallbackToDefaultConfig(requirements, projectConfig)
-	}
-	if client == nil {
-		logger.Error("无法初始化 Ollama 客户端")
-		return g.fallbackToDefaultConfig(requirements, projectConfig)
-	}
-
-	// 测试连接
-	if err := utils.TestConnection(client); err != nil {
-		logger.Error("Ollama 连接测试失败",
-			logger.String("error", err.Error()),
-		)
-		return g.fallbackToDefaultConfig(requirements, projectConfig)
-	}
-
-	// 使用 AI 生成项目总结
-	summary, err := utils.GenerateProjectSummary(client, requirements)
-	if err != nil {
-		logger.Error("AI 生成项目总结失败",
-			logger.String("error", err.Error()),
-		)
-		return g.fallbackToDefaultConfig(requirements, projectConfig)
-	}
-
 	// 设置项目配置
-	projectConfig.Name = summary.Title
-	projectConfig.Description = summary.Content
+	projectConfig.Name = "newproj"
+	projectConfig.Description = requirements
+	projectConfig.Requirements = requirements
 	projectConfig.ApiBaseUrl = "/api/v1"
 
 	// 生成密码
