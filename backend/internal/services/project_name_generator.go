@@ -1,7 +1,6 @@
 package services
 
 import (
-	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"fmt"
@@ -15,15 +14,11 @@ type ProjectNameGenerator interface {
 }
 
 // projectNameGenerator 项目名生成器实现
-type projectNameGenerator struct {
-	config *config.Config
-}
+type projectNameGenerator struct{}
 
 // NewProjectNameGenerator 创建项目名生成器实例
-func NewProjectNameGenerator(cfg *config.Config) ProjectNameGenerator {
-	return &projectNameGenerator{
-		config: cfg,
-	}
+func NewProjectNameGenerator() ProjectNameGenerator {
+	return &projectNameGenerator{}
 }
 
 // GenerateProjectConfig 根据需求生成项目配置

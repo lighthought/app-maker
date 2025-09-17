@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,20 +13,12 @@ import (
 
 // TaskHandler 任务处理器
 type TaskHandler struct {
-	clientOpt *asynq.RedisClientOpt
 	inspector *asynq.Inspector
 }
 
 // NewTaskHandler 创建任务处理器实例
-func NewTaskHandler(cfg *config.Config) *TaskHandler {
-	clientOpt := &asynq.RedisClientOpt{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	}
-	inspector := asynq.NewInspector(clientOpt)
+func NewTaskHandler(inspector *asynq.Inspector) *TaskHandler {
 	return &TaskHandler{
-		clientOpt: clientOpt,
 		inspector: inspector,
 	}
 }

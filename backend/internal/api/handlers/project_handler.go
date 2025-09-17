@@ -15,13 +15,15 @@ import (
 
 // ProjectHandler 项目处理器
 type ProjectHandler struct {
-	projectService services.ProjectService
+	projectService      services.ProjectService
+	projectStageService services.ProjectStageService
 }
 
 // NewProjectHandler 创建项目处理器实例
-func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
+func NewProjectHandler(projectService services.ProjectService, projectStageService services.ProjectStageService) *ProjectHandler {
 	return &ProjectHandler{
-		projectService: projectService,
+		projectService:      projectService,
+		projectStageService: projectStageService,
 	}
 }
 
@@ -276,7 +278,7 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 		return
 	}
 
-	stages, err := h.projectService.GetProjectStages(c.Request.Context(), projectID)
+	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,

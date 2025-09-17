@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"time"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
@@ -28,15 +27,15 @@ type UserService interface {
 // userService 用户服务实现
 type userService struct {
 	userRepo       repositories.UserRepository
-	jwtSecret      string
+	authJWTService *auth.JWTService
 	jwtExpireHours int
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService(userRepo repositories.UserRepository, jwtSecret string, jwtExpireHours int) UserService {
+func NewUserService(userRepo repositories.UserRepository, jwtService *auth.JWTService, jwtExpireHours int) UserService {
 	return &userService{
 		userRepo:       userRepo,
-		jwtSecret:      jwtSecret,
+		authJWTService: jwtService,
 		jwtExpireHours: jwtExpireHours,
 	}
 }
@@ -268,10 +267,8 @@ func (s *userService) DeleteUser(ctx context.Context, userID string) error {
 // RefreshToken 刷新令牌
 func (s *userService) RefreshToken(ctx context.Context, refreshToken string) (*models.LoginResponse, error) {
 	// 创建 JWT 服务来验证刷新令牌
-	jwtService := auth.NewJWTService(s.jwtSecret, time.Duration(s.jwtExpireHours)*time.Hour)
-
 	// 验证刷新令牌
-	userID, err := jwtService.ValidateRefreshToken(refreshToken)
+	userID, err := s.authJWTService.ValidateRefreshToken(refreshToken)
 	if err != nil {
 		return nil, errors.New("无效的刷新令牌")
 	}
@@ -316,9 +313,6 @@ func (s *userService) generateTokens(userID string) (string, string, error) {
 		return "", "", err
 	}
 
-	// 创建 JWT 服务
-	jwtService := auth.NewJWTService(s.jwtSecret, time.Duration(s.jwtExpireHours)*time.Hour)
-
 	// 使用 JWT 服务生成令牌
-	return jwtService.GenerateTokens(user.ID, user.Email, user.Username)
+	return s.authJWTService.GenerateTokens(user.ID, user.Email, user.Username)
 }

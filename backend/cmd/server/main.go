@@ -34,6 +34,7 @@ import (
 	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/api/routes"
 	"autocodeweb-backend/internal/config"
+	"autocodeweb-backend/internal/container"
 	"autocodeweb-backend/internal/database"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/worker"
@@ -46,10 +47,11 @@ import (
 	"github.com/hibiken/asynq"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 )
 
 // 初始化异步服务
-func initAsynqWorker(cfg *config.Config) {
+func initAsynqWorker(cfg *config.Config, db *gorm.DB, container *container.Container) {
 	redisClientOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
@@ -75,7 +77,9 @@ func initAsynqWorker(cfg *config.Config) {
 	projectWorker := worker.NewProjectWorker()
 	mux.Handle(models.TypeProjectDownload, projectWorker)
 	mux.Handle(models.TypeProjectBackup, projectWorker)
+	mux.Handle(models.TypeProjectInit, container.ProjectService)
 	mux.Handle(models.TypeProjectDevelopment, projectWorker)
+
 	// ... 注册其他任务处理器
 
 	// 启动服务器
@@ -124,7 +128,6 @@ func main() {
 
 	// 初始化缓存系统
 	var cacheInstance cache.Cache
-	var monitor *cache.Monitor
 
 	if database.GetRedis() != nil {
 		// 创建缓存配置
@@ -143,16 +146,22 @@ func main() {
 			logger.Warn("创建缓存实例失败，将使用内存缓存", logger.String("error", err.Error()))
 		} else {
 			logger.Info("缓存系统初始化成功")
-			// 创建监控实例
-			monitor = cache.NewMonitor(database.GetRedis())
 		}
+	}
+
+	var the_container *container.Container
+	if database.GetDB() != nil && database.GetRedis() != nil {
+		the_container = container.NewContainer(cfg, database.GetDB(), database.GetRedis(), cacheInstance)
+		logger.Info("依赖注入容器初始化成功")
+	} else {
+		logger.Warn("数据库未连接，部分功能不可用")
 	}
 
 	// 如果缓存初始化失败，设置为 nil
 	if cacheInstance == nil {
 		logger.Warn("缓存系统不可用，相关功能将受限")
 	} else {
-		initAsynqWorker(cfg) // 有缓存，才处理异步任务
+		initAsynqWorker(cfg, database.GetDB(), the_container) // 有缓存，才处理异步任务
 	}
 
 	// 设置Gin模式
@@ -173,7 +182,7 @@ func main() {
 	// 添加Swagger文档路由
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// 注册路由
-	routes.Register(engine, cfg, cacheInstance, monitor, database.GetDB())
+	routes.Register(engine, the_container)
 
 	// 创建HTTP服务器
 	srv := &http.Server{

@@ -5,8 +5,6 @@ import (
 	"autocodeweb-backend/internal/repositories"
 	"context"
 	"fmt"
-
-	"gorm.io/gorm"
 )
 
 // MessageService 对话消息服务接口
@@ -30,9 +28,8 @@ type messageService struct {
 }
 
 // NewMessageService 创建对话消息服务
-func NewMessageService(db *gorm.DB) MessageService {
-	repo := repositories.NewMessageRepository(db)
-	return &messageService{repo: repo}
+func NewMessageService(MessageRepository repositories.MessageRepository) MessageService {
+	return &messageService{repo: MessageRepository}
 }
 
 func (s *messageService) GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int, error) {

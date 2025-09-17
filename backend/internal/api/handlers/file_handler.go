@@ -17,7 +17,7 @@ type FileHandler struct {
 	fileService    services.FileService
 }
 
-// NewProjectHandler 创建项目处理器实例
+// NewFileHandler 创建项目处理器实例
 func NewFileHandler(fileService services.FileService, projectService services.ProjectService) *FileHandler {
 	return &FileHandler{
 		fileService:    fileService,

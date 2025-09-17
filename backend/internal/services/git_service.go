@@ -12,8 +12,15 @@ import (
 	"autocodeweb-backend/pkg/logger"
 )
 
+type GitService interface {
+	SetupSSH() error
+	GetPublicKey() (string, error)
+	InitializeGit(ctx context.Context, config *GitConfig) (string, error)
+	CommitAndPush(ctx context.Context, config *GitConfig) error
+}
+
 // GitService Git操作服务
-type GitService struct {
+type gitService struct {
 	gitlabURL      string
 	gitlabUsername string
 	gitlabEmail    string
@@ -22,8 +29,8 @@ type GitService struct {
 }
 
 // NewGitService 创建Git服务
-func NewGitService() *GitService {
-	return &GitService{
+func NewGitService() GitService {
+	return &gitService{
 		gitlabURL:      utils.GetEnvOrDefault("GITLAB_URL", "git@gitlab.app-maker.localhost"),
 		gitlabUsername: utils.GetEnvOrDefault("GITLAB_USERNAME", "John"),
 		gitlabEmail:    utils.GetEnvOrDefault("GITLAB_EMAIL", "qqjack2012@gmail.com"),
@@ -41,7 +48,7 @@ type GitConfig struct {
 }
 
 // SetupSSH 配置SSH密钥和known_hosts
-func (s *GitService) SetupSSH() error {
+func (s *gitService) SetupSSH() error {
 	logger.Info("配置SSH密钥")
 
 	// 检查SSH密钥是否存在
@@ -50,11 +57,11 @@ func (s *GitService) SetupSSH() error {
 		if err := s.generateSSHKey(); err != nil {
 			return fmt.Errorf("生成SSH密钥失败: %w", err)
 		}
+	}
 
-		// 配置SSH known_hosts
-		if err := s.setupKnownHosts(); err != nil {
-			return fmt.Errorf("配置known_hosts失败: %w", err)
-		}
+	// 配置SSH known_hosts
+	if err := s.setupKnownHosts(); err != nil {
+		return fmt.Errorf("配置known_hosts失败: %w", err)
 	}
 
 	logger.Info("SSH配置完成")
@@ -62,7 +69,7 @@ func (s *GitService) SetupSSH() error {
 }
 
 // generateSSHKey 生成SSH密钥对
-func (s *GitService) generateSSHKey() error {
+func (s *gitService) generateSSHKey() error {
 	// 确保 .ssh 目录存在且有正确权限
 	sshDir := filepath.Dir(s.sshKeyPath)
 	if err := os.MkdirAll(sshDir, 0700); err != nil {
@@ -108,7 +115,7 @@ func (s *GitService) generateSSHKey() error {
 }
 
 // setupKnownHosts 配置SSH known_hosts
-func (s *GitService) setupKnownHosts() error {
+func (s *gitService) setupKnownHosts() error {
 	// 从GITLAB_URL提取主机名
 	hostname := strings.TrimPrefix(s.gitlabURL, "git@")
 	hostname = strings.TrimPrefix(hostname, "https://")
@@ -116,13 +123,19 @@ func (s *GitService) setupKnownHosts() error {
 	hostname = strings.TrimSuffix(hostname, ":22")
 	hostname = strings.Split(hostname, ":")[0]
 
-	// 写入known_hosts文件
-	publicKey, err := s.GetPublicKey()
+	// 使用 ssh-keyscan 获取远程主机密钥
+	cmd := exec.CommandContext(context.Background(), "ssh-keyscan", "-H", hostname)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("获取公钥失败: %w", err)
+		logger.Error("获取主机密钥失败",
+			logger.String("hostname", hostname),
+			logger.String("error", err.Error()),
+			logger.String("output", string(output)),
+		)
+		return fmt.Errorf("ssh-keyscan: %w", err)
 	}
-	output := []byte(hostname + " ")
-	output = append(output, []byte(publicKey)...)
+
+	// 写入known_hosts文件
 	if err := os.WriteFile(s.sshKnownHosts, output, 0644); err != nil {
 		return fmt.Errorf("写入known_hosts失败: %w", err)
 	}
@@ -134,7 +147,7 @@ func (s *GitService) setupKnownHosts() error {
 }
 
 // GetPublicKey 获取SSH公钥内容
-func (s *GitService) GetPublicKey() (string, error) {
+func (s *gitService) GetPublicKey() (string, error) {
 	publicKeyPath := s.sshKeyPath + ".pub"
 	content, err := os.ReadFile(publicKeyPath)
 	if err != nil {
@@ -144,7 +157,7 @@ func (s *GitService) GetPublicKey() (string, error) {
 }
 
 // InitializeGit 初始化Git仓库
-func (s *GitService) InitializeGit(ctx context.Context, config *GitConfig) (string, error) {
+func (s *gitService) InitializeGit(ctx context.Context, config *GitConfig) (string, error) {
 	projectDir := config.ProjectPath
 
 	logger.Info("初始化Git仓库",
@@ -205,7 +218,7 @@ func (s *GitService) InitializeGit(ctx context.Context, config *GitConfig) (stri
 }
 
 // CommitAndPush 提交并推送代码
-func (s *GitService) CommitAndPush(ctx context.Context, config *GitConfig) error {
+func (s *gitService) CommitAndPush(ctx context.Context, config *GitConfig) error {
 	projectDir := config.ProjectPath
 
 	logger.Info("开始提交并推送代码",
@@ -250,7 +263,7 @@ func (s *GitService) CommitAndPush(ctx context.Context, config *GitConfig) error
 }
 
 // pushToRemote 推送到远程仓库
-func (s *GitService) pushToRemote(ctx context.Context, projectDir, projectID string) error {
+func (s *gitService) pushToRemote(ctx context.Context, projectDir, projectID string) error {
 	// 构建SSH格式的远程URL
 	remoteURL := s.buildRemoteURL(projectID)
 
@@ -271,7 +284,7 @@ func (s *GitService) pushToRemote(ctx context.Context, projectDir, projectID str
 }
 
 // buildRemoteURL 构建远程仓库URL（SSH格式）
-func (s *GitService) buildRemoteURL(projectID string) string {
+func (s *gitService) buildRemoteURL(projectID string) string {
 	// 从GITLAB_URL提取主机名
 	hostname := strings.TrimPrefix(s.gitlabURL, "git@")
 	hostname = strings.TrimPrefix(hostname, "https://")
@@ -283,7 +296,7 @@ func (s *GitService) buildRemoteURL(projectID string) string {
 }
 
 // runGitCommand 执行Git命令
-func (s *GitService) runGitCommand(ctx context.Context, workDir string, args ...string) error {
+func (s *gitService) runGitCommand(ctx context.Context, workDir string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = workDir
 
@@ -308,14 +321,14 @@ func (s *GitService) runGitCommand(ctx context.Context, workDir string, args ...
 }
 
 // isGitRepository 检查是否是Git仓库
-func (s *GitService) isGitRepository(projectDir string) bool {
+func (s *gitService) isGitRepository(projectDir string) bool {
 	gitDir := filepath.Join(projectDir, ".git")
 	_, err := os.Stat(gitDir)
 	return err == nil
 }
 
 // hasChanges 检查是否有文件变更
-func (s *GitService) hasChanges(projectDir string) bool {
+func (s *gitService) hasChanges(projectDir string) bool {
 	cmd := exec.Command("git", "diff", "--cached", "--quiet")
 	cmd.Dir = projectDir
 	err := cmd.Run()

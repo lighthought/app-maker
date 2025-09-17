@@ -6,43 +6,37 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sync"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
-
-	"golang.org/x/sync/semaphore"
 )
 
+type ProjectStageService interface {
+	StartProjectDevelopment(ctx context.Context, projectID string) error
+	GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error)
+}
+
 // ProjectStageService 任务执行服务
-type ProjectStageService struct {
+type projectStageService struct {
 	projectRepo repositories.ProjectRepository
 	stageRepo   repositories.StageRepository
-	// 线程池控制
-	semaphore      *semaphore.Weighted
-	maxConcurrency int64
-	mu             sync.Mutex
 }
 
 // NewTaskExecutionService 创建任务执行服务
 func NewProjectStageService(
 	projectRepo repositories.ProjectRepository,
 	stageRepo repositories.StageRepository,
-) *ProjectStageService {
-	maxConcurrency := int64(3) // 限制同时执行3个项目开发任务
-
-	return &ProjectStageService{
-		projectRepo:    projectRepo,
-		stageRepo:      stageRepo,
-		semaphore:      semaphore.NewWeighted(maxConcurrency),
-		maxConcurrency: maxConcurrency,
+) ProjectStageService {
+	return &projectStageService{
+		projectRepo: projectRepo,
+		stageRepo:   stageRepo,
 	}
 }
 
 // StartProjectDevelopment 启动项目开发流程
-func (s *ProjectStageService) StartProjectDevelopment(ctx context.Context, projectID string) error {
+func (s *projectStageService) StartProjectDevelopment(ctx context.Context, projectID string) error {
 	logger.Info("开始项目开发流程", logger.String("projectID", projectID))
 
 	// 获取项目信息
@@ -64,34 +58,11 @@ func (s *ProjectStageService) StartProjectDevelopment(ctx context.Context, proje
 
 	// TODO: 需要实现 用户 MCP 工具，让 Agents 能够调用，得到当前阶段的响应是否需要调整
 
-	// 使用线程池异步执行开发流程
-	//go s.executeWithSemaphore(context.Background(), project)
-
 	return nil
 }
 
-// executeWithSemaphore 使用信号量控制并发执行
-func (s *ProjectStageService) executeWithSemaphore(ctx context.Context, project *models.Project) {
-	// 获取信号量许可
-	if err := s.semaphore.Acquire(ctx, 1); err != nil {
-		logger.Error("获取信号量失败",
-			logger.String("projectID", project.ID),
-			logger.String("error", err.Error()),
-		)
-		return
-	}
-	defer s.semaphore.Release(1)
-
-	logger.Info("获得执行许可，开始执行项目开发流程",
-		logger.String("projectID", project.ID),
-	)
-
-	// 执行开发流程
-	s.executeProjectDevelopment(ctx, project)
-}
-
 // executeProjectDevelopment 执行项目开发流程
-func (s *ProjectStageService) executeProjectDevelopment(ctx context.Context, project *models.Project) {
+func (s *projectStageService) executeProjectDevelopment(ctx context.Context, project *models.Project) {
 	logger.Info("开始执行项目开发流程",
 		logger.String("projectID", project.ID),
 	)
@@ -160,7 +131,7 @@ func (s *ProjectStageService) executeProjectDevelopment(ctx context.Context, pro
 }
 
 // generatePRD 生成PRD文档
-func (s *ProjectStageService) generatePRD(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) generatePRD(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始生成产品需求文档...")
@@ -187,7 +158,7 @@ func (s *ProjectStageService) generatePRD(ctx context.Context, project *models.P
 }
 
 // defineUXStandards 定义UX标准
-func (s *ProjectStageService) defineUXStandards(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) defineUXStandards(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义用户体验标准...")
@@ -212,7 +183,7 @@ func (s *ProjectStageService) defineUXStandards(ctx context.Context, project *mo
 }
 
 // designArchitecture 设计系统架构
-func (s *ProjectStageService) designArchitecture(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) designArchitecture(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始设计系统架构...")
@@ -237,7 +208,7 @@ func (s *ProjectStageService) designArchitecture(ctx context.Context, project *m
 }
 
 // defineDataModel 定义数据模型
-func (s *ProjectStageService) defineDataModel(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) defineDataModel(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义数据模型...")
@@ -262,7 +233,7 @@ func (s *ProjectStageService) defineDataModel(ctx context.Context, project *mode
 }
 
 // defineAPIs 定义API接口
-func (s *ProjectStageService) defineAPIs(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) defineAPIs(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义API接口...")
@@ -287,7 +258,7 @@ func (s *ProjectStageService) defineAPIs(ctx context.Context, project *models.Pr
 }
 
 // planEpicsAndStories 划分Epic和Story
-func (s *ProjectStageService) planEpicsAndStories(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) planEpicsAndStories(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始划分Epic和Story...")
@@ -312,7 +283,7 @@ func (s *ProjectStageService) planEpicsAndStories(ctx context.Context, project *
 }
 
 // developStories 开发Story功能
-func (s *ProjectStageService) developStories(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) developStories(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始开发Story功能...")
@@ -331,7 +302,7 @@ func (s *ProjectStageService) developStories(ctx context.Context, project *model
 }
 
 // fixBugs 修复开发问题
-func (s *ProjectStageService) fixBugs(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) fixBugs(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始修复开发问题...")
@@ -350,7 +321,7 @@ func (s *ProjectStageService) fixBugs(ctx context.Context, project *models.Proje
 }
 
 // runTests 执行自动测试
-func (s *ProjectStageService) runTests(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) runTests(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始执行自动测试...")
@@ -369,7 +340,7 @@ func (s *ProjectStageService) runTests(ctx context.Context, project *models.Proj
 }
 
 // packageProject 打包项目
-func (s *ProjectStageService) packageProject(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) packageProject(ctx context.Context, project *models.Project) error {
 	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始打包项目...")
@@ -388,21 +359,21 @@ func (s *ProjectStageService) packageProject(ctx context.Context, project *model
 }
 
 // GetProjectStages 获取项目开发阶段
-func (s *ProjectStageService) GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error) {
+func (s *projectStageService) GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error) {
 	return s.stageRepo.GetByProjectID(ctx, projectID)
 }
 
 // CreateDevStage 创建开发阶段
-func (s *ProjectStageService) CreateDevStage(ctx context.Context, stage *models.DevStage) error {
+func (s *projectStageService) CreateDevStage(ctx context.Context, stage *models.DevStage) error {
 	return s.stageRepo.Create(ctx, stage)
 }
 
 // UpdateDevStage 更新开发阶段
-func (s *ProjectStageService) UpdateDevStage(ctx context.Context, stage *models.DevStage) error {
+func (s *projectStageService) UpdateDevStage(ctx context.Context, stage *models.DevStage) error {
 	return s.stageRepo.Update(ctx, stage)
 }
 
 // UpdateStageStatus 更新阶段状态
-func (s *ProjectStageService) UpdateStageStatus(ctx context.Context, stageID string, status string) error {
+func (s *projectStageService) UpdateStageStatus(ctx context.Context, stageID string, status string) error {
 	return s.stageRepo.UpdateStatus(ctx, stageID, status)
 }
