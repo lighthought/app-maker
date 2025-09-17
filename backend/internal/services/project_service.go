@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"autocodeweb-backend/internal/config"
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/tasks"
@@ -42,6 +43,7 @@ type ProjectService interface {
 // projectService 项目服务实现
 type projectService struct {
 	projectRepo         repositories.ProjectRepository
+	projectMsgRepo      repositories.MessageRepository
 	templateService     ProjectTemplateService
 	projectStageService *ProjectStageService
 	nameGenerator       ProjectNameGenerator
@@ -57,10 +59,13 @@ func NewProjectService(
 	cfg *config.Config,
 ) ProjectService {
 	projectRepo := repositories.NewProjectRepository(db)
+	projectMsgRepo := repositories.NewMessageRepository(db)
 	stageRepo := repositories.NewStageRepository(db)
 	gitService := NewGitService()
+	gitService.SetupSSH()
 	return &projectService{
 		projectRepo:         projectRepo,
+		projectMsgRepo:      projectMsgRepo,
 		templateService:     NewProjectTemplateService(fileService),
 		projectStageService: NewProjectStageService(projectRepo, stageRepo),
 		nameGenerator:       NewProjectNameGenerator(cfg),
@@ -147,27 +152,9 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 	logger.Info("项目保存成功", logger.String("projectID", newProject.ID))
 
-	// 初始化项目模板
-	logger.Info("开始初始化项目模板",
-		logger.String("projectID", newProject.ID),
-		logger.String("projectPath", newProject.ProjectPath),
-	)
-	if err := s.templateService.InitializeProject(ctx, newProject); err != nil {
-		// 模板初始化失败不影响项目创建，但记录错误
-		logger.Error("项目模板初始化失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", newProject.ID),
-			logger.String("projectPath", newProject.ProjectPath),
-		)
-	} else {
-		logger.Info("项目模板初始化成功",
-			logger.String("projectID", newProject.ID),
-			logger.String("projectPath", newProject.ProjectPath),
-		)
-	}
+	newProject.UserID = userID
+	go s.afterCreateProject(context.Background(), newProject)
 
-	// 获取创建后的项目信息
-	logger.Info("获取创建后的项目信息", logger.String("projectID", newProject.ID))
 	projectInfo, err := s.GetProject(ctx, newProject.ID, userID)
 	if err != nil {
 		logger.Error("获取项目信息失败",
@@ -176,27 +163,156 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		)
 		return nil, err
 	}
+	return projectInfo, nil
+}
 
-	// 提交代码到GitLab，触发自动编译打包
-	go s.commitProjectToGit(context.Background(), newProject)
+// generateProjectName 生成项目名
+func (s *projectService) afterCreateProject(ctx context.Context, project *models.Project) {
+	if project == nil {
+		return
+	}
+	// 1. 获取项目名和描述
+	logger.Info("开始生成项目名和描述",
+		logger.String("projectID", project.ID),
+		logger.String("requirements", project.Requirements),
+	)
+	summary, err := utils.GenerateProjectSummary(project.Requirements)
+	if err != nil {
+		logger.Error("生成项目名和描述失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+		return
+	}
 
-	// TODO: 改成使用 asynq 异步调用 agents-server 的接口
-	go func() {
-		if err := s.projectStageService.StartProjectDevelopment(context.Background(), newProject.ID); err != nil {
-			logger.Error("启动项目开发流程失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", newProject.ID),
-			)
-		}
-	}()
+	projectMsg := &models.ConversationMessage{
+		ProjectID:       project.ID,
+		Type:            constants.ConversationTypeSystem,
+		AgentRole:       constants.AgentAnalyst.Role,
+		AgentName:       constants.AgentAnalyst.Name,
+		Content:         "项目简介已生成",
+		IsMarkdown:      true,
+		MarkdownContent: summary.Title + "\r\n" + summary.Content,
+		IsExpanded:      true,
+	}
 
-	logger.Info("项目创建完成，开发流程已启动",
-		logger.String("projectID", newProject.ID),
-		logger.String("projectName", newProject.Name),
-		logger.String("status", newProject.Status),
+	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+		return
+	}
+
+	project.Name = summary.Title
+	project.Description = summary.Content
+	logger.Info("生成项目名和描述成功",
+		logger.String("projectID", project.ID),
+		logger.String("projectName", project.Name),
+		logger.String("projectDescription", project.Description),
 	)
 
-	return projectInfo, nil
+	s.projectRepo.Update(ctx, project)
+
+	// 2. 初始化项目模板
+	logger.Info("2. 开始初始化项目模板",
+		logger.String("projectID", project.ID),
+		logger.String("projectPath", project.ProjectPath),
+	)
+
+	if err := s.templateService.InitializeProject(ctx, project); err != nil {
+		// 模板初始化失败不影响项目创建，但记录错误
+		logger.Error("项目模板初始化失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+			logger.String("projectPath", project.ProjectPath),
+		)
+		return
+	}
+
+	projectMsg2 := &models.ConversationMessage{
+		ProjectID:       project.ID,
+		Type:            constants.ConversationTypeSystem,
+		AgentRole:       constants.AgentDev.Role,
+		AgentName:       constants.AgentDev.Name,
+		Content:         "项目模板初始化成功",
+		IsMarkdown:      true,
+		MarkdownContent: project.ID + ", " + project.Name + "\r\n" + project.ProjectPath,
+		IsExpanded:      true,
+	}
+
+	if err := s.projectMsgRepo.Create(ctx, projectMsg2); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	// 3. 提交代码到GitLab，触发自动编译打包
+	err = s.commitProjectToGit(ctx, project)
+	if err != nil {
+		logger.Error("提交代码到GitLab失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	} else {
+		projectMsg3 := &models.ConversationMessage{
+			ProjectID:       project.ID,
+			Type:            constants.ConversationTypeSystem,
+			AgentRole:       constants.AgentDev.Role,
+			AgentName:       constants.AgentDev.Name,
+			Content:         "项目代码已成功提交到GitLab",
+			IsMarkdown:      true,
+			MarkdownContent: project.ID + ", " + project.Name + "\r\n" + project.ProjectPath,
+			IsExpanded:      true,
+		}
+
+		if err := s.projectMsgRepo.Create(ctx, projectMsg3); err != nil {
+			logger.Error("保存项目消息失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
+		}
+	}
+
+	// asynq 异步调用 agents-server 的接口
+	if project.GitlabRepoURL != "" {
+		taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GitlabRepoURL))
+		if err != nil {
+			logger.Error("创建项目开发任务失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
+		} else {
+			logger.Info("项目创建完成，开发流程已启动",
+				logger.String("projectID", project.ID),
+				logger.String("projectName", project.Name),
+				logger.String("status", project.Status),
+			)
+
+			projectMsg4 := &models.ConversationMessage{
+				ProjectID:  project.ID,
+				Type:       constants.ConversationTypeSystem,
+				AgentRole:  constants.AgentPM.Role,
+				AgentName:  constants.AgentPM.Name,
+				Content:    "项目创建完成，开发流程已启动",
+				IsMarkdown: true,
+				MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
+					"\",\n\"name\": \"" + project.Name +
+					"\",\n\"path\":\"" + project.ProjectPath +
+					"\",\n \"taskID\": \"" + taskInfo.ID + "\"\n}```",
+				IsExpanded: true,
+			}
+
+			if err := s.projectMsgRepo.Create(ctx, projectMsg4); err != nil {
+				logger.Error("保存项目消息失败",
+					logger.String("error", err.Error()),
+					logger.String("projectID", project.ID),
+				)
+			}
+		}
+	}
+
 }
 
 // GetProject 获取项目信息
@@ -389,7 +505,7 @@ func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectI
 }
 
 // commitProjectToGit 提交项目代码到GitLab
-func (s *projectService) commitProjectToGit(ctx context.Context, project *models.Project) {
+func (s *projectService) commitProjectToGit(ctx context.Context, project *models.Project) error {
 	logger.Info("开始提交项目代码到GitLab",
 		logger.String("projectID", project.ID),
 		logger.String("userID", project.UserID),
@@ -403,14 +519,23 @@ func (s *projectService) commitProjectToGit(ctx context.Context, project *models
 		CommitMessage: fmt.Sprintf("Auto commit by App Maker - %s", project.Name),
 	}
 
+	logger.Info("初始化项目 Git 仓库",
+		logger.String("projectID", project.ID),
+		logger.String("userID", project.UserID),
+		logger.String("projectPath", project.ProjectPath),
+	)
+
 	// 初始化Git仓库
-	if err := s.gitService.InitializeGit(ctx, gitConfig); err != nil {
+	giturl, err := s.gitService.InitializeGit(ctx, gitConfig)
+	if err != nil {
 		logger.Error("初始化Git仓库失败",
 			logger.String("projectID", project.ID),
 			logger.String("error", err.Error()),
 		)
-		return
+		return fmt.Errorf("初始化Git仓库失败: %w", err)
 	}
+
+	project.GitlabRepoURL = giturl
 
 	// 提交并推送代码
 	if err := s.gitService.CommitAndPush(ctx, gitConfig); err != nil {
@@ -418,11 +543,16 @@ func (s *projectService) commitProjectToGit(ctx context.Context, project *models
 			logger.String("projectID", project.ID),
 			logger.String("error", err.Error()),
 		)
-		return
+		return fmt.Errorf("提交代码到GitLab失败: %w", err)
 	}
+
+	project.Status = "in_progress"
+	project.GitlabRepoURL = gitConfig.ProjectPath
+	s.projectRepo.Update(ctx, project)
 
 	logger.Info("项目代码已成功提交到GitLab",
 		logger.String("projectID", project.ID),
 		logger.String("userID", project.UserID),
 	)
+	return nil
 }
