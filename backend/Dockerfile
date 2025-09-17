@@ -37,6 +37,9 @@ RUN addgroup -g 1001 -S appgroup && \
 # 设置工作目录
 WORKDIR /app
 
+# 创建必要的目录
+RUN mkdir -p /app/logs /app/configs /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts /home/appuser/.ssh
+
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/main .
 
@@ -49,13 +52,21 @@ COPY --from=builder /app/data/template.zip ./template.zip
 # 复制脚本文件
 COPY --from=builder /app/scripts ./scripts
 
-# 创建必要的目录
-RUN mkdir -p /app/logs /app/configs /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts /home/appuser/.ssh && \
-    chown -R appuser:appgroup /app && \
+# 设置权限和所有者
+RUN chown -R appuser:appgroup /app && \
     chown -R appuser:appgroup /home/appuser/.ssh && \
-    chmod +x /app/scripts/*.sh && \
     chmod 700 /home/appuser/.ssh
 
+# 设置脚本执行权限（如果脚本存在）
+RUN if [ -d /app/scripts ] && [ "$(ls -A /app/scripts/*.sh 2>/dev/null)" ]; then \
+        chmod +x /app/scripts/*.sh; \
+    fi
+
+# 创建 known_hosts 文件并设置正确权限
+RUN touch /home/appuser/.ssh/known_hosts && \
+    chown appuser:appgroup /home/appuser/.ssh/known_hosts && \
+    chmod 644 /home/appuser/.ssh/known_hosts
+    
 # 创建启动脚本，在容器启动时复制 template.zip
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'if [ ! -f /app/data/template.zip ] && [ -f /app/template.zip ]; then' >> /app/start.sh && \
