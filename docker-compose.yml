@@ -71,10 +71,13 @@ services:
       - GITLAB_USERNAME=${GITLAB_USERNAME}
       - GITLAB_EMAIL=${GITLAB_EMAIL}
       - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - OLLAMA_URL=${OLLAMA_URL}
     volumes:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
       - app_data:/app/data
+    extra_hosts:
+      - "gitlab.app-maker.localhost:${GITLAB_HOST}"
     depends_on:
       postgres:
         condition: service_healthy
