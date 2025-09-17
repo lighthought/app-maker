@@ -46,18 +46,18 @@ func (s *ProjectTaskHandler) HandleProjectBackupTask(ctx context.Context, t *asy
 
 	resultPath, projectPath, err := s.zipProjectPath(t)
 	if err != nil {
-		s.updateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
 		return fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, resultWriter.TaskID())
 	}
-	s.updateResult(resultWriter, models.TaskStatusInProgress, 60, "项目已打包到缓存")
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 60, "项目已打包到缓存")
 
 	// 删除项目目录
-	s.updateResult(resultWriter, models.TaskStatusInProgress, 80, "正在删除项目目录")
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 80, "正在删除项目目录")
 	if err := os.RemoveAll(projectPath); err != nil {
-		s.updateResult(resultWriter, models.TaskStatusFailed, 0, "删除项目目录失败: "+err.Error())
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "删除项目目录失败: "+err.Error())
 		return fmt.Errorf("删除项目目录失败: %w, projectPath: %s", err, projectPath)
 	}
-	s.updateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
+	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
 	return nil
 }
 
@@ -68,9 +68,9 @@ func (s *ProjectTaskHandler) HandleProjectDownloadTask(ctx context.Context, t *a
 
 	resultPath, _, err := s.zipProjectPath(t)
 	if err != nil {
-		s.updateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
 	}
-	s.updateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
+	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
 	return nil
 }
 
@@ -84,7 +84,7 @@ func (s *ProjectTaskHandler) HandleProjectDevelopmentTask(ctx context.Context, t
 	// 		logger.String("projectID", project.ID),
 	// 	)
 	// }
-	s.updateResult(resultWriter, models.TaskStatusDone, 100, "项目开发任务完成")
+	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, "项目开发任务完成")
 	return nil
 }
 
@@ -103,30 +103,12 @@ func (s *ProjectTaskHandler) zipProjectPath(t *asynq.Task) (string, string, erro
 	// 生成缓存文件名
 	cacheFileName := fmt.Sprintf("%s_%s", projectID, time.Now().Format("20060102_150405"))
 
-	s.updateResult(resultWriter, models.TaskStatusInProgress, 30, "正在打包项目文件...")
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 30, "正在打包项目文件...")
 	// 使用 utils 压缩到缓存
 	resultPath, err := utils.CompressDirectoryToDir(context.Background(), projectPath, cacheDir, cacheFileName)
 	if err != nil {
-		s.updateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
 		return "", projectPath, fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, projectID)
 	}
 	return resultPath, projectPath, nil
-}
-
-// updateResult 是一个帮助函数，用于将任务进度更新到Redis。
-// 这里假设使用一个Redis Hash结构，key为`task:progress:<task_id>`。
-func (h *ProjectTaskHandler) updateResult(resultWriter *asynq.ResultWriter, status string, progress int, message string) {
-	if resultWriter == nil {
-		logger.Error("resultWriter is nil, can't update result")
-		return
-	}
-
-	data := models.TaskResult{
-		TaskID:    resultWriter.TaskID(),
-		Status:    status,
-		Progress:  progress,
-		Message:   message,
-		UpdatedAt: utils.GetCurrentTime(),
-	}
-	resultWriter.Write(data.ToBytes())
 }

@@ -7,6 +7,7 @@ const (
 	TypeEmailDelivery      = "email:deliver"
 	TypeProjectDownload    = "project:download"    // 下载项目
 	TypeProjectBackup      = "project:backup"      // 备份项目
+	TypeProjectInit        = "project:init"        // 初始化项目
 	TypeProjectDevelopment = "project:development" // 开发项目
 )
 

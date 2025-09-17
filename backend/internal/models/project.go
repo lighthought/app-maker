@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"gorm.io/gorm"
@@ -179,6 +180,11 @@ func (p *Project) GetDevStageDescription() string {
 	default:
 		return "未知状态"
 	}
+}
+
+// 转换为 []byte
+func (p *Project) ToBytes() ([]byte, error) {
+	return json.Marshal(p)
 }
 
 // TableName 指定表名

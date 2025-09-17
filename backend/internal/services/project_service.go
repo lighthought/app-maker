@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
 
-	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
@@ -16,7 +16,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
-	"gorm.io/gorm"
 )
 
 // ProjectService 项目服务接口
@@ -30,47 +29,42 @@ type ProjectService interface {
 	// 用户项目管理
 	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*models.PaginationResponse, error)
 
-	// 项目开发阶段管理
-	GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error)
-
 	// 检查项目访问权限
 	CheckProjectAccess(ctx context.Context, projectID, userID string) (*models.Project, error)
 
 	// CreateDownloadProjectTask 创建项目下载任务
 	CreateDownloadProjectTask(ctx context.Context, projectID, projectPath string) (string, error)
+
+	// ProcessTask 处理任务
+	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
 // projectService 项目服务实现
 type projectService struct {
-	projectRepo         repositories.ProjectRepository
-	projectMsgRepo      repositories.MessageRepository
-	templateService     ProjectTemplateService
-	projectStageService *ProjectStageService
-	nameGenerator       ProjectNameGenerator
-	asyncClient         *asynq.Client
-	gitService          *GitService
+	projectRepo     repositories.ProjectRepository
+	projectMsgRepo  repositories.MessageRepository
+	asyncClient     *asynq.Client
+	templateService ProjectTemplateService
+	nameGenerator   ProjectNameGenerator
+	gitService      GitService
 }
 
 // NewProjectService 创建项目服务实例
 func NewProjectService(
-	db *gorm.DB,
+	projectRepo repositories.ProjectRepository,
+	projectMsgRepo repositories.MessageRepository,
 	asyncClient *asynq.Client,
-	fileService FileService,
-	cfg *config.Config,
+	templateService ProjectTemplateService,
+	nameGenerator ProjectNameGenerator,
+	gitService GitService,
 ) ProjectService {
-	projectRepo := repositories.NewProjectRepository(db)
-	projectMsgRepo := repositories.NewMessageRepository(db)
-	stageRepo := repositories.NewStageRepository(db)
-	gitService := NewGitService()
-	gitService.SetupSSH()
 	return &projectService{
-		projectRepo:         projectRepo,
-		projectMsgRepo:      projectMsgRepo,
-		templateService:     NewProjectTemplateService(fileService),
-		projectStageService: NewProjectStageService(projectRepo, stageRepo),
-		nameGenerator:       NewProjectNameGenerator(cfg),
-		asyncClient:         asyncClient,
-		gitService:          gitService,
+		projectRepo:     projectRepo,
+		projectMsgRepo:  projectMsgRepo,
+		asyncClient:     asyncClient,
+		templateService: templateService,
+		nameGenerator:   nameGenerator,
+		gitService:      gitService,
 	}
 }
 
@@ -141,6 +135,19 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		newProject.Subnetwork = "172.20.0.0/16"
 	}
 
+	newProject.UserID = userID
+	// asynq 异步调用初始化项目流程
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectInitTask(newProject))
+	if err != nil {
+		logger.Error("创建项目初始化任务失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", newProject.ID),
+		)
+		return nil, fmt.Errorf("创建项目初始化任务失败: %w", err)
+	}
+
+	newProject.CurrentTaskID = taskInfo.ID
+
 	// 更新项目
 	logger.Info("保存项目到数据库")
 	if err := s.projectRepo.Update(ctx, newProject); err != nil {
@@ -151,9 +158,6 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		return nil, fmt.Errorf("failed to create project: %w", err)
 	}
 	logger.Info("项目保存成功", logger.String("projectID", newProject.ID))
-
-	newProject.UserID = userID
-	go s.afterCreateProject(context.Background(), newProject)
 
 	projectInfo, err := s.GetProject(ctx, newProject.ID, userID)
 	if err != nil {
@@ -166,12 +170,28 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	return projectInfo, nil
 }
 
-// generateProjectName 生成项目名
-func (s *projectService) afterCreateProject(ctx context.Context, project *models.Project) {
-	if project == nil {
-		return
+// ProcessTask 处理任务
+func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) error {
+	switch task.Type() {
+	case models.TypeProjectInit:
+		return s.HandleProjectInitTask(ctx, task)
+	default:
+		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
-	// 1. 获取项目名和描述
+}
+
+// HandleProjectInitTask 处理项目初始化任务
+func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Task) error {
+	resultWriter := t.ResultWriter()
+	logger.Info("处理项目初始化任务", logger.String("taskID", resultWriter.TaskID()))
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 10, "项目初始化任务执行中")
+
+	var project models.Project
+	if err := json.Unmarshal(t.Payload(), &project); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+	logger.Info("处理项目初始化任务", logger.String("taskID", resultWriter.TaskID()))
+
 	logger.Info("开始生成项目名和描述",
 		logger.String("projectID", project.ID),
 		logger.String("requirements", project.Requirements),
@@ -182,9 +202,11 @@ func (s *projectService) afterCreateProject(ctx context.Context, project *models
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
-		return
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "生成项目名和描述失败")
+		return fmt.Errorf("生成项目名和描述失败: %w", err)
 	}
 
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 20, "生成项目名和描述成功")
 	projectMsg := &models.ConversationMessage{
 		ProjectID:       project.ID,
 		Type:            constants.ConversationTypeSystem,
@@ -201,8 +223,10 @@ func (s *projectService) afterCreateProject(ctx context.Context, project *models
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
-		return
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "保存项目消息失败")
+		return fmt.Errorf("保存项目消息失败: %w", err)
 	}
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 30, "保存项目消息成功")
 
 	project.Name = summary.Title
 	project.Description = summary.Content
@@ -212,7 +236,8 @@ func (s *projectService) afterCreateProject(ctx context.Context, project *models
 		logger.String("projectDescription", project.Description),
 	)
 
-	s.projectRepo.Update(ctx, project)
+	s.projectRepo.Update(ctx, &project)
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 40, "更新项目信息成功")
 
 	// 2. 初始化项目模板
 	logger.Info("2. 开始初始化项目模板",
@@ -220,15 +245,17 @@ func (s *projectService) afterCreateProject(ctx context.Context, project *models
 		logger.String("projectPath", project.ProjectPath),
 	)
 
-	if err := s.templateService.InitializeProject(ctx, project); err != nil {
+	if err := s.templateService.InitializeProject(ctx, &project); err != nil {
 		// 模板初始化失败不影响项目创建，但记录错误
 		logger.Error("项目模板初始化失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 			logger.String("projectPath", project.ProjectPath),
 		)
-		return
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "项目模板初始化失败")
+		return fmt.Errorf("项目模板初始化失败: %w", err)
 	}
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 60, "项目模板初始化成功")
 
 	projectMsg2 := &models.ConversationMessage{
 		ProjectID:       project.ID,
@@ -249,70 +276,85 @@ func (s *projectService) afterCreateProject(ctx context.Context, project *models
 	}
 
 	// 3. 提交代码到GitLab，触发自动编译打包
-	err = s.commitProjectToGit(ctx, project)
+	err = s.commitProjectToGit(ctx, &project)
 	if err != nil {
 		logger.Error("提交代码到GitLab失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
-	} else {
-		projectMsg3 := &models.ConversationMessage{
-			ProjectID:       project.ID,
-			Type:            constants.ConversationTypeSystem,
-			AgentRole:       constants.AgentDev.Role,
-			AgentName:       constants.AgentDev.Name,
-			Content:         "项目代码已成功提交到GitLab",
-			IsMarkdown:      true,
-			MarkdownContent: project.ID + ", " + project.Name + "\r\n" + project.ProjectPath,
-			IsExpanded:      true,
-		}
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "提交代码到GitLab失败")
+		return fmt.Errorf("提交代码到GitLab失败: %w", err)
+	}
 
-		if err := s.projectMsgRepo.Create(ctx, projectMsg3); err != nil {
-			logger.Error("保存项目消息失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-			)
-		}
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 70, "提交代码到GitLab成功")
+	projectMsg3 := &models.ConversationMessage{
+		ProjectID:       project.ID,
+		Type:            constants.ConversationTypeSystem,
+		AgentRole:       constants.AgentDev.Role,
+		AgentName:       constants.AgentDev.Name,
+		Content:         "项目代码已成功提交到GitLab",
+		IsMarkdown:      true,
+		MarkdownContent: project.ID + ", " + project.Name + "\r\n" + project.ProjectPath,
+		IsExpanded:      true,
+	}
+
+	if err := s.projectMsgRepo.Create(ctx, projectMsg3); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "保存项目消息失败")
+		return fmt.Errorf("保存项目消息失败: %w", err)
+	}
+
+	if project.GitlabRepoURL == "" {
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "GitLab仓库URL为空")
+		return fmt.Errorf("GitLab仓库URL为空")
 	}
 
 	// asynq 异步调用 agents-server 的接口
-	if project.GitlabRepoURL != "" {
-		taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GitlabRepoURL))
-		if err != nil {
-			logger.Error("创建项目开发任务失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-			)
-		} else {
-			logger.Info("项目创建完成，开发流程已启动",
-				logger.String("projectID", project.ID),
-				logger.String("projectName", project.Name),
-				logger.String("status", project.Status),
-			)
-
-			projectMsg4 := &models.ConversationMessage{
-				ProjectID:  project.ID,
-				Type:       constants.ConversationTypeSystem,
-				AgentRole:  constants.AgentPM.Role,
-				AgentName:  constants.AgentPM.Name,
-				Content:    "项目创建完成，开发流程已启动",
-				IsMarkdown: true,
-				MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
-					"\",\n\"name\": \"" + project.Name +
-					"\",\n\"path\":\"" + project.ProjectPath +
-					"\",\n \"taskID\": \"" + taskInfo.ID + "\"\n}```",
-				IsExpanded: true,
-			}
-
-			if err := s.projectMsgRepo.Create(ctx, projectMsg4); err != nil {
-				logger.Error("保存项目消息失败",
-					logger.String("error", err.Error()),
-					logger.String("projectID", project.ID),
-				)
-			}
-		}
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GitlabRepoURL))
+	if err != nil {
+		logger.Error("创建项目开发任务失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "项目初始化任务失败")
+		return fmt.Errorf("创建项目开发任务失败: %w", err)
 	}
 
+	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 80, "项目创建完成，开发流程已启动")
+	logger.Info("项目创建完成，开发流程已启动",
+		logger.String("projectID", project.ID),
+		logger.String("projectName", project.Name),
+		logger.String("status", project.Status),
+	)
+
+	projectMsg4 := &models.ConversationMessage{
+		ProjectID:  project.ID,
+		Type:       constants.ConversationTypeSystem,
+		AgentRole:  constants.AgentPM.Role,
+		AgentName:  constants.AgentPM.Name,
+		Content:    "项目创建完成，开发流程已启动",
+		IsMarkdown: true,
+		MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
+			"\",\n\"name\": \"" + project.Name +
+			"\",\n\"path\":\"" + project.ProjectPath +
+			"\",\n \"taskID\": \"" + taskInfo.ID + "\"\n}```",
+		IsExpanded: true,
+	}
+
+	if err := s.projectMsgRepo.Create(ctx, projectMsg4); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 100, "保存项目消息失败")
+		return fmt.Errorf("保存项目消息失败: %w", err)
+	}
+
+	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, "项目初始化任务完成")
+	return nil
 }
 
 // GetProject 获取项目信息
@@ -430,11 +472,6 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 	}
 
 	return pagination, nil
-}
-
-// GetProjectStages 获取项目开发阶段
-func (s *projectService) GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error) {
-	return s.projectStageService.GetProjectStages(ctx, projectID)
 }
 
 // 检查项目访问权限
