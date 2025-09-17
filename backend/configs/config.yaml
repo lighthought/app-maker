@@ -1,7 +1,7 @@
 app:
   environment: "development"
   port: "8080"
-  secret_key: "dev-secret-key-change-in-production"
+  secret_key: "AutoCodeWeb2024!@#"
 
 database:
   host: "autocodeweb-postgres"
@@ -21,7 +21,7 @@ redis:
   db: 0
 
 jwt:
-  secret_key: "dev-jwt-secret-key-change-in-production"
+  secret_key: "AutoCodeWeb2024!@#"
   expire_hours: 24
 
 bmad:
@@ -29,8 +29,8 @@ bmad:
 
 ai:
   ollama:
-    base_url: "http://localhost:11434"
-    model: "llama3.2:latest"
+    base_url: "http://10.0.0.6:11434"
+    model: "deepseek-r1:14b"
     timeout: 30
 
 log:

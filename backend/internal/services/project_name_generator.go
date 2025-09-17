@@ -33,7 +33,13 @@ func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projec
 	)
 
 	// 初始化 Ollama 客户端
-	client := utils.InitOllamaClient(g.config.AI.Ollama.BaseURL)
+	client, err := utils.InitOllamaClient(g.config.AI.Ollama.BaseURL)
+	if err != nil {
+		logger.Error("无法初始化 Ollama 客户端",
+			logger.String("error", err.Error()),
+		)
+		return g.fallbackToDefaultConfig(requirements, projectConfig)
+	}
 	if client == nil {
 		logger.Error("无法初始化 Ollama 客户端")
 		return g.fallbackToDefaultConfig(requirements, projectConfig)

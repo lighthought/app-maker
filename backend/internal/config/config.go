@@ -1,7 +1,9 @@
 package config
 
 import (
+	"autocodeweb-backend/internal/utils"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -120,33 +122,37 @@ func setEnvKeyReplacer() {
 }
 
 func setDefaults() {
-	viper.SetDefault("app.environment", "development")
+	viper.SetDefault("app.environment", utils.GetEnvOrDefault("APP_ENVIRONMENT", "development"))
 	viper.SetDefault("app.port", "8080")
-	viper.SetDefault("app.secret_key", "your-secret-key-change-in-production")
+	viper.SetDefault("app.secret_key", utils.GetEnvOrDefault("APP_SECRET_KEY", "your-secret-key-change-in-production"))
 
-	viper.SetDefault("database.host", "localhost")
+	viper.SetDefault("database.host", utils.GetEnvOrDefault("DATABASE_HOST", "postgres"))
 	viper.SetDefault("database.port", 5434)
-	viper.SetDefault("database.user", "autocodeweb")
-	viper.SetDefault("database.password", "AutoCodeWeb2024!@#")
-	viper.SetDefault("database.name", "autocodeweb")
+	viper.SetDefault("database.user", utils.GetEnvOrDefault("DATABASE_USER", "autocodeweb"))
+	viper.SetDefault("database.password", utils.GetEnvOrDefault("DATABASE_PASSWORD", "your-secret-key-change-in-production"))
+	viper.SetDefault("database.name", utils.GetEnvOrDefault("DATABASE_NAME", "autocodeweb"))
 	viper.SetDefault("database.ssl_mode", "disable")
 	viper.SetDefault("database.connect_timeout", 10)
 	viper.SetDefault("database.auto_migrate", true)
 	viper.SetDefault("database.seed_data", true)
 
-	viper.SetDefault("redis.host", "localhost")
+	viper.SetDefault("redis.host", utils.GetEnvOrDefault("REDIS_HOST", "redis"))
 	viper.SetDefault("redis.port", 6379)
-	viper.SetDefault("redis.password", "")
+	viper.SetDefault("redis.password", utils.GetEnvOrDefault("REDIS_PASSWORD", "your-secret-key-change-in-production"))
 	viper.SetDefault("redis.db", 0)
 
-	viper.SetDefault("jwt.secret_key", "your-jwt-secret-key-change-in-production")
+	viper.SetDefault("jwt.secret_key", utils.GetEnvOrDefault("JWT_SECRET_KEY", "your-jwt-secret-key-change-in-production"))
 	viper.SetDefault("jwt.expire_hours", 24)
 
 	viper.SetDefault("bmad.npm_package", "bmad-method")
 
-	viper.SetDefault("ai.ollama.base_url", "http://host.docker.internal:11434")
-	viper.SetDefault("ai.ollama.model", "llama3.2:latest")
-	viper.SetDefault("ai.ollama.timeout", 30)
+	viper.SetDefault("ai.ollama.base_url", utils.GetEnvOrDefault("OLLAMA_URL", "http://chat.app-maker.localhost:11434"))
+	viper.SetDefault("ai.ollama.model", utils.GetEnvOrDefault("OLLAMA_MODEL", "deepseek-r1:14b"))
+	timeout, err := strconv.Atoi(utils.GetEnvOrDefault("OLLAMA_TIMEOUT", "60"))
+	if err != nil {
+		timeout = 60
+	}
+	viper.SetDefault("ai.ollama.timeout", timeout)
 
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.file", "./logs/app.log")

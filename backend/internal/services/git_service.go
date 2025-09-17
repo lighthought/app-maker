@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 )
 
@@ -22,10 +23,10 @@ type GitService struct {
 // NewGitService 创建Git服务
 func NewGitService() *GitService {
 	return &GitService{
-		gitlabURL:      getEnvOrDefault("GITLAB_URL", "http://gitlab:80"),
-		gitlabUsername: getEnvOrDefault("GITLAB_USERNAME", "John Allen"),
-		gitlabEmail:    getEnvOrDefault("GITLAB_EMAIL", "qqjack2012@gmail.com"),
-		gitlabToken:    getEnvOrDefault("GITLAB_TOKEN", "glpat-NLYbzXG5Yc-JhboXApAOeW86MQp1OjMH.01.0w1eim90j"),
+		gitlabURL:      utils.GetEnvOrDefault("GITLAB_URL", "http://gitlab.app-maker.localhost"),
+		gitlabUsername: utils.GetEnvOrDefault("GITLAB_USERNAME", "John"),
+		gitlabEmail:    utils.GetEnvOrDefault("GITLAB_EMAIL", "qqjack2012@gmail.com"),
+		gitlabToken:    utils.GetEnvOrDefault("GITLAB_TOKEN", "glpat-_S4kLnmj3UJNvjFMqvG_b286MQp1OjMH.01.0w18kp84i"),
 	}
 }
 

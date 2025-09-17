@@ -41,14 +41,6 @@ func NewProjectStageService(
 	}
 }
 
-// getEnvOrDefault 获取环境变量或返回默认值
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
 // StartProjectDevelopment 启动项目开发流程
 func (s *ProjectStageService) StartProjectDevelopment(ctx context.Context, projectID string) error {
 	logger.Info("开始项目开发流程", logger.String("projectID", projectID))
