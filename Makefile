@@ -12,6 +12,7 @@ help:
 	@echo "  docker-ensure  - Ensure Docker Desktop is running (auto-start if needed)"
 	@echo "  docker-service-start/stop/restart - Manage Docker Windows service"
 	@echo "  docker-install-check - Check Docker Desktop installation"
+	@echo "  docker-image-pull - Pull Docker images"
 	@echo "  network-create - Create Docker network (app-maker-network)"
 	@echo "  network-check  - Check if Docker network exists"
 	@echo "  external-services - Show external services configuration"
@@ -109,6 +110,13 @@ docker-service-restart:
 	@timeout /t 3 /nobreak >nul
 	@net start "com.docker.service" >nul 2>&1 && echo "[OK] Docker service restarted" || echo "[WARNING] Docker service restart failed"
 
+docker-image-pull:
+	@echo "Pulling Docker images..."
+	docker pull golang:1.24-alpine
+	docker pull alpine:latest
+	docker pull node:18-alpine
+	docker pull nginx:alpine
+
 # 检查 Docker Desktop 安装路径
 docker-install-check:
 	@echo "Checking Docker Desktop installation..."
@@ -155,12 +163,12 @@ swagger:
 	cd backend && swag init -g cmd/server/main.go -o docs
 
 # 构建开发环境镜像
-build-dev: docker-ensure network-create swagger
+build-dev: docker-ensure network-create swagger docker-image-pull
 	@echo "Building development environment images..."
 	docker-compose build
 
 # 构建生产环境镜像
-build-prod: docker-ensure network-create swagger
+build-prod: docker-ensure network-create swagger docker-image-pull
 	@echo "Building production environment images..."
 	docker-compose -f docker-compose.prod.yml build
 
