@@ -3,11 +3,15 @@ package container
 import (
 	"autocodeweb-backend/internal/api/handlers"
 	"autocodeweb-backend/internal/config"
+	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/services"
+	"autocodeweb-backend/internal/worker"
 	"autocodeweb-backend/pkg/auth"
 	"autocodeweb-backend/pkg/cache"
+	"autocodeweb-backend/pkg/logger"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -22,6 +26,7 @@ type Container struct {
 	AsyncInspector *asynq.Inspector
 	CachMonitor    *cache.Monitor
 	JWTService     *auth.JWTService
+	CacheInstance  cache.Cache
 
 	// Repositories
 	UserRepository    repositories.UserRepository
@@ -48,13 +53,39 @@ type Container struct {
 	CacheHandler   *handlers.CacheHandler
 }
 
-func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client, cacheInstance cache.Cache) *Container {
-	// asynq items
-	asyncClient := asynq.NewClient(asynq.RedisClientOpt{
+func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Container {
+	// 初始化缓存系统
+	var cacheInstance cache.Cache
+	var err error
+
+	redisClientOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
-	})
+	}
+
+	if redis != nil {
+		// 创建缓存配置
+		cacheConfig := cache.Config{
+			Type:     cache.CacheTypeRedis,
+			Host:     cfg.Redis.Host,
+			Port:     cfg.Redis.Port,
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.DB,
+			PoolSize: 10,
+			MinIdle:  5,
+		}
+
+		// 创建缓存实例
+		if cacheInstance, err = cache.NewCache(cacheConfig); err != nil {
+			logger.Warn("创建缓存实例失败，将使用内存缓存", logger.String("error", err.Error()))
+		} else {
+			logger.Info("缓存系统初始化成功")
+		}
+	}
+
+	// asynq items
+	asyncClient := asynq.NewClient(redisClientOpt)
 	asyncRedisClientOpt := &asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
@@ -81,6 +112,12 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client, cacheIns
 	gitService.SetupSSH()
 	projectService := services.NewProjectService(projectRepository, messageRepository,
 		asyncClient, projectTemplateService, projectNameGenerator, gitService)
+
+	// 有缓存，才处理异步任务
+	if cacheInstance != nil {
+		projectTaskHandler := worker.NewProjectTaskWorker()
+		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService)
+	}
 	messageService := services.NewMessageService(messageRepository)
 
 	// handlers
@@ -91,11 +128,11 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client, cacheIns
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
 	userHandler := handlers.NewUserHandler(userService)
 	return &Container{
-		AsyncClient:    asyncClient,
-		JWTService:     jwtService,
-		CachMonitor:    cachMonitor,
-		AsyncInspector: asyncInspector,
-
+		AsyncClient:            asyncClient,
+		JWTService:             jwtService,
+		CachMonitor:            cachMonitor,
+		AsyncInspector:         asyncInspector,
+		CacheInstance:          cacheInstance,
 		UserRepository:         userRepository,
 		StageRepository:        stageRepository,
 		ProjectRepository:      projectRepository,
@@ -115,4 +152,38 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client, cacheIns
 		TaskHandler:            taskHandler,
 		UserHandler:            userHandler,
 	}
+}
+
+// 初始化异步服务
+func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, projectTaskHandler *worker.ProjectTaskHandler, projectService services.ProjectService) {
+	// 配置 Worker
+	server := asynq.NewServer(
+		redisClientOpt,
+		asynq.Config{
+			Concurrency: concurrency, // 并发 worker 数量
+			// 可以按权重指定优先处理哪些队列
+			Queues: map[string]int{
+				"critical": models.TaskQueueCritical,
+				"default":  models.TaskQueueDefault,
+				"low":      models.TaskQueueLow,
+			},
+		},
+	)
+
+	// 注册任务处理器
+	mux := asynq.NewServeMux()
+	mux.Handle(models.TypeProjectDownload, projectTaskHandler)
+	mux.Handle(models.TypeProjectBackup, projectTaskHandler)
+	mux.Handle(models.TypeProjectInit, projectService)
+	mux.Handle(models.TypeProjectDevelopment, projectTaskHandler)
+	// ... 注册其他任务处理器
+
+	// 启动服务器
+	go func() {
+		logger.Info("异步服务启动中... ")
+		// 启动 Worker
+		if err := server.Run(mux); err != nil {
+			log.Fatal("Could not start worker: ", err)
+		}
+	}()
 }

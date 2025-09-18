@@ -17,7 +17,7 @@ import (
 type ProjectTaskHandler struct {
 }
 
-func NewProjectWorker() *ProjectTaskHandler {
+func NewProjectTaskWorker() *ProjectTaskHandler {
 	return &ProjectTaskHandler{}
 }
 

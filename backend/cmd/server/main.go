@@ -24,7 +24,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -36,61 +35,14 @@ import (
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/container"
 	"autocodeweb-backend/internal/database"
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/worker"
-	"autocodeweb-backend/pkg/cache"
 	"autocodeweb-backend/pkg/logger"
 
 	_ "autocodeweb-backend/docs"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hibiken/asynq"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"gorm.io/gorm"
 )
-
-// 初始化异步服务
-func initAsynqWorker(cfg *config.Config, db *gorm.DB, container *container.Container) {
-	redisClientOpt := asynq.RedisClientOpt{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
-	}
-
-	// 配置 Worker
-	server := asynq.NewServer(
-		redisClientOpt,
-		asynq.Config{
-			Concurrency: cfg.Asynq.Concurrency, // 并发 worker 数量
-			// 可以按权重指定优先处理哪些队列
-			Queues: map[string]int{
-				"critical": models.TaskQueueCritical,
-				"default":  models.TaskQueueDefault,
-				"low":      models.TaskQueueLow,
-			},
-		},
-	)
-
-	// 注册任务处理器
-	mux := asynq.NewServeMux()
-	projectWorker := worker.NewProjectWorker()
-	mux.Handle(models.TypeProjectDownload, projectWorker)
-	mux.Handle(models.TypeProjectBackup, projectWorker)
-	mux.Handle(models.TypeProjectInit, container.ProjectService)
-	mux.Handle(models.TypeProjectDevelopment, projectWorker)
-
-	// ... 注册其他任务处理器
-
-	// 启动服务器
-	go func() {
-		logger.Info("异步服务启动中... ")
-		// 启动 Worker
-		if err := server.Run(mux); err != nil {
-			log.Fatal("Could not start worker: ", err)
-		}
-	}()
-}
 
 // @securityDefinitions.apikey Bearer
 // @in header
@@ -126,42 +78,12 @@ func main() {
 		defer database.CloseRedis()
 	}
 
-	// 初始化缓存系统
-	var cacheInstance cache.Cache
-
-	if database.GetRedis() != nil {
-		// 创建缓存配置
-		cacheConfig := cache.Config{
-			Type:     cache.CacheTypeRedis,
-			Host:     cfg.Redis.Host,
-			Port:     cfg.Redis.Port,
-			Password: cfg.Redis.Password,
-			DB:       cfg.Redis.DB,
-			PoolSize: 10,
-			MinIdle:  5,
-		}
-
-		// 创建缓存实例
-		if cacheInstance, err = cache.NewCache(cacheConfig); err != nil {
-			logger.Warn("创建缓存实例失败，将使用内存缓存", logger.String("error", err.Error()))
-		} else {
-			logger.Info("缓存系统初始化成功")
-		}
-	}
-
 	var the_container *container.Container
 	if database.GetDB() != nil && database.GetRedis() != nil {
-		the_container = container.NewContainer(cfg, database.GetDB(), database.GetRedis(), cacheInstance)
+		the_container = container.NewContainer(cfg, database.GetDB(), database.GetRedis())
 		logger.Info("依赖注入容器初始化成功")
 	} else {
 		logger.Warn("数据库未连接，部分功能不可用")
-	}
-
-	// 如果缓存初始化失败，设置为 nil
-	if cacheInstance == nil {
-		logger.Warn("缓存系统不可用，相关功能将受限")
-	} else {
-		initAsynqWorker(cfg, database.GetDB(), the_container) // 有缓存，才处理异步任务
 	}
 
 	// 设置Gin模式
