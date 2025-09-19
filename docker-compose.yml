@@ -68,7 +68,7 @@ services:
       - LOG_LEVEL=debug
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
-      - GITLAB_URL=${GITLAB_URL:-git@gitlab.app-maker.localhost}
+      - GITLAB_URL=${GITLAB_URL:-git@gitlab.lighthought.com}
       - GITLAB_USERNAME=${GITLAB_USERNAME:-John}
       - GITLAB_EMAIL=${GITLAB_EMAIL:-qqjack2012@gmail.com}
       - SSH_KEY_PATH=${SSH_KEY_PATH:-/home/appuser/.ssh/id_rsa}
@@ -80,7 +80,7 @@ services:
       - app_data:/app/data
       - ssh_keys:/home/appuser/.ssh
     extra_hosts:
-      - "gitlab.app-maker.localhost:${GITLAB_HOST}"
+      - "gitlab.lighthought.com:${GITLAB_HOST}"
     depends_on:
       postgres:
         condition: service_healthy
