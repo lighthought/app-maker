@@ -11,14 +11,6 @@ const (
 	TypeProjectDevelopment = "project:development" // 开发项目
 )
 
-// 任务状态常量
-const (
-	TaskStatusPending    = "pending"
-	TaskStatusInProgress = "in_progress"
-	TaskStatusDone       = "done"
-	TaskStatusFailed     = "failed"
-)
-
 // 任务优先级
 const (
 	TaskQueueCritical = 6 // 高优先级

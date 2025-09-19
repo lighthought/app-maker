@@ -110,13 +110,13 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	projectNameGenerator := services.NewProjectNameGenerator()
 	gitService := services.NewGitService()
 	gitService.SetupSSH()
-	projectService := services.NewProjectService(projectRepository, messageRepository,
+	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, projectNameGenerator, gitService)
 
 	// 有缓存，才处理异步任务
 	if cacheInstance != nil {
 		projectTaskHandler := worker.NewProjectTaskWorker()
-		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService)
+		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService)
 	}
 	messageService := services.NewMessageService(messageRepository)
 
@@ -155,7 +155,10 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 }
 
 // 初始化异步服务
-func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, projectTaskHandler *worker.ProjectTaskHandler, projectService services.ProjectService) {
+func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
+	projectTaskHandler *worker.ProjectTaskHandler,
+	projectService services.ProjectService,
+	projectStageService services.ProjectStageService) {
 	// 配置 Worker
 	server := asynq.NewServer(
 		redisClientOpt,
@@ -175,7 +178,7 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, proj
 	mux.Handle(models.TypeProjectDownload, projectTaskHandler)
 	mux.Handle(models.TypeProjectBackup, projectTaskHandler)
 	mux.Handle(models.TypeProjectInit, projectService)
-	mux.Handle(models.TypeProjectDevelopment, projectTaskHandler)
+	mux.Handle(models.TypeProjectDevelopment, projectStageService)
 	// ... 注册其他任务处理器
 
 	// 启动服务器

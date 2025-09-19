@@ -2,20 +2,21 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
+
+	"github.com/hibiken/asynq"
 )
 
 type ProjectStageService interface {
-	StartProjectDevelopment(ctx context.Context, projectID string) error
 	GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error)
+	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
 // ProjectStageService 任务执行服务
@@ -35,29 +36,41 @@ func NewProjectStageService(
 	}
 }
 
-// StartProjectDevelopment 启动项目开发流程
-func (s *projectStageService) StartProjectDevelopment(ctx context.Context, projectID string) error {
-	logger.Info("开始项目开发流程", logger.String("projectID", projectID))
+// ProcessTask 处理项目任务
+func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task) error {
+	switch task.Type() {
+	case models.TypeProjectDevelopment:
+		return h.HandleProjectDevelopmentTask(ctx, task)
+	default:
+		return fmt.Errorf("unexpected task type %s", task.Type())
+	}
+}
 
-	// 获取项目信息
-	project, err := s.projectRepo.GetByID(ctx, projectID)
+// HandleProjectDevelopmentTask 处理项目开发任务
+func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, t *asynq.Task) error {
+
+	var payload models.ProjectTaskPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+	resultWriter := t.ResultWriter()
+	logger.Info("处理项目开发任务", logger.String("taskID", resultWriter.TaskID()))
+
+	// 更新 pending agents 的 stage 为 done，表示 API 内部这个 async 调用成功，也获取到了合法的数据
+	if err := s.stageRepo.UpdateStageToDone(ctx, payload.ProjectID, constants.DevStatusPendingAgents); err != nil {
+		logger.Error("更新项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", payload.ProjectID),
+		)
+	}
+
+	project, err := s.projectRepo.GetByID(ctx, payload.ProjectID)
 	if err != nil {
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
-	// 通过 agents-server 的接口，启动项目的开发过程，初始化项目开发环境
-
-	// 更新项目状态为环境处理中
-	project.Status = "in_progress"
-	project.DevStatus = models.DevStatusEnvironmentProcessing
-	project.DevProgress = project.GetDevStageProgress()
-
-	if err := s.projectRepo.Update(ctx, project); err != nil {
-		return fmt.Errorf("更新项目状态失败: %w", err)
-	}
-
-	// TODO: 需要实现 用户 MCP 工具，让 Agents 能够调用，得到当前阶段的响应是否需要调整
-
+	s.executeProjectDevelopment(ctx, project)
+	utils.UpdateResult(resultWriter, constants.CommandStatusDone, 100, "项目开发任务完成")
 	return nil
 }
 
@@ -68,8 +81,8 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context, pro
 	)
 
 	// // 更新项目状态为环境就绪
-	project.DevStatus = models.DevStatusEnvironmentDone
-	project.DevProgress = project.GetDevStageProgress()
+	project.DevStatus = constants.DevStatusCheckRequirement
+	project.DevProgress = constants.GetDevStageProgress(project.DevStatus)
 	s.projectRepo.Update(ctx, project)
 
 	// 2. 执行开发阶段
@@ -78,22 +91,21 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context, pro
 		description string
 		executor    func(context.Context, *models.Project) error
 	}{
-		{models.DevStatusPRDGenerating, "生成PRD文档", s.generatePRD},
-		{models.DevStatusUXDefining, "定义UX标准", s.defineUXStandards},
-		{models.DevStatusArchDesigning, "设计系统架构", s.designArchitecture},
-		{models.DevStatusDataModeling, "定义数据模型", s.defineDataModel},
-		{models.DevStatusAPIDefining, "定义API接口", s.defineAPIs},
-		{models.DevStatusEpicPlanning, "划分Epic和Story", s.planEpicsAndStories},
-		{models.DevStatusStoryDeveloping, "开发Story功能", s.developStories},
-		{models.DevStatusBugFixing, "修复开发问题", s.fixBugs},
-		{models.DevStatusTesting, "执行自动测试", s.runTests},
-		{models.DevStatusPackaging, "打包项目", s.packageProject},
+		{constants.DevStatusGeneratePRD, "生成PRD文档", s.generatePRD},
+		{constants.DevStatusDefineUXStandard, "定义UX标准", s.defineUXStandards},
+		{constants.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
+		{constants.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
+		{constants.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
+		{constants.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
+		{constants.DevStatusDevelopStory, "开发Story功能", s.developStories},
+		{constants.DevStatusFixBug, "修复开发问题", s.fixBugs},
+		{constants.DevStatusRunTest, "执行自动测试", s.runTests},
+		{constants.DevStatusDeploy, "打包项目", s.packageProject},
 	}
 
 	for _, stage := range stages {
 		// 更新项目状态
-		project.DevStatus = stage.status
-		project.DevProgress = project.GetDevStageProgress()
+		project.SetDevStatus(stage.status)
 		s.projectRepo.Update(ctx, project)
 
 		// 执行阶段
@@ -105,25 +117,18 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context, pro
 			)
 
 			// 更新项目状态为失败
-			project.DevStatus = models.DevStatusFailed
-			project.Status = "failed"
+			project.SetDevStatus(constants.DevStatusFailed)
 			s.projectRepo.Update(ctx, project)
 
-			//s.addTaskLog(ctx, task.ID, "error", fmt.Sprintf("%s失败: %s", stage.description, err.Error()))
 			return
 		}
 
-		// 记录阶段完成
-		//s.addTaskLog(ctx, task.ID, "success", fmt.Sprintf("%s完成", stage.description))
 	}
 
 	// 开发完成
-	project.DevStatus = models.DevStatusCompleted
-	project.Status = "completed"
-	project.DevProgress = 100
+	project.SetDevStatus(constants.DevStatusDone)
+	project.Status = constants.CommandStatusDone
 	s.projectRepo.Update(ctx, project)
-
-	//s.addTaskLog(ctx, task.ID, "success", "项目开发流程完成")
 
 	logger.Info("项目开发流程执行完成",
 		logger.String("projectID", project.ID),
@@ -132,26 +137,9 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context, pro
 
 // generatePRD 生成PRD文档
 func (s *projectStageService) generatePRD(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始生成产品需求文档...")
-
-	// 使用 cursor-cli 生成PRD
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		fmt.Sprintf("请根据以下需求生成详细的产品需求文档(PRD)：%s", project.Requirements))
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("生成PRD失败: %w", err)
-	}
-
-	// 保存PRD到项目目录
-	prdPath := filepath.Join(projectDir, "docs", "PRD.md")
-	os.MkdirAll(filepath.Dir(prdPath), 0755)
-
-	if err := os.WriteFile(prdPath, output, 0644); err != nil {
-		return fmt.Errorf("保存PRD文件失败: %w", err)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "PRD文档生成完成")
 	return nil
@@ -159,24 +147,11 @@ func (s *projectStageService) generatePRD(ctx context.Context, project *models.P
 
 // defineUXStandards 定义UX标准
 func (s *projectStageService) defineUXStandards(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	// := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义用户体验标准...")
 
 	// 使用 cursor-cli 定义UX标准
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请根据PRD文档定义用户体验(UX)设计标准，包括设计原则、交互规范、视觉规范等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("定义UX标准失败: %w", err)
-	}
-
-	// 保存UX标准到项目目录
-	uxPath := filepath.Join(projectDir, "docs", "UX_Standards.md")
-	if err := os.WriteFile(uxPath, output, 0644); err != nil {
-		return fmt.Errorf("保存UX标准文件失败: %w", err)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "UX标准定义完成")
 	return nil
@@ -184,24 +159,11 @@ func (s *projectStageService) defineUXStandards(ctx context.Context, project *mo
 
 // designArchitecture 设计系统架构
 func (s *projectStageService) designArchitecture(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始设计系统架构...")
 
 	// 使用 cursor-cli 设计架构
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请根据PRD和UX标准设计系统架构，包括技术栈选择、系统架构图、部署架构等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("设计架构失败: %w", err)
-	}
-
-	// 保存架构设计到项目目录
-	archPath := filepath.Join(projectDir, "docs", "Architecture.md")
-	if err := os.WriteFile(archPath, output, 0644); err != nil {
-		return fmt.Errorf("保存架构设计文件失败: %w", err)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "系统架构设计完成")
 	return nil
@@ -209,24 +171,11 @@ func (s *projectStageService) designArchitecture(ctx context.Context, project *m
 
 // defineDataModel 定义数据模型
 func (s *projectStageService) defineDataModel(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义数据模型...")
 
 	// 使用 cursor-cli 定义数据模型
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请根据系统架构设计数据模型，包括数据库表结构、实体关系图、API数据结构等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("定义数据模型失败: %w", err)
-	}
-
-	// 保存数据模型到项目目录
-	dataPath := filepath.Join(projectDir, "docs", "Data_Model.md")
-	if err := os.WriteFile(dataPath, output, 0644); err != nil {
-		return fmt.Errorf("保存数据模型文件失败: %w", err)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "数据模型定义完成")
 	return nil
@@ -234,24 +183,11 @@ func (s *projectStageService) defineDataModel(ctx context.Context, project *mode
 
 // defineAPIs 定义API接口
 func (s *projectStageService) defineAPIs(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始定义API接口...")
 
 	// 使用 cursor-cli 定义API接口
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请根据数据模型定义API接口规范，包括接口路径、请求方法、参数、响应格式等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("定义API接口失败: %w", err)
-	}
-
-	// 保存API接口定义到项目目录
-	apiPath := filepath.Join(projectDir, "docs", "API_Specification.md")
-	if err := os.WriteFile(apiPath, output, 0644); err != nil {
-		return fmt.Errorf("保存API接口定义文件失败: %w", err)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "API接口定义完成")
 	return nil
@@ -259,24 +195,11 @@ func (s *projectStageService) defineAPIs(ctx context.Context, project *models.Pr
 
 // planEpicsAndStories 划分Epic和Story
 func (s *projectStageService) planEpicsAndStories(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始划分Epic和Story...")
 
 	// 使用 cursor-cli 划分Epic和Story
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请根据PRD和API规范划分Epic和Story，包括功能模块、用户故事、验收标准等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("划分Epic和Story失败: %w", err)
-	}
-
-	// 保存Epic和Story规划到项目目录
-	epicPath := filepath.Join(projectDir, "docs", "Epics_and_Stories.md")
-	if err := os.WriteFile(epicPath, output, 0644); err != nil {
-		return fmt.Errorf("保存Epic和Story规划文件失败: %w", err)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "Epic和Story划分完成")
 	return nil
@@ -284,18 +207,11 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context, project *
 
 // developStories 开发Story功能
 func (s *projectStageService) developStories(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始开发Story功能...")
 
 	// 使用 cursor-cli 开发Story功能
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请根据Epic和Story规划开始实际开发，按照优先级逐个实现Story功能")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("开发Story功能失败: %w, %s", err, output)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "Story功能开发完成")
 	return nil
@@ -303,18 +219,11 @@ func (s *projectStageService) developStories(ctx context.Context, project *model
 
 // fixBugs 修复开发问题
 func (s *projectStageService) fixBugs(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始修复开发问题...")
 
 	// 使用 cursor-cli 修复问题
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请检查并修复开发过程中的问题，包括代码错误、逻辑问题、性能问题等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("修复开发问题失败: %w, %s", err, output)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "开发问题修复完成")
 	return nil
@@ -322,18 +231,11 @@ func (s *projectStageService) fixBugs(ctx context.Context, project *models.Proje
 
 // runTests 执行自动测试
 func (s *projectStageService) runTests(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
+	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始执行自动测试...")
 
 	// 使用 cursor-cli 执行测试
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请为项目编写并执行自动测试，包括单元测试、集成测试、端到端测试等")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("执行自动测试失败: %w, %s", err, output)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "自动测试执行完成")
 	return nil
@@ -341,18 +243,10 @@ func (s *projectStageService) runTests(ctx context.Context, project *models.Proj
 
 // packageProject 打包项目
 func (s *projectStageService) packageProject(ctx context.Context, project *models.Project) error {
-	projectDir := utils.GetProjectPath(project.UserID, project.ID)
 
 	//s.addTaskLog(ctx, task.ID, "info", "开始打包项目...")
 
 	// 使用 cursor-cli 打包项目
-	cmd := exec.Command("cursor", "chat", "--project", projectDir, "--message",
-		"请为项目创建Docker配置和部署脚本，确保项目可以正常打包和部署")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("打包项目失败: %w, %s", err, output)
-	}
 
 	//s.addTaskLog(ctx, task.ID, "success", "项目打包完成")
 	return nil
@@ -361,19 +255,4 @@ func (s *projectStageService) packageProject(ctx context.Context, project *model
 // GetProjectStages 获取项目开发阶段
 func (s *projectStageService) GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error) {
 	return s.stageRepo.GetByProjectID(ctx, projectID)
-}
-
-// CreateDevStage 创建开发阶段
-func (s *projectStageService) CreateDevStage(ctx context.Context, stage *models.DevStage) error {
-	return s.stageRepo.Create(ctx, stage)
-}
-
-// UpdateDevStage 更新开发阶段
-func (s *projectStageService) UpdateDevStage(ctx context.Context, stage *models.DevStage) error {
-	return s.stageRepo.Update(ctx, stage)
-}
-
-// UpdateStageStatus 更新阶段状态
-func (s *projectStageService) UpdateStageStatus(ctx context.Context, stageID string, status string) error {
-	return s.stageRepo.UpdateStatus(ctx, stageID, status)
 }

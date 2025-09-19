@@ -23,7 +23,7 @@ func NewProjectNameGenerator() ProjectNameGenerator {
 
 // GenerateProjectConfig 根据需求生成项目配置
 func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projectConfig *models.Project) bool {
-	logger.Info("开始使用 AI 生成项目配置",
+	logger.Info("开始生成项目配置",
 		logger.String("requirements", requirements),
 	)
 
@@ -41,7 +41,7 @@ func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projec
 	projectConfig.DatabasePassword = passwordUtils.GenerateRandomPassword("database")
 	projectConfig.Subnetwork = "172.20.0.0/16"
 
-	logger.Info("AI 项目配置生成成功",
+	logger.Info("项目配置生成成功",
 		logger.String("projectName", projectConfig.Name),
 		logger.String("projectDescription", projectConfig.Description),
 	)

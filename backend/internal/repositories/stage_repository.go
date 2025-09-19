@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"context"
 
@@ -14,6 +15,9 @@ type StageRepository interface {
 
 	// GetByProjectID 获取项目的开发阶段列表
 	GetByProjectID(ctx context.Context, projectID string) ([]*models.DevStage, error)
+
+	// 更新 stage 的状态为 done
+	UpdateStageToDone(ctx context.Context, projectID, name string) error
 
 	// GetByID 根据ID获取开发阶段
 	GetByID(ctx context.Context, id string) (*models.DevStage, error)
@@ -49,6 +53,15 @@ func (r *stageRepository) GetByProjectID(ctx context.Context, projectID string) 
 		Order("created_at ASC").
 		Find(&stages).Error
 	return stages, err
+}
+
+// 更新 stage 的状态为 done
+func (r *stageRepository) UpdateStageToDone(ctx context.Context, projectID, name string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.DevStage{}).
+		Where("project_id = ?", projectID).
+		Where("name = ?", name).
+		Update("status", constants.CommandStatusDone).Error
 }
 
 func (r *stageRepository) GetByID(ctx context.Context, id string) (*models.DevStage, error) {

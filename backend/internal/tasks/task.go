@@ -2,7 +2,6 @@ package tasks
 
 import (
 	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/pkg/logger"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -63,15 +62,13 @@ func NewProjectDevelopmentTask(projectID, projectPath string) *asynq.Task {
 }
 
 // 创建项目初始化任务
-func NewProjectInitTask(project *models.Project) *asynq.Task {
-	bytes, err := project.ToBytes()
-	if err != nil {
-		logger.Error("转换为 []byte 失败", logger.String("error", err.Error()))
-		return nil
+func NewProjectInitTask(projectID, projectPath string) *asynq.Task {
+	payload := models.ProjectTaskPayload{
+		ProjectID:   projectID,
+		ProjectPath: projectPath,
 	}
-
 	return asynq.NewTask(models.TypeProjectInit,
-		bytes,
+		payload.ToBytes(),
 		asynq.Queue("default"),
 		asynq.MaxRetry(1),
 		asynq.Retention(1*time.Hour))

@@ -82,6 +82,7 @@ CREATE SEQUENCE IF NOT EXISTS public.projects_id_num_seq
 -- 创建项目表
 CREATE TABLE IF NOT EXISTS projects (
     id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('PROJ', 'public.projects_id_num_seq'),
+    guid VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     requirements TEXT NOT NULL,

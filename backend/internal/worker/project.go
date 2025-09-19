@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
@@ -28,8 +29,6 @@ func (h *ProjectTaskHandler) ProcessTask(ctx context.Context, task *asynq.Task) 
 		return h.HandleProjectDownloadTask(ctx, task)
 	case models.TypeProjectBackup:
 		return h.HandleProjectBackupTask(ctx, task)
-	case models.TypeProjectDevelopment:
-		return h.HandleProjectDevelopmentTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
@@ -46,18 +45,18 @@ func (s *ProjectTaskHandler) HandleProjectBackupTask(ctx context.Context, t *asy
 
 	resultPath, projectPath, err := s.zipProjectPath(t)
 	if err != nil {
-		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, constants.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
 		return fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, resultWriter.TaskID())
 	}
-	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 60, "项目已打包到缓存")
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目已打包到缓存")
 
 	// 删除项目目录
-	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 80, "正在删除项目目录")
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 80, "正在删除项目目录")
 	if err := os.RemoveAll(projectPath); err != nil {
-		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "删除项目目录失败: "+err.Error())
+		utils.UpdateResult(resultWriter, constants.CommandStatusFailed, 0, "删除项目目录失败: "+err.Error())
 		return fmt.Errorf("删除项目目录失败: %w, projectPath: %s", err, projectPath)
 	}
-	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
+	utils.UpdateResult(resultWriter, constants.CommandStatusDone, 100, resultPath)
 	return nil
 }
 
@@ -68,23 +67,9 @@ func (s *ProjectTaskHandler) HandleProjectDownloadTask(ctx context.Context, t *a
 
 	resultPath, _, err := s.zipProjectPath(t)
 	if err != nil {
-		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, constants.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
 	}
-	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, resultPath)
-	return nil
-}
-
-// HandleProjectDevelopmentTask 处理项目开发任务
-func (s *ProjectTaskHandler) HandleProjectDevelopmentTask(ctx context.Context, t *asynq.Task) error {
-	resultWriter := t.ResultWriter()
-	logger.Info("处理项目开发任务", logger.String("taskID", resultWriter.TaskID()))
-	// if err := s.projectStageService.StartProjectDevelopment(context.Background(), project.ID); err != nil {
-	// 	logger.Error("启动项目开发流程失败",
-	// 		logger.String("error", err.Error()),
-	// 		logger.String("projectID", project.ID),
-	// 	)
-	// }
-	utils.UpdateResult(resultWriter, models.TaskStatusDone, 100, "项目开发任务完成")
+	utils.UpdateResult(resultWriter, constants.CommandStatusDone, 100, resultPath)
 	return nil
 }
 
@@ -103,11 +88,11 @@ func (s *ProjectTaskHandler) zipProjectPath(t *asynq.Task) (string, string, erro
 	// 生成缓存文件名
 	cacheFileName := fmt.Sprintf("%s_%s", projectID, time.Now().Format("20060102_150405"))
 
-	utils.UpdateResult(resultWriter, models.TaskStatusInProgress, 30, "正在打包项目文件...")
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "正在打包项目文件...")
 	// 使用 utils 压缩到缓存
 	resultPath, err := utils.CompressDirectoryToDir(context.Background(), projectPath, cacheDir, cacheFileName)
 	if err != nil {
-		utils.UpdateResult(resultWriter, models.TaskStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, constants.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
 		return "", projectPath, fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, projectID)
 	}
 	return resultPath, projectPath, nil

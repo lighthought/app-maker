@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
@@ -18,6 +19,10 @@ type TaskHandler struct {
 
 // NewTaskHandler 创建任务处理器实例
 func NewTaskHandler(inspector *asynq.Inspector) *TaskHandler {
+	if inspector == nil {
+		logger.Error("inspector is nil!")
+		return nil
+	}
 	return &TaskHandler{
 		inspector: inspector,
 	}
@@ -71,7 +76,7 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 
 	taskResult := models.TaskResult{
 		TaskID:   taskID,
-		Status:   models.TaskStatusInProgress,
+		Status:   constants.CommandStatusInProgress,
 		Progress: 0,
 		Message:  "任务执行中",
 	}
