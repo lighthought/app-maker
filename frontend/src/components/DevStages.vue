@@ -13,13 +13,13 @@
         :class="[getStageClass(stage), { 'horizontal': layout === 'horizontal' }]"
       >
         <div class="stage-circle">
-          <n-icon v-if="stage.status === 'completed'" size="16" color="white">
+          <span class="stage-number">{{ index + 1 }}</span>
+          <n-icon v-if="stage.status === 'completed'" size="12" color="white" class="status-icon">
             <CheckIcon />
           </n-icon>
-          <n-icon v-else-if="stage.status === 'failed'" size="16" color="white">
+          <n-icon v-else-if="stage.status === 'failed'" size="12" color="white" class="status-icon">
             <ErrorIcon />
           </n-icon>
-          <span v-else class="stage-number">{{ index + 1 }}</span>
         </div>
         
         <div class="stage-content">
@@ -175,10 +175,28 @@ const ClockIcon = () => h('svg', {
   font-size: 1.1rem;
 }
 
-.progress-text {
-  font-size: 1.2rem;
+.progress-percentage {
+  display: flex;
+  align-items: center;
+}
+
+.percentage-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #38A169;
+  border: 2px solid #2F855A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(56, 161, 105, 0.3);
+}
+
+.percentage-text {
+  font-size: 0.9rem;
   font-weight: bold;
-  color: var(--primary-color);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .stages-container {
@@ -207,15 +225,18 @@ const ClockIcon = () => h('svg', {
 }
 
 .stage-circle {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  background: #E2E8F0; /* 默认灰色背景 */
+  border: 2px solid #CBD5E1; /* 默认灰色边框 */
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   margin-right: var(--spacing-md);
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .stage-item.horizontal .stage-circle {
@@ -224,9 +245,27 @@ const ClockIcon = () => h('svg', {
 }
 
 .stage-number {
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   font-weight: bold;
-  color: white;
+  color: #4A5568; /* 深灰色，适合浅色背景 */
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.status-icon {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  padding: 3px;
+  z-index: 2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .stage-content {
@@ -247,19 +286,43 @@ const ClockIcon = () => h('svg', {
 /* 阶段状态样式 */
 .stage-completed .stage-circle {
   background: #38A169;
+  border: 2px solid #2F855A;
+}
+
+.stage-completed .stage-number {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .stage-failed .stage-circle {
   background: #E53E3E;
+  border: 2px solid #C53030;
+}
+
+.stage-failed .stage-number {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .stage-in-progress .stage-circle {
   background: #D69E2E;
+  border: 2px solid #B7791F;
   animation: pulse 2s infinite;
+}
+
+.stage-in-progress .stage-number {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .stage-pending .stage-circle {
   background: #A0AEC0;
+  border: 2px solid #718096;
+}
+
+.stage-pending .stage-number {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes pulse {
@@ -277,8 +340,8 @@ const ClockIcon = () => h('svg', {
 /* 连接线样式 */
 .stage-connector {
   position: absolute;
-  left: 15px;
-  top: 32px;
+  left: 17px;
+  top: 36px;
   width: 2px;
   height: var(--spacing-lg);
   transition: all 0.3s ease;

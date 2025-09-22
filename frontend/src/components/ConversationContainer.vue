@@ -101,6 +101,85 @@ const loadConversations = async () => {
   }
 }
 
+// 智能合并对话历史（保持用户操作状态）
+const mergeConversations = async () => {
+  try {
+    const conversations = await projectStore.getProjectMessages(props.projectId)
+    if (!conversations || !conversations.data) return
+    
+    const newMessages = conversations.data
+    const currentMessages = messages.value
+    
+    // 如果消息数量相同，检查是否有内容更新
+    if (newMessages.length === currentMessages.length) {
+      let hasUpdates = false
+      const updatedMessages = newMessages.map((newMsg, index) => {
+        const currentMsg = currentMessages[index]
+        
+        // 检查消息内容是否有更新
+        if (currentMsg && (
+          currentMsg.content !== newMsg.content ||
+          currentMsg.markdown_content !== newMsg.markdown_content ||
+          currentMsg.updated_at !== newMsg.updated_at
+        )) {
+          hasUpdates = true
+          // 保持用户的展开/折叠状态
+          return {
+            ...newMsg,
+            is_expanded: currentMsg.is_expanded
+          }
+        }
+        
+        // 没有更新，保持原消息（包括用户状态）
+        return currentMsg || newMsg
+      })
+      
+      if (hasUpdates) {
+        messages.value = updatedMessages
+      }
+      return
+    }
+    
+    // 消息数量不同，进行完整合并
+    const existingMessagesMap = new Map()
+    currentMessages.forEach(msg => {
+      existingMessagesMap.set(msg.id, {
+        is_expanded: msg.is_expanded,
+        // 可以保存其他用户操作状态
+      })
+    })
+    
+    // 合并新消息，保持用户状态
+    const mergedMessages = newMessages.map(newMsg => {
+      const existingState = existingMessagesMap.get(newMsg.id)
+      if (existingState) {
+        // 保持用户的展开/折叠状态
+        return {
+          ...newMsg,
+          is_expanded: existingState.is_expanded
+        }
+      }
+      return newMsg
+    })
+    
+    // 检查是否有新消息
+    const hasNewMessages = mergedMessages.length > currentMessages.length
+    const lastMessageId = currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].id : null
+    const newLastMessageId = mergedMessages.length > 0 ? mergedMessages[mergedMessages.length - 1].id : null
+    
+    // 更新消息列表
+    messages.value = mergedMessages
+    
+    // 如果有新消息，滚动到底部
+    if (hasNewMessages && lastMessageId !== newLastMessageId) {
+      scrollToBottom()
+    }
+    
+  } catch (error) {
+    console.error('合并对话历史失败:', error)
+  }
+}
+
 
 
 // 更新开发阶段状态
@@ -179,7 +258,7 @@ const handleSendMessage = async (content: string) => {
 // 定时刷新数据
 const startAutoRefresh = () => {
   refreshTimer = window.setInterval(async () => {
-    await loadConversations()
+    await mergeConversations() // 使用智能合并而不是完全替换
     await loadDevStages()
   }, 5000) // 每5秒刷新一次
 }
