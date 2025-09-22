@@ -243,6 +243,8 @@ func (s *projectService) reportTaskAndStageError(ctx context.Context,
 	if devStage != nil {
 		devStage.Status = constants.CommandStatusFailed
 		devStage.Progress = constants.GetProgressByCommandStatus(constants.CommandStatusFailed)
+		devStage.TaskID = resultWriter.TaskID()
+		devStage.FailedReason = errMsg
 		s.projectStageRepo.Update(ctx, devStage)
 	}
 
@@ -253,7 +255,7 @@ func (s *projectService) reportTaskAndStageError(ctx context.Context,
 }
 
 // updateProjectStage 更新项目阶段
-func (s *projectService) updateProjectStage(ctx context.Context, projectID string) (*models.Project, *models.DevStage) {
+func (s *projectService) updateProjectStage(ctx context.Context, projectID, taskID string) (*models.Project, *models.DevStage) {
 	// 更新 initializing 的 stage 为 done，表示 API 内部这个 async 调用成功，也获取到了合法的数据
 	if err := s.projectStageRepo.UpdateStageToDone(ctx, projectID, constants.DevStatusInitializing); err != nil {
 		logger.Error("更新项目阶段失败",
@@ -271,6 +273,8 @@ func (s *projectService) updateProjectStage(ctx context.Context, projectID strin
 		return nil, nil
 	}
 
+	project.Status = constants.CommandStatusInProgress
+	project.CurrentTaskID = taskID
 	project.SetDevStatus(constants.DevStatusSetupEnvironment)
 	s.projectRepo.Update(ctx, project)
 
@@ -285,6 +289,7 @@ func (s *projectService) updateProjectStage(ctx context.Context, projectID strin
 	for _, stage := range projectStages {
 		if stage.Name == constants.DevStatusSetupEnvironment {
 			stage.SetStatus(constants.CommandStatusInProgress)
+			stage.TaskID = taskID
 			s.projectStageRepo.Update(ctx, stage)
 			return project, stage
 		}
@@ -292,6 +297,7 @@ func (s *projectService) updateProjectStage(ctx context.Context, projectID strin
 
 	// 没有，才插入环境准备的阶段
 	projectStage := models.NewDevStage(project.ID, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
+	projectStage.TaskID = taskID
 	if err := s.projectStageRepo.Create(ctx, projectStage); err != nil {
 		logger.Error("插入项目阶段失败",
 			logger.String("error", err.Error()),
@@ -529,7 +535,7 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 	)
 
 	// 0. 更新项目阶段
-	project, projectStage := s.updateProjectStage(ctx, payload.ProjectID)
+	project, projectStage := s.updateProjectStage(ctx, payload.ProjectID, resultWriter.TaskID())
 	if project == nil || projectStage == nil {
 		logger.Error("项目或项目阶段为空")
 		return fmt.Errorf("项目或项目阶段为空")

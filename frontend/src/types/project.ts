@@ -2,7 +2,7 @@ export interface Project {
   id: string
   name: string
   description: string
-  status: 'draft' | 'in_progress' | 'completed' | 'failed'
+  status: 'draft' | 'in_progress' | 'done' | 'failed'
   requirements: string
   projectPath: string
   backendPort: number
@@ -86,7 +86,9 @@ export interface ConversationMessage {
 export interface DevStage {
   id: string
   name: string
-  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  status: 'pending' | 'in_progress' | 'done' | 'failed'
   progress: number
   description: string
+  failed_reason: string
+  task_id: string
 }

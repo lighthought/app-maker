@@ -93,7 +93,7 @@ const swaggerDefinition: SwaggerDefinition = {
           },
           status: {
             type: 'string',
-            enum: ['pending', 'running', 'completed', 'failed', 'cancelled'],
+            enum: ['pending', 'running', 'done', 'failed', 'cancelled'],
             description: '任务状态',
             example: 'pending'
           },

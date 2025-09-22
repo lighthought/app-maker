@@ -394,7 +394,7 @@ const statusOptions = [
   { label: '全部状态', value: '' },
   { label: '草稿', value: 'draft' },
   { label: '进行中', value: 'in_progress' },
-  { label: '已完成', value: 'completed' },
+  { label: '已完成', value: 'done' },
   { label: '失败', value: 'failed' }
 ]
 
@@ -415,7 +415,7 @@ const inProgressProjects = computed(() =>
 )
 
 const completedProjects = computed(() => 
-  projectStore.projects.filter(p => p.status === 'completed').length
+  projectStore.projects.filter(p => p.status === 'done').length
 )
 
 const newThisMonth = computed(() => {

@@ -181,9 +181,8 @@ const mergeConversations = async () => {
 }
 
 
-
 // 更新开发阶段状态
-const updateDevStage = (stageId: string, status: 'pending' | 'in_progress' | 'completed' | 'failed') => {
+const updateDevStage = (stageId: string, status: 'pending' | 'in_progress' | 'done' | 'failed') => {
   const stage = devStages.value.find(s => s.id === stageId)
   if (stage) {
     stage.status = status
@@ -193,7 +192,7 @@ const updateDevStage = (stageId: string, status: 'pending' | 'in_progress' | 'co
 
 // 更新当前进度
 const updateCurrentProgress = () => {
-  const completedStages = devStages.value.filter(s => s.status === 'completed')
+  const completedStages = devStages.value.filter(s => s.status === 'done')
   const inProgressStage = devStages.value.find(s => s.status === 'in_progress')
   
   if (inProgressStage) {

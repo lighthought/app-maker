@@ -17,7 +17,7 @@ type Project struct {
 	Name             string         `json:"name" gorm:"size:100;not null"`
 	Description      string         `json:"description" gorm:"type:text"`
 	Requirements     string         `json:"requirements" gorm:"type:text;not null"`
-	Status           string         `json:"status" gorm:"size:20;not null;default:'draft'"` // draft, in_progress, completed, failed
+	Status           string         `json:"status" gorm:"size:20;not null;default:'draft'"` // draft, in_progress, done, failed
 	DevStatus        string         `json:"dev_status" gorm:"size:50;default:'pending'"`    // 开发子状态
 	DevProgress      int            `json:"dev_progress" gorm:"default:0"`                  // 开发进度 0-100
 	CurrentTaskID    string         `json:"current_task_id" gorm:"type:varchar(50)"`        // 当前执行的任务ID

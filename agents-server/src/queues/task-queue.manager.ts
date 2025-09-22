@@ -72,7 +72,7 @@ export class TaskQueueManager {
           // 更新任务进度
           await job.progress(100);
           
-          logger.info(`${agentType} task completed: ${job.id}`);
+          logger.info(`${agentType} task done: ${job.id}`);
           return result;
         } catch (error) {
           logger.error(`${agentType} task failed: ${job.id}`, error);
@@ -81,8 +81,8 @@ export class TaskQueueManager {
       });
 
       // 监听队列事件
-      queue.on('completed', (job, result) => {
-        logger.info(`Task completed: ${job.id}`);
+      queue.on('done', (job, result) => {
+        logger.info(`Task done: ${job.id}`);
       });
 
       queue.on('failed', (job, err) => {

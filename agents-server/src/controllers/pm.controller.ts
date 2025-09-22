@@ -102,7 +102,7 @@ export class PMController implements PMAgentController {
 
   async getStatus(taskId: string): Promise<TaskStatus> {
     // TODO: 实现状态查询逻辑
-    return 'completed' as TaskStatus;
+    return 'done' as TaskStatus;
   }
 
   async updateProgress(taskId: string, progress: number): Promise<void> {

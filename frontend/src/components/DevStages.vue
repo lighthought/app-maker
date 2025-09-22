@@ -14,12 +14,6 @@
       >
         <div class="stage-circle">
           <span class="stage-number">{{ index + 1 }}</span>
-          <n-icon v-if="stage.status === 'completed'" size="12" color="white" class="status-icon">
-            <CheckIcon />
-          </n-icon>
-          <n-icon v-else-if="stage.status === 'failed'" size="12" color="white" class="status-icon">
-            <ErrorIcon />
-          </n-icon>
         </div>
         
         <div class="stage-content">
@@ -29,7 +23,7 @@
         
         <!-- 连接线 -->
         <div
-          v-if="index < stages.length - 1"
+          v-if="index < stages.length - 1 && shouldShowConnector(stage, stages[index + 1])"
           class="stage-connector"
           :class="[getConnectorClass(stage, stages[index + 1]), { 'horizontal': layout === 'horizontal' }]"
         ></div>
@@ -38,7 +32,13 @@
     
     <!-- 当前状态信息 -->
     <div v-if="currentStage" class="current-status">
-      <div class="status-info">
+      <!-- 失败状态时只显示失败原因 -->
+      <div v-if="currentStage.status === 'failed' && getFailedReason(currentStage)" class="failed-reason">
+        <div class="failed-reason-text">失败原因：{{ getFailedReason(currentStage) }}</div>
+      </div>
+      
+      <!-- 其他状态显示正常状态信息 -->
+      <div v-else class="status-info">
         <n-icon 
           size="16" 
           :color="getStatusColor(currentStage.status)"
@@ -74,15 +74,24 @@ const currentStage = computed(() => {
 
 // 获取阶段样式类
 const getStageClass = (stage: DevStage) => ({
-  'stage-completed': stage.status === 'completed',
+  'stage-completed': stage.status === 'done',
   'stage-failed': stage.status === 'failed',
   'stage-in-progress': stage.status === 'in_progress',
   'stage-pending': stage.status === 'pending'
 })
 
+// 判断是否应该显示连接线
+const shouldShowConnector = (currentStage: DevStage, nextStage: DevStage) => {
+  // 只有当前阶段是进行中、失败或待处理状态时才显示连接线
+  // 已完成阶段不显示连接线，避免误导用户以为还在该阶段
+  return currentStage.status === 'in_progress' || 
+         currentStage.status === 'failed' || 
+         currentStage.status === 'pending'
+}
+
 // 获取连接线样式类
 const getConnectorClass = (currentStage: DevStage, nextStage: DevStage) => ({
-  'connector-completed': currentStage.status === 'completed',
+  'connector-completed': currentStage.status === 'done',
   'connector-failed': currentStage.status === 'failed',
   'connector-in-progress': currentStage.status === 'in_progress',
   'connector-pending': currentStage.status === 'pending'
@@ -119,6 +128,14 @@ const getStatusText = (stage: DevStage) => {
     pending: `等待${stage.name}`
   }
   return statusMap[stage.status as keyof typeof statusMap] || stage.name
+}
+
+// 获取失败原因
+const getFailedReason = (stage: DevStage) => {
+  if (stage.status === 'failed' && stage.failed_reason) {
+    return stage.failed_reason
+  }
+  return null
 }
 
 // 图标组件
@@ -257,16 +274,6 @@ const ClockIcon = () => h('svg', {
   height: 100%;
 }
 
-.status-icon {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 50%;
-  padding: 3px;
-  z-index: 2;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
 
 .stage-content {
   flex: 1;
@@ -386,6 +393,23 @@ const ClockIcon = () => h('svg', {
 .status-text {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+/* 失败原因样式 */
+.failed-reason {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: #FED7D7;
+  border: 1px solid #FEB2B2;
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid #E53E3E;
+}
+
+.failed-reason-text {
+  font-size: 0.9rem;
+  color: #742A2A;
+  line-height: 1.4;
+  font-weight: 500;
 }
 
 /* 响应式设计 */
