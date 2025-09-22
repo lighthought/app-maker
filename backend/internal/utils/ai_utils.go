@@ -257,7 +257,8 @@ func GenerateProjectSummary(requirements string) (*ProjectSummaryResponse, error
 		`总结应简洁明了，并抓住应用或网站需求的主要内容。` +
 		`避免使用复杂的句子结构或技术术语。整个对话和指令都应以中文呈现。` +
 		`另外，给出符合要点的一到两个单词英文的标题，类似 GirlDress。` +
-		`输出json格式的结果，例如: {"title": "GirlDress", "content": "女生装扮应用，分享效果，导入购物链接"}`
+		`输出json格式的结果，例如: {"title": "GirlDress", "content": "女生装扮应用，分享效果，导入购物链接"}` +
+		`限制：不要输出任何图标、表情、特殊符号、emoji等`
 
 	req := &deepseek.ChatCompletionRequest{
 		Model: GetEnvOrDefault("OLLAMA_MODEL", "deepseek-r1:14b"),
