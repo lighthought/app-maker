@@ -263,6 +263,24 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 	project.SetDevStatus(constants.DevStatusSetupEnvironment)
 	s.projectRepo.Update(ctx, project)
 
+	userMsg := &models.ConversationMessage{
+		ProjectID:       project.ID,
+		Type:            constants.ConversationTypeUser,
+		AgentRole:       "user",
+		AgentName:       "",
+		Content:         "用户需求",
+		IsMarkdown:      false,
+		MarkdownContent: project.Requirements,
+		IsExpanded:      true,
+	}
+
+	if err := s.projectMsgRepo.Create(ctx, userMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
 	// 插入环境准备的阶段
 	projectStage := models.NewDevStage(project.ID, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
 	if err := s.projectStageRepo.Create(ctx, projectStage); err != nil {
@@ -290,8 +308,8 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		AgentName:       AgentAnalyst.Name,
 		Content:         "项目简介已生成",
 		IsMarkdown:      true,
-		MarkdownContent: "* 项目名称：" + summary.Title + ",\r\n  * 项目简介：" + summary.Content,
-		IsExpanded:      true,
+		MarkdownContent: "* 项目名称：" + summary.Title + ",\n* 项目简介：" + summary.Content,
+		IsExpanded:      false,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
@@ -338,8 +356,8 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		AgentName:       AgentDev.Name,
 		Content:         "项目模板初始化成功",
 		IsMarkdown:      true,
-		MarkdownContent: "* 项目ID：" + project.ID + ",\r\n  * 项目名称：" + project.Name + ",\r\n  * 项目路径：" + project.ProjectPath,
-		IsExpanded:      true,
+		MarkdownContent: "* 项目ID：" + project.ID + ",\n* 项目名称：" + project.Name + ",\n* 项目路径：" + project.ProjectPath,
+		IsExpanded:      false,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg2); err != nil {
@@ -368,8 +386,8 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		AgentName:       AgentDev.Name,
 		Content:         "项目代码已成功提交到GitLab",
 		IsMarkdown:      true,
-		MarkdownContent: "* 项目ID：" + project.ID + ", \r\n  * 项目名称：" + project.Name + ",\r\n  * GitLab仓库路径：" + project.GitlabRepoURL,
-		IsExpanded:      true,
+		MarkdownContent: "* 项目ID：" + project.ID + ", \n* 项目名称：" + project.Name + ",\n* GitLab仓库路径：" + project.GitlabRepoURL,
+		IsExpanded:      false,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg3); err != nil {
@@ -420,8 +438,8 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
 			"\",\n\"name\": \"" + project.Name +
 			"\",\n\"path\":\"" + project.ProjectPath +
-			"\",\n \"taskID\": \"" + taskInfo.ID + "\"\n}```",
-		IsExpanded: true,
+			"\",\n \"taskID\": \"" + taskInfo.ID + "\"}\n```",
+		IsExpanded: false,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg4); err != nil {

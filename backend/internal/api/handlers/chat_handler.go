@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -65,6 +66,10 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	}
 
 	offset := (page - 1) * pageSize
+
+	// 添加调试日志
+	fmt.Printf("DEBUG: ChatHandler - projectID=%s, page=%d, pageSize=%d, offset=%d\n",
+		projectID, page, pageSize, offset)
 
 	// 获取对话消息
 	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectID, pageSize, offset)

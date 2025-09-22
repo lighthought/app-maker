@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS project_msgs (
     id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('MSG', 'public.project_msgs_id_num_seq'),
     project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     type VARCHAR(20) NOT NULL CHECK (type IN ('user', 'agent', 'system')),
-    agent_role VARCHAR(20) CHECK (agent_role IN ('analyst','dev', 'pm', 'po', 'architect', 'ux-expert', 'qa', 'sm', 'bmad-master')),
+    agent_role VARCHAR(20) CHECK (agent_role IN ('user', 'analyst', 'dev', 'pm', 'po', 'architect', 'ux-expert', 'qa', 'sm', 'bmad-master')),
     agent_name VARCHAR(100),
     content TEXT,
     is_markdown BOOLEAN DEFAULT FALSE,
