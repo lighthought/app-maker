@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS dev_stages (
     id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq'),
     project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed')),
     progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
     description TEXT,
     started_at TIMESTAMP,
