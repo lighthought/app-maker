@@ -53,6 +53,7 @@ func (p *EmailTaskPayload) ToBytes() []byte {
 // 只有项目ID的负载
 type ProjectTaskPayload struct {
 	ProjectID   string `json:"project_id"`
+	ProjectGuid string `json:"project_guid"`
 	ProjectPath string `json:"project_path"`
 }
 

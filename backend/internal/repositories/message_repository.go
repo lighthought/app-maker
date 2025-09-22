@@ -13,8 +13,8 @@ type MessageRepository interface {
 	// Create 创建对话消息
 	Create(ctx context.Context, message *models.ConversationMessage) error
 
-	// GetByProjectID 获取项目的对话消息列表
-	GetByProjectID(ctx context.Context, projectID string, limit, offset int) ([]*models.ConversationMessage, error)
+	// GetByProjectGuid 获取项目的对话消息列表
+	GetByProjectGuid(ctx context.Context, projectGuid string, limit, offset int) ([]*models.ConversationMessage, error)
 
 	// GetByID 根据ID获取对话消息
 	GetByID(ctx context.Context, id string) (*models.ConversationMessage, error)
@@ -25,8 +25,8 @@ type MessageRepository interface {
 	// Delete 删除对话消息
 	Delete(ctx context.Context, id string) error
 
-	// CountByProjectID 统计项目的对话消息数量
-	CountByProjectID(ctx context.Context, projectID string) (int, error)
+	// CountByProjectGuid 统计项目的对话消息数量
+	CountByProjectGuid(ctx context.Context, projectGuid string) (int, error)
 }
 
 // messageRepository 对话消息仓库实现
@@ -43,18 +43,18 @@ func (r *messageRepository) Create(ctx context.Context, message *models.Conversa
 	return r.db.WithContext(ctx).Create(message).Error
 }
 
-func (r *messageRepository) GetByProjectID(ctx context.Context, projectID string, limit, offset int) ([]*models.ConversationMessage, error) {
+func (r *messageRepository) GetByProjectGuid(ctx context.Context, projectGuid string, limit, offset int) ([]*models.ConversationMessage, error) {
 	var messages []*models.ConversationMessage
 	err := r.db.WithContext(ctx).
-		Where("project_id = ?", projectID).
+		Where("project_guid = ?", projectGuid).
 		Order("created_at ASC").
 		Limit(limit).
 		Offset(offset).
 		Find(&messages).Error
 
 	// 添加调试日志
-	fmt.Printf("DEBUG: Query project_msgs for projectID=%s, limit=%d, offset=%d, found %d messages\n",
-		projectID, limit, offset, len(messages))
+	fmt.Printf("DEBUG: Query project_msgs for projectGuid=%s, limit=%d, offset=%d, found %d messages\n",
+		projectGuid, limit, offset, len(messages))
 
 	return messages, err
 }
@@ -76,11 +76,11 @@ func (r *messageRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.ConversationMessage{}, "id = ?", id).Error
 }
 
-func (r *messageRepository) CountByProjectID(ctx context.Context, projectID string) (int, error) {
+func (r *messageRepository) CountByProjectGuid(ctx context.Context, projectGuid string) (int, error) {
 	var count int64
 	err := r.db.WithContext(ctx).
 		Model(&models.ConversationMessage{}).
-		Where("project_id = ?", projectID).
+		Where("project_guid = ?", projectGuid).
 		Count(&count).Error
 	return int(count), err
 }

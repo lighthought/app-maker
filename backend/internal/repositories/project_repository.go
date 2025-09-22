@@ -17,6 +17,7 @@ import (
 type ProjectRepository interface {
 	// 基础CRUD操作
 	Create(ctx context.Context, project *models.Project) error
+	GetByGUID(ctx context.Context, guid string) (*models.Project, error)
 	GetByID(ctx context.Context, id string) (*models.Project, error)
 	Update(ctx context.Context, project *models.Project) error
 	Delete(ctx context.Context, id string) error
@@ -59,6 +60,22 @@ func (r *projectRepository) GetByID(ctx context.Context, id string) (*models.Pro
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("project not found: %s", id)
+		}
+		return nil, err
+	}
+	return &project, nil
+}
+
+// GetByGUID 根据GUID获取项目
+func (r *projectRepository) GetByGUID(ctx context.Context, guid string) (*models.Project, error) {
+	var project models.Project
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Where("guid = ?", guid).
+		First(&project).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("project not found: %s", guid)
 		}
 		return nil, err
 	}

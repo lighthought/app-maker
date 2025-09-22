@@ -36,19 +36,19 @@ func NewChatHandler(
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param projectId path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Param page query int false "页码" default(1)
 // @Param pageSize query int false "每页数量" default(50)
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/chat/messages/{projectId} [get]
+// @Router /api/v1/chat/messages/{guid} [get]
 func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
-	projectID := c.Param("projectId")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -68,11 +68,11 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	// 添加调试日志
-	fmt.Printf("DEBUG: ChatHandler - projectID=%s, page=%d, pageSize=%d, offset=%d\n",
-		projectID, page, pageSize, offset)
+	fmt.Printf("DEBUG: ChatHandler - projectGuid=%s, page=%d, pageSize=%d, offset=%d\n",
+		projectGuid, page, pageSize, offset)
 
 	// 获取对话消息
-	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectID, pageSize, offset)
+	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectGuid, pageSize, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
@@ -108,18 +108,18 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param projectId path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Param message body object true "对话消息" SchemaExample({"type":"user","content":"用户消息内容","isMarkdown":false})
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/chat/chat/{projectId} [post]
+// @Router /api/v1/chat/chat/{guid} [post]
 func (h *ChatHandler) AddChatMessage(c *gin.Context) {
-	projectID := c.Param("projectId")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -146,7 +146,7 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 
 	// 创建对话消息
 	message := &models.ConversationMessage{
-		ProjectID:       projectID,
+		ProjectGuid:     projectGuid,
 		Type:            req.Type,
 		AgentRole:       req.AgentRole,
 		AgentName:       req.AgentName,
@@ -156,7 +156,7 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 		IsExpanded:      req.IsExpanded,
 	}
 
-	result, err := h.messageService.AddConversationMessage(c.Request.Context(), projectID, message)
+	result, err := h.messageService.AddConversationMessage(c.Request.Context(), message)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,

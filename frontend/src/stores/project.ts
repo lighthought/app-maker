@@ -89,18 +89,18 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 删除项目
-  const deleteProject = async (projectId: string) => {
+  const deleteProject = async (projectGuid: string) => {
     projectStatus.value = 'loading'
     try {
       const response = await httpService.delete<{
         code: number
         message: string
-      }>(`/projects/${projectId}`)
+      }>(`/projects/${projectGuid}`)
 
       if (response.code === 0) {
         // 确保 projects.value 是数组
         if (Array.isArray(projects.value)) {
-          const index = projects.value.findIndex(p => p.id === projectId)
+          const index = projects.value.findIndex(p => p.guid === projectGuid)
           if (index !== -1) {
             projects.value.splice(index, 1)
           }
@@ -119,13 +119,13 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 获取单个项目
-  const getProject = async (projectId: string) => {
+  const getProject = async (projectGuid: string) => {
     try {
       const response = await httpService.get<{
         code: number
         message: string
         data: Project
-      }>(`/projects/${projectId}`)
+      }>(`/projects/${projectGuid}`)
 
       if (response.code === 0 && response.data) {
         return response.data
@@ -140,14 +140,14 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 下载项目
-  const downloadProject = async (projectId: string) => {
+  const downloadProject = async (projectGuid: string) => {
     try {
       // 使用 httpService 的 download 方法
       const response = await httpService.get<{
         code: number
         message: string
         data: string
-      }>(`/projects/download/${projectId}`)
+      }>(`/projects/download/${projectGuid}`)
 
       if (response.code === 0 && response.data) {
         return response.data
@@ -168,7 +168,7 @@ export const useProjectStore = defineStore('project', () => {
 
   
   // 获取项目对话历史
-  const getProjectMessages = async (projectId: string, page = 1, pageSize = 50) => {
+  const getProjectMessages = async (projectGuid: string, page = 1, pageSize = 50) => {
     try {
       const response = await httpService.get<{
         code: number
@@ -181,7 +181,7 @@ export const useProjectStore = defineStore('project', () => {
         has_next: boolean
         has_previous: boolean
         timestamp: string
-      }>(`/chat/messages/${projectId}`, {
+      }>(`/chat/messages/${projectGuid}`, {
         params: { page, pageSize }
       })
 
@@ -206,13 +206,13 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 添加对话消息
-  const addChatMessage = async (projectId: string, message: Omit<ConversationMessage, 'id' | 'created_at' | 'updated_at' | 'project_id'>) => {
+  const addChatMessage = async (projectGuid: string, message: Omit<ConversationMessage, 'id' | 'created_at' | 'updated_at' | 'project_id'>) => {
     try {
       const response = await httpService.post<{
         code: number
         message: string
         data: ConversationMessage
-      }>(`/chat/chat/${projectId}`, message)
+      }>(`/chat/chat/${projectGuid}`, message)
 
       if (response.code === 0 && response.data) {
         return response.data
@@ -227,13 +227,13 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 获取项目开发阶段
-  const getProjectStages = async (projectId: string) => {
+  const getProjectStages = async (projectGuid: string) => {
     try {
       const response = await httpService.get<{
         code: number
         message: string
         data: DevStage[]
-      }>(`/projects/${projectId}/stages`)
+      }>(`/projects/${projectGuid}/stages`)
 
       if (response.code === 0 && response.data) {
         return response.data

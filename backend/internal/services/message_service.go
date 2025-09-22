@@ -10,10 +10,10 @@ import (
 // MessageService 对话消息服务接口
 type MessageService interface {
 	// GetProjectConversations 获取项目对话历史
-	GetProjectConversations(ctx context.Context, projectID string, pageSize, offset int) ([]*models.ConversationMessage, int, error)
+	GetProjectConversations(ctx context.Context, projectGuid string, pageSize, offset int) ([]*models.ConversationMessage, int, error)
 
 	// AddConversationMessage 添加对话消息
-	AddConversationMessage(ctx context.Context, projectID string, message *models.ConversationMessage) (*models.ConversationMessage, error)
+	AddConversationMessage(ctx context.Context, message *models.ConversationMessage) (*models.ConversationMessage, error)
 
 	// GetConversationMessage 获取对话消息
 	GetConversationMessage(ctx context.Context, messageID string) (*models.ConversationMessage, error)
@@ -32,13 +32,13 @@ func NewMessageService(MessageRepository repositories.MessageRepository) Message
 	return &messageService{repo: MessageRepository}
 }
 
-func (s *messageService) GetProjectConversations(ctx context.Context, projectID string, pageSize, offset int) ([]*models.ConversationMessage, int, error) {
-	messages, err := s.repo.GetByProjectID(ctx, projectID, pageSize, offset)
+func (s *messageService) GetProjectConversations(ctx context.Context, projectGuid string, pageSize, offset int) ([]*models.ConversationMessage, int, error) {
+	messages, err := s.repo.GetByProjectGuid(ctx, projectGuid, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	total, err := s.repo.CountByProjectID(ctx, projectID)
+	total, err := s.repo.CountByProjectGuid(ctx, projectGuid)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -46,8 +46,7 @@ func (s *messageService) GetProjectConversations(ctx context.Context, projectID 
 	return messages, total, nil
 }
 
-func (s *messageService) AddConversationMessage(ctx context.Context, projectID string, message *models.ConversationMessage) (*models.ConversationMessage, error) {
-	message.ProjectID = projectID
+func (s *messageService) AddConversationMessage(ctx context.Context, message *models.ConversationMessage) (*models.ConversationMessage, error) {
 	if err := s.repo.Create(ctx, message); err != nil {
 		return nil, fmt.Errorf("创建对话消息失败: %w", err)
 	}

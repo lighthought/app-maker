@@ -24,7 +24,7 @@
           <!-- 对话容器 -->
           <div class="conversation-wrapper">
             <ConversationContainer
-              :project-id="projectId"
+              :project-guid="projectGuid"
               :requirements="project?.requirements || ''"
             />
           </div>
@@ -71,14 +71,14 @@ const rightWidth = ref(50)
 const isResizing = ref(false)
 
 // 计算属性
-const projectId = computed(() => route.params.id as string)
+const projectGuid = computed(() => route.params.guid as string)
 
 // 获取状态类型
 const getStatusType = (status?: string): 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error' => {
   const statusMap: Record<string, 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error'> = {
     draft: 'default',
     in_progress: 'primary',
-    completed: 'success',
+    done: 'success',
     failed: 'error'
   }
   return statusMap[status || 'draft'] || 'default'
@@ -89,7 +89,7 @@ const getStatusText = (status?: string) => {
   const statusMap: Record<string, string> = {
     draft: '草稿',
     in_progress: '进行中',
-    completed: '已完成',
+    done: '已完成',
     failed: '失败'
   }
   return statusMap[status || 'draft'] || '草稿'
@@ -160,11 +160,11 @@ const goBack = () => {
 }
 
 const loadProject = async () => {
-  if (!projectId.value) return
+  if (!projectGuid.value) return
   
   loading.value = true
   try {
-    const projectData = await projectStore.getProject(projectId.value)
+    const projectData = await projectStore.getProject(projectGuid.value)
     if (projectData) {
       project.value = projectData
     } else {

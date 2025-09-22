@@ -86,18 +86,18 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param projectId path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Param path query string false "目录路径"
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/files/files/{projectId} [get]
+// @Router /api/v1/files/files/{guid} [get]
 func (h *FileHandler) GetProjectFiles(c *gin.Context) {
-	projectID := c.Param("projectId")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -106,7 +106,7 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 	path := c.Query("path")
 	userID := c.GetString("user_id")
 
-	files, err := h.fileService.GetProjectFiles(c.Request.Context(), userID, projectID, path)
+	files, err := h.fileService.GetProjectFiles(c.Request.Context(), userID, projectGuid, path)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
@@ -131,18 +131,18 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param projectId path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Param filePath query string true "文件路径"
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/files/filecontent/{projectId} [get]
+// @Router /api/v1/files/filecontent/{guid} [get]
 func (h *FileHandler) GetFileContent(c *gin.Context) {
-	projectID := c.Param("projectId")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -160,7 +160,7 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 
 	userID := c.GetString("user_id")
 
-	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectID, filePath)
+	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectGuid, filePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,

@@ -57,7 +57,7 @@ import { useProjectStore } from '@/stores/project'
 import type { ConversationMessage as ConversationMessageType, DevStage } from '@/types/project'
 
 interface Props {
-  projectId: string
+  projectGuid: string
   requirements: string
 }
 
@@ -78,7 +78,7 @@ let refreshTimer: number | null = null
 // 加载开发阶段
 const loadDevStages = async () => {
   try {
-    const stages = await projectStore.getProjectStages(props.projectId)
+    const stages = await projectStore.getProjectStages(props.projectGuid)
     if (stages) {
       devStages.value = stages
       updateCurrentProgress()
@@ -91,7 +91,7 @@ const loadDevStages = async () => {
 // 加载对话历史
 const loadConversations = async () => {
   try {
-    const conversations = await projectStore.getProjectMessages(props.projectId)
+    const conversations = await projectStore.getProjectMessages(props.projectGuid)
     if (conversations) {
       messages.value = conversations.data
       scrollToBottom()
@@ -104,7 +104,7 @@ const loadConversations = async () => {
 // 智能合并对话历史（保持用户操作状态）
 const mergeConversations = async () => {
   try {
-    const conversations = await projectStore.getProjectMessages(props.projectId)
+    const conversations = await projectStore.getProjectMessages(props.projectGuid)
     if (!conversations || !conversations.data) return
     
     const newMessages = conversations.data
@@ -230,7 +230,7 @@ const handleSendMessage = async (content: string) => {
   
   try {
     // 添加用户消息
-    const userMessage = await projectStore.addChatMessage(props.projectId, {
+    const userMessage = await projectStore.addChatMessage(props.projectGuid, {
       type: 'user',
       content: content.trim(),
       is_expanded: false
@@ -291,7 +291,7 @@ const initialize = async () => {
   // 如果没有对话历史，添加初始消息
   if (messages.value.length === 0) {
     // 添加用户需求消息
-    const userMessage = await projectStore.addChatMessage(props.projectId, {
+    const userMessage = await projectStore.addChatMessage(props.projectGuid, {
       type: 'user',
       content: props.requirements,
       is_expanded: false

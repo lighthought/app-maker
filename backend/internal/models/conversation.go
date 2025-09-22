@@ -9,7 +9,7 @@ import (
 // ConversationMessage 对话消息模型
 type ConversationMessage struct {
 	ID              string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('MSG', 'public.project_msgs_id_num_seq')"`
-	ProjectID       string         `json:"project_id" gorm:"type:varchar(50);not null"`
+	ProjectGuid     string         `json:"project_guid" gorm:"type:varchar(50);"`
 	Type            string         `json:"type" gorm:"size:20;not null"` // user, agent, system
 	AgentRole       string         `json:"agent_role" gorm:"size:20"`    // dev, pm, arch, ux, qa, ops
 	AgentName       string         `json:"agent_name" gorm:"size:100"`   // Agent名称

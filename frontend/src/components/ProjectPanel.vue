@@ -66,7 +66,7 @@
             :key="file.path"
             :node="file"
             :selected-file="selectedFile"
-            :project-id="project?.id"
+            :project-guid="project?.guid"
             @select-file="selectFile"
             @expand-folder="selectFile"
           />
@@ -179,7 +179,6 @@ const props = defineProps<Props>()
 // 获取message实例
 const messageApi = useMessage()
 
-const projectStore = useProjectStore()
 const fileStore = useFilesStore()
 
 // 响应式数据
@@ -192,14 +191,14 @@ const isLoadingFiles = ref(false)
 
 // 加载项目文件树
 const loadProjectFiles = async () => {
-  if (!props.project?.id) {
-    console.log('项目ID不存在，跳过文件加载')
+  if (!props.project?.guid) {
+    console.log('项目GUID不存在，跳过文件加载')
     return
   }
   
   isLoadingFiles.value = true
   try {
-    const tree = await fileStore.getProjectFileTree(props.project.id)
+    const tree = await fileStore.getProjectFileTree(props.project.guid)
     fileTree.value = tree
     console.log('文件树加载完成:', tree.length, '个文件/文件夹')
   } catch (error) {
@@ -215,7 +214,7 @@ const getStatusType = (status?: string): 'default' | 'primary' | 'info' | 'succe
   const statusMap: Record<string, 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error'> = {
     draft: 'default',
     in_progress: 'warning',
-    completed: 'success',
+    done: 'success',
     failed: 'error'
   }
   return statusMap[status || 'draft'] || 'default'
@@ -226,7 +225,7 @@ const getStatusText = (status?: string) => {
   const statusMap: Record<string, string> = {
     draft: '草稿',
     in_progress: '进行中',
-    completed: '已完成',
+    done: '已完成',
     failed: '失败'
   }
   return statusMap[status || 'draft'] || '草稿'
@@ -294,9 +293,9 @@ const selectFile = async (file: FileTreeNode) => {
     selectedFile.value = file
     
     // 如果文件内容未加载，则加载内容
-    if (!file.content && props.project?.id) {
+    if (!file.content && props.project?.guid) {
       try {
-        const fileContent = await fileStore.getFileContent(props.project.id, file.path)
+        const fileContent = await fileStore.getFileContent(props.project.guid, file.path)
         if (fileContent) {
           file.content = fileContent.content
         }
@@ -309,7 +308,7 @@ const selectFile = async (file: FileTreeNode) => {
     if (!file.expanded && !file.loaded) {
       // 展开文件夹
       try {
-        await fileStore.expandFolder(props.project!.id, file.path, fileTree.value)
+        await fileStore.expandFolder(props.project!.guid, file.path, fileTree.value)
         file.expanded = true
         console.log('展开文件夹:', file.path)
       } catch (error) {
@@ -466,7 +465,7 @@ const FileTreeNode = defineComponent({
       type: Object as PropType<FileTreeNode | null>,
       default: null
     },
-    projectId: {
+    projectGuid: {
       type: String,
       default: ''
     },
@@ -536,7 +535,7 @@ const FileTreeNode = defineComponent({
               key: child.path,
               node: child,
               selectedFile: selectedFile,
-              projectId: props.projectId,
+              projectGuid: props.projectGuid,
               level: level + 1,
               onSelectFile: (file: FileTreeNode) => emit('select-file', file),
               onExpandFolder: (folder: FileTreeNode) => emit('expand-folder', folder)
@@ -550,8 +549,8 @@ const FileTreeNode = defineComponent({
 
 // 监听项目数据变化，当项目加载完成后自动加载文件
 watch(() => props.project, (newProject) => {
-  if (newProject?.id) {
-    console.log('项目数据已加载，开始加载文件:', newProject.id)
+  if (newProject?.guid) {
+    console.log('项目数据已加载，开始加载文件:', newProject.guid)
     loadProjectFiles()
   }
 }, { immediate: true })
@@ -559,8 +558,8 @@ watch(() => props.project, (newProject) => {
 // 初始化
 onMounted(async () => {
   // 如果项目数据已经存在，直接加载文件
-  if (props.project?.id) {
-    console.log('组件挂载时项目数据已存在，开始加载文件:', props.project.id)
+  if (props.project?.guid) {
+    console.log('组件挂载时项目数据已存在，开始加载文件:', props.project.guid)
     await loadProjectFiles()
   } else {
     console.log('组件挂载时项目数据尚未加载，等待项目数据...')

@@ -120,7 +120,7 @@ CREATE SEQUENCE IF NOT EXISTS public.project_msgs_id_num_seq
 -- 创建对话消息表
 CREATE TABLE IF NOT EXISTS project_msgs (
     id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('MSG', 'public.project_msgs_id_num_seq'),
-    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_guid VARCHAR(50),
     type VARCHAR(20) NOT NULL CHECK (type IN ('user', 'agent', 'system')),
     agent_role VARCHAR(20) CHECK (agent_role IN ('user', 'analyst', 'dev', 'pm', 'po', 'architect', 'ux-expert', 'qa', 'sm', 'bmad-master')),
     agent_name VARCHAR(100),
@@ -145,6 +145,7 @@ CREATE SEQUENCE IF NOT EXISTS public.dev_stages_id_num_seq
 CREATE TABLE IF NOT EXISTS dev_stages (
     id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq'),
     project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_guid VARCHAR(50),
     name VARCHAR(100) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed')),
     progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
@@ -174,7 +175,7 @@ CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
 
-CREATE INDEX IF NOT EXISTS idx_project_msgs_project_id ON project_msgs(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_msgs_project_guid ON project_msgs(project_guid);
 CREATE INDEX IF NOT EXISTS idx_project_msgs_type ON project_msgs(type);
 CREATE INDEX IF NOT EXISTS idx_project_msgs_created_at ON project_msgs(created_at);
 

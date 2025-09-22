@@ -19,10 +19,10 @@ import (
 // ProjectFileService 项目文件服务接口
 type FileService interface {
 	// GetProjectFiles 获取项目文件列表
-	GetProjectFiles(ctx context.Context, userID, projectID, path string) ([]models.FileItem, error)
+	GetProjectFiles(ctx context.Context, userID, projectGuid, path string) ([]models.FileItem, error)
 
 	// GetFileContent 获取文件内容
-	GetFileContent(ctx context.Context, userID, projectID, filePath string) (*models.FileContent, error)
+	GetFileContent(ctx context.Context, userID, projectGuid, filePath string) (*models.FileContent, error)
 }
 
 // projectFileService 项目文件服务实现
@@ -38,8 +38,8 @@ func NewFileService(asyncClient *asynq.Client) FileService {
 }
 
 // loadPreviewFilesConfig 加载预览文件配置
-func (s *fileService) loadPreviewFilesConfig(userID, projectID string) (*models.PreviewFilesConfig, error) {
-	projectPath := utils.GetProjectPath(userID, projectID)
+func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*models.PreviewFilesConfig, error) {
+	projectPath := utils.GetProjectPath(userID, projectGuid)
 	if projectPath == "" {
 		return nil, fmt.Errorf("项目路径为空")
 	}
@@ -70,9 +70,9 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectID string) (*models.
 }
 
 // GetProjectFiles 获取项目文件列表
-func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, path string) ([]models.FileItem, error) {
+func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, path string) ([]models.FileItem, error) {
 	// 构建项目路径
-	projectPath := utils.GetProjectPath(userID, projectID)
+	projectPath := utils.GetProjectPath(userID, projectGuid)
 	if path != "" {
 		projectPath = filepath.Join(projectPath, path)
 	}
@@ -84,7 +84,7 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectID, pa
 	}
 
 	// 加载预览文件配置
-	config, err := s.loadPreviewFilesConfig(userID, projectID)
+	config, err := s.loadPreviewFilesConfig(userID, projectGuid)
 	if err != nil {
 		return nil, fmt.Errorf("加载预览文件配置失败: %w", err)
 	}
@@ -220,13 +220,13 @@ func (s *fileService) isDirectoryNotEmpty(dirPath string) bool {
 }
 
 // GetFileContent 获取文件内容
-func (s *fileService) GetFileContent(ctx context.Context, userID, projectID, filePath string) (*models.FileContent, error) {
+func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, filePath string) (*models.FileContent, error) {
 	if filePath == "" {
 		return nil, fmt.Errorf("文件路径为空")
 	}
 
 	// 构建完整文件路径
-	projectPath := utils.GetProjectPath(userID, projectID)
+	projectPath := utils.GetProjectPath(userID, projectGuid)
 	if projectPath == "" {
 		return nil, fmt.Errorf("项目文件路径为空")
 	}

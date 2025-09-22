@@ -56,9 +56,9 @@
             <div class="project-cards">
               <div
                 v-for="project in userProjects.slice(0, 5)"
-                :key="project.id"
+                :key="project.guid"
                 class="project-card"
-                @click="goToProject(project.id)"
+                @click="goToProject(project.guid)"
               >
                 <h4>{{ project.name }}</h4>
                 <p>{{ project.description }}</p>
@@ -302,15 +302,15 @@ const handleProjectCreate = async () => {
   })
 }
 
-const goToProject = (projectId: string) => {
-  router.push(`/project/${projectId}`)
+const goToProject = (projectGuid: string) => {
+  router.push(`/project/${projectGuid}`)
 }
 
 const getStatusType = (status: string) => {
   const statusMap: Record<string, string> = {
     draft: 'default',
     in_progress: 'warning',
-    completed: 'success',
+    done: 'success',
     failed: 'error'
   }
   return statusMap[status] || 'default'
@@ -320,7 +320,7 @@ const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     draft: '草稿',
     in_progress: '进行中',
-    completed: '已完成',
+    done: '已完成',
     failed: '失败'
   }
   return statusMap[status] || status

@@ -113,11 +113,11 @@
         <div class="projects-grid" v-if="filteredProjects.length > 0">
           <n-card
             v-for="project in filteredProjects"
-            :key="project.id"
+            :key="project.guid"
             class="project-card"
-            :class="{ 'project-card--active': currentProject?.id === project.id }"
+            :class="{ 'project-card--active': currentProject?.guid === project.guid }"
             @click="selectProject(project)"
-            @dblclick="editProject(project.id)"
+            @dblclick="editProject(project.guid)"
           >
             <div class="project-header">
               <h3>{{ project.name }}</h3>
@@ -256,19 +256,19 @@
             </div>
             
             <div class="project-actions">
-              <n-button type="primary" @click="editProject(currentProject.id)">
+              <n-button type="primary" @click="editProject(currentProject.guid)">
                 编辑
               </n-button>
               <n-button 
                 v-if="currentProject.status !== 'draft'"
-                @click="previewProject(currentProject.id)"
+                @click="previewProject(currentProject.guid)"
               >
                 预览
               </n-button>
-              <n-button @click="downloadProject(currentProject.id)">
+              <n-button @click="downloadProject(currentProject.guid)">
                 下载
               </n-button>
-              <n-button type="error" @click="handleDeleteProject(currentProject.id)">
+              <n-button type="error" @click="handleDeleteProject(currentProject.guid)">
                 删除
               </n-button>
             </div>
@@ -281,7 +281,7 @@
     <TaskProgressModal
       v-model:show="showTaskModal"
       :task-id="currentTaskId"
-      :project-id="currentDownloadProjectId"
+      :project-guid="currentDownloadProjectGuid"
       @retry="handleTaskRetry"
     />
     </div>
@@ -387,7 +387,7 @@ const backendVersion = ref('')
 // 任务轮询相关状态
 const showTaskModal = ref(false)
 const currentTaskId = ref('')
-const currentDownloadProjectId = ref('')
+const currentDownloadProjectGuid = ref('')
 
 // 状态选项
 const statusOptions = [
@@ -443,21 +443,21 @@ const selectProject = (project: Project) => {
   currentProject.value = project
 }
 
-const previewProject = (projectId: string) => {
-  router.push(`/preview/${projectId}`)
+const previewProject = (projectGuid: string) => {
+  router.push(`/preview/${projectGuid}`)
 }
 
-const editProject = (projectId: string) => {
-  router.push(`/project/${projectId}`)
+const editProject = (projectGuid: string) => {
+  router.push(`/project/${projectGuid}`)
 }
 
-const downloadProject = async (projectId: string) => {
+const downloadProject = async (projectGuid: string) => {
   try {
-    const taskId = await projectStore.downloadProject(projectId)
+    const taskId = await projectStore.downloadProject(projectGuid)
     if (taskId) {
       // 显示任务轮询弹窗
       currentTaskId.value = taskId
-      currentDownloadProjectId.value = projectId
+      currentDownloadProjectGuid.value = projectGuid
       showTaskModal.value = true
     }
   } catch (error) {
@@ -468,7 +468,7 @@ const downloadProject = async (projectId: string) => {
 // 处理任务重试
 const handleTaskRetry = async (taskId: string) => {
   try {
-    const newTaskId = await projectStore.downloadProject(currentDownloadProjectId.value)
+    const newTaskId = await projectStore.downloadProject(currentDownloadProjectGuid.value)
     if (newTaskId) {
       currentTaskId.value = newTaskId
     }
@@ -477,11 +477,11 @@ const handleTaskRetry = async (taskId: string) => {
   }
 }
 
-const handleDeleteProject = async (projectId: string) => {
+const handleDeleteProject = async (projectGuid: string) => {
   try {
-    await projectStore.deleteProject(projectId)
+    await projectStore.deleteProject(projectGuid)
     // 如果删除的是当前选中的项目，清空选中状态
-    if (currentProject.value?.id === projectId) {
+    if (currentProject.value?.guid === projectGuid) {
       currentProject.value = null
     }
   } catch (error) {
@@ -507,7 +507,7 @@ const getStatusType = (status: string): 'default' | 'error' | 'warning' | 'succe
   const statusMap: Record<string, 'default' | 'error' | 'warning' | 'success' | 'primary' | 'info'> = {
     draft: 'default',
     in_progress: 'warning',
-    completed: 'success',
+    done: 'success',
     failed: 'error'
   }
   return statusMap[status] || 'default'
@@ -517,7 +517,7 @@ const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     draft: '草稿',
     in_progress: '进行中',
-    completed: '已完成',
+    done: '已完成',
     failed: '失败'
   }
   return statusMap[status] || status
@@ -528,7 +528,7 @@ const getProjectProgress = (project: Project) => {
   const progressMap: Record<string, number> = {
     draft: 10,
     in_progress: 60,
-    completed: 100,
+    done: 100,
     failed: 0
   }
   return progressMap[project.status] || 0
@@ -538,7 +538,7 @@ const getProgressColor = (status: string) => {
   const colorMap: Record<string, string> = {
     draft: '#A0AEC0',
     in_progress: '#D69E2E',
-    completed: '#38A169',
+    done: '#38A169',
     failed: '#E53E3E'
   }
   return colorMap[status] || '#A0AEC0'

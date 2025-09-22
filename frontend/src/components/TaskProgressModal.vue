@@ -143,7 +143,7 @@ import type { TaskResult } from '@/types/task'
 interface Props {
   show: boolean
   taskId: string
-  projectId: string
+  projectGuid: string
 }
 
 interface Emits {

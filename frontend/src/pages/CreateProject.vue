@@ -90,7 +90,7 @@ const handleProjectCreate = async () => {
       message.success('项目创建成功！')
       
       // 自动跳转到项目详情页面
-      router.push(`/project/${createdProject.id}`)
+      router.push(`/project/${createdProject.guid}`)
     } else {
       throw new Error('创建失败')
     }

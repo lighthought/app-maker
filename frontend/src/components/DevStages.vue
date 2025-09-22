@@ -2,7 +2,6 @@
   <div class="dev-stages">
     <div class="stages-header">
       <h3>开发进度</h3>
-      <div class="progress-text">{{ currentProgress }}%</div>
     </div>
     
     <div class="stages-container" :class="{ 'horizontal': layout === 'horizontal' }">
@@ -58,7 +57,6 @@ import type { DevStage } from '@/types/project'
 
 interface Props {
   stages: DevStage[]
-  currentProgress: number
   layout?: 'vertical' | 'horizontal'
 }
 
@@ -74,7 +72,7 @@ const currentStage = computed(() => {
 
 // 获取阶段样式类
 const getStageClass = (stage: DevStage) => ({
-  'stage-completed': stage.status === 'done',
+  'stage-done': stage.status === 'done',
   'stage-failed': stage.status === 'failed',
   'stage-in-progress': stage.status === 'in_progress',
   'stage-pending': stage.status === 'pending'
@@ -91,7 +89,7 @@ const shouldShowConnector = (currentStage: DevStage, nextStage: DevStage) => {
 
 // 获取连接线样式类
 const getConnectorClass = (currentStage: DevStage, nextStage: DevStage) => ({
-  'connector-completed': currentStage.status === 'done',
+  'connector-done': currentStage.status === 'done',
   'connector-failed': currentStage.status === 'failed',
   'connector-in-progress': currentStage.status === 'in_progress',
   'connector-pending': currentStage.status === 'pending'
@@ -100,7 +98,7 @@ const getConnectorClass = (currentStage: DevStage, nextStage: DevStage) => ({
 // 获取状态颜色
 const getStatusColor = (status: string) => {
   const colorMap = {
-    completed: '#38A169',
+    done: '#38A169',
     failed: '#E53E3E',
     in_progress: '#D69E2E',
     pending: '#A0AEC0'
@@ -111,7 +109,7 @@ const getStatusColor = (status: string) => {
 // 获取状态图标
 const getStatusIcon = (status: string) => {
   const iconMap = {
-    completed: CheckIcon,
+    done: CheckIcon,
     failed: ErrorIcon,
     in_progress: ClockIcon,
     pending: ClockIcon
@@ -122,7 +120,7 @@ const getStatusIcon = (status: string) => {
 // 获取状态文本
 const getStatusText = (stage: DevStage) => {
   const statusMap = {
-    completed: `${stage.name}已完成`,
+    done: `${stage.name}已完成`,
     failed: `${stage.name}执行失败`,
     in_progress: `正在${stage.name}...`,
     pending: `等待${stage.name}`
@@ -291,12 +289,12 @@ const ClockIcon = () => h('svg', {
 }
 
 /* 阶段状态样式 */
-.stage-completed .stage-circle {
+.stage-done .stage-circle {
   background: #38A169;
   border: 2px solid #2F855A;
 }
 
-.stage-completed .stage-number {
+.stage-done .stage-number {
   color: white;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
@@ -361,7 +359,7 @@ const ClockIcon = () => h('svg', {
   margin: var(--spacing-sm) 0;
 }
 
-.connector-completed {
+.connector-done {
   background: #38A169;
 }
 

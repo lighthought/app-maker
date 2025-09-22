@@ -16,6 +16,9 @@ type StageRepository interface {
 	// GetByProjectID 获取项目的开发阶段列表
 	GetByProjectID(ctx context.Context, projectID string) ([]*models.DevStage, error)
 
+	// GetByProjectGUID 根据项目GUID获取开发阶段列表
+	GetByProjectGUID(ctx context.Context, projectGuid string) ([]*models.DevStage, error)
+
 	// 更新 stage 的状态为 done
 	UpdateStageToDone(ctx context.Context, projectID, name string) error
 
@@ -46,10 +49,21 @@ func (r *stageRepository) Create(ctx context.Context, stage *models.DevStage) er
 	return r.db.WithContext(ctx).Create(stage).Error
 }
 
+// GetByProjectID 根据项目ID获取开发阶段列表
 func (r *stageRepository) GetByProjectID(ctx context.Context, projectID string) ([]*models.DevStage, error) {
 	var stages []*models.DevStage
 	err := r.db.WithContext(ctx).
 		Where("project_id = ?", projectID).
+		Order("created_at ASC").
+		Find(&stages).Error
+	return stages, err
+}
+
+// GetByProjectGUID 根据项目GUID获取开发阶段列表
+func (r *stageRepository) GetByProjectGUID(ctx context.Context, projectGuid string) ([]*models.DevStage, error) {
+	var stages []*models.DevStage
+	err := r.db.WithContext(ctx).
+		Where("project_guid = ?", projectGuid).
 		Order("created_at ASC").
 		Find(&stages).Error
 	return stages, err

@@ -15,7 +15,7 @@ import (
 )
 
 type ProjectStageService interface {
-	GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error)
+	GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error)
 	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
@@ -61,10 +61,11 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		logger.Error("更新项目阶段失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", payload.ProjectID),
+			logger.String("projectGuid", payload.ProjectGuid),
 		)
 	}
 
-	project, err := s.projectRepo.GetByID(ctx, payload.ProjectID)
+	project, err := s.projectRepo.GetByGUID(ctx, payload.ProjectGuid)
 	if err != nil {
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
@@ -253,6 +254,6 @@ func (s *projectStageService) packageProject(ctx context.Context, project *model
 }
 
 // GetProjectStages 获取项目开发阶段
-func (s *projectStageService) GetProjectStages(ctx context.Context, projectID string) ([]*models.DevStage, error) {
-	return s.stageRepo.GetByProjectID(ctx, projectID)
+func (s *projectStageService) GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error) {
+	return s.stageRepo.GetByProjectGUID(ctx, projectGuid)
 }

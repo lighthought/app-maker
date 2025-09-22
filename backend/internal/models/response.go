@@ -62,7 +62,7 @@ type UserInfo struct {
 
 // ProjectInfo 项目信息（用于响应）
 type ProjectInfo struct {
-	ID           string    `json:"id" example:"PROJ_00000000001"`
+	GUID         string    `json:"guid" example:"e080335a93d0456ba9b65ab407710e55"`
 	Name         string    `json:"name" example:"项目名称"`
 	Description  string    `json:"description" example:"项目描述"`
 	Status       string    `json:"status" example:"in_progress"`

@@ -15,8 +15,8 @@ const (
 )
 
 // GetProjectPath 获取项目路径
-func GetProjectPath(userID, projectID string) string {
-	return filepath.Join(baseDir, "projects", userID, projectID)
+func GetProjectPath(userID, projectGuid string) string {
+	return filepath.Join(baseDir, "projects", userID, projectGuid)
 }
 
 // GetTemplatePath 获取模板路径

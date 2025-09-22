@@ -1,5 +1,6 @@
 export interface Project {
   id: string
+  guid: string
   name: string
   description: string
   status: 'draft' | 'in_progress' | 'done' | 'failed'

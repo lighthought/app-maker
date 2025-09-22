@@ -9,9 +9,9 @@ import (
 
 // DevStage 开发阶段模型
 type DevStage struct {
-	ID        string `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq')"`
-	ProjectID string `json:"project_id" gorm:"type:varchar(50);not null"`
-	//Project     Project        `json:"project,omitempty" gorm:"foreignKey:ProjectID"`
+	ID           string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq')"`
+	ProjectID    string         `json:"project_id" gorm:"type:varchar(50);not null"`
+	ProjectGuid  string         `json:"project_guid" gorm:"type:varchar(50);"`
 	Name         string         `json:"name" gorm:"size:100;not null"`
 	Status       string         `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, completed, failed
 	Progress     int            `json:"progress" gorm:"default:0"`                        // 0-100

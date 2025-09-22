@@ -80,20 +80,21 @@ func (s *ProjectTaskHandler) zipProjectPath(t *asynq.Task) (string, string, erro
 		return "", "", fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 	projectID := payload.ProjectID
+	projectGuid := payload.ProjectGuid
 	projectPath := payload.ProjectPath
 	resultWriter := t.ResultWriter()
 
 	// 创建缓存目录
 	cacheDir := utils.GetCachePath()
 	// 生成缓存文件名
-	cacheFileName := fmt.Sprintf("%s_%s", projectID, time.Now().Format("20060102_150405"))
+	cacheFileName := fmt.Sprintf("%s_%s", projectGuid, time.Now().Format("20060102_150405"))
 
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "正在打包项目文件...")
 	// 使用 utils 压缩到缓存
 	resultPath, err := utils.CompressDirectoryToDir(context.Background(), projectPath, cacheDir, cacheFileName)
 	if err != nil {
 		utils.UpdateResult(resultWriter, constants.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
-		return "", projectPath, fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, projectID)
+		return "", projectPath, fmt.Errorf("打包项目文件失败: %w, projectID: %s, projectGuid: %s", err, projectID, projectGuid)
 	}
 	return resultPath, projectPath, nil
 }

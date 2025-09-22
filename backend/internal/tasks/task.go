@@ -22,9 +22,10 @@ func NewEmailDeliveryTask(userID string, content string) *asynq.Task {
 }
 
 // 创建下载项目任务
-func NewProjectDownloadTask(projectID, projectPath string) *asynq.Task {
+func NewProjectDownloadTask(projectID, projectGuid, projectPath string) *asynq.Task {
 	payload := models.ProjectTaskPayload{
 		ProjectID:   projectID,
+		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
 	return asynq.NewTask(models.TypeProjectDownload,
@@ -35,9 +36,10 @@ func NewProjectDownloadTask(projectID, projectPath string) *asynq.Task {
 }
 
 // 创建备份项目任务
-func NewProjectBackupTask(projectID, projectPath string) *asynq.Task {
+func NewProjectBackupTask(projectID, projectGuid, projectPath string) *asynq.Task {
 	payload := models.ProjectTaskPayload{
 		ProjectID:   projectID,
+		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
 
@@ -49,10 +51,11 @@ func NewProjectBackupTask(projectID, projectPath string) *asynq.Task {
 }
 
 // 创建项目开发任务
-func NewProjectDevelopmentTask(projectID, projectPath string) *asynq.Task {
+func NewProjectDevelopmentTask(projectID, projectGuid, gitlabRepoURL string) *asynq.Task {
 	payload := models.ProjectTaskPayload{
 		ProjectID:   projectID,
-		ProjectPath: projectPath,
+		ProjectGuid: projectGuid,
+		ProjectPath: gitlabRepoURL,
 	}
 	return asynq.NewTask(models.TypeProjectDevelopment,
 		payload.ToBytes(),
@@ -62,9 +65,10 @@ func NewProjectDevelopmentTask(projectID, projectPath string) *asynq.Task {
 }
 
 // 创建项目初始化任务
-func NewProjectInitTask(projectID, projectPath string) *asynq.Task {
+func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task {
 	payload := models.ProjectTaskPayload{
 		ProjectID:   projectID,
+		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
 	return asynq.NewTask(models.TypeProjectInit,

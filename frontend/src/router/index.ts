@@ -22,7 +22,7 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '创建项目', requiresAuth: true, layout: 'default' }
   },
   {
-    path: '/project/:id',
+    path: '/project/:guid',
     name: 'ProjectEdit',
     component: () => import('@/pages/ProjectEdit.vue'),
     meta: { title: '项目编辑', requiresAuth: true, layout: 'default' }

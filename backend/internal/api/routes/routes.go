@@ -125,12 +125,12 @@ func Register(engine *gin.Engine, container *container.Container) {
 		projects.Use(authMiddleware) // 应用认证中间件
 		{
 			if projectHandler != nil {
-				projects.POST("/", projectHandler.CreateProject)                     // 创建项目
-				projects.GET("/", projectHandler.ListProjects)                       // 获取项目列表
-				projects.GET("/:id", projectHandler.GetProject)                      // 获取项目详情
-				projects.DELETE("/:id", projectHandler.DeleteProject)                // 删除项目
-				projects.GET("/:id/stages", projectHandler.GetProjectStages)         // 获取项目开发阶段
-				projects.GET("/download/:projectId", projectHandler.DownloadProject) // 下载项目文件
+				projects.POST("/", projectHandler.CreateProject)                // 创建项目
+				projects.GET("/", projectHandler.ListProjects)                  // 获取项目列表
+				projects.GET("/:guid", projectHandler.GetProject)               // 获取项目详情
+				projects.DELETE("/:guid", projectHandler.DeleteProject)         // 删除项目
+				projects.GET("/:guid/stages", projectHandler.GetProjectStages)  // 获取项目开发阶段
+				projects.GET("/download/:guid", projectHandler.DownloadProject) // 下载项目文件
 			} else {
 				projects.POST("/", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project create endpoint - TODO"})
@@ -138,16 +138,16 @@ func Register(engine *gin.Engine, container *container.Container) {
 				projects.GET("/", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project list endpoint - TODO"})
 				})
-				projects.GET("/:id", func(c *gin.Context) {
+				projects.GET("/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project get endpoint - TODO"})
 				})
-				projects.DELETE("/:id", func(c *gin.Context) {
+				projects.DELETE("/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project delete endpoint - TODO"})
 				})
-				projects.GET("/:id/stages", func(c *gin.Context) {
+				projects.GET("/:guid/stages", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project stages endpoint - TODO"})
 				})
-				projects.GET("/download/:projectId", func(c *gin.Context) {
+				projects.GET("/download/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project download endpoint - TODO"})
 				})
 			}
@@ -159,9 +159,9 @@ func Register(engine *gin.Engine, container *container.Container) {
 		files.Use(authMiddleware) // 应用认证中间件
 		{
 			if fileHandler != nil {
-				files.GET("/download", fileHandler.DownloadFile)                 // 下载项目文件
-				files.GET("/files/:projectId", fileHandler.GetProjectFiles)      // 获取文件列表
-				files.GET("/filecontent/:projectId", fileHandler.GetFileContent) // 获取文件内容
+				files.GET("/download", fileHandler.DownloadFile)            // 下载项目文件
+				files.GET("/files/:guid", fileHandler.GetProjectFiles)      // 获取文件列表
+				files.GET("/filecontent/:guid", fileHandler.GetFileContent) // 获取文件内容
 			} else {
 				files.GET("/download", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "File download endpoint - TODO"})
@@ -183,13 +183,13 @@ func Register(engine *gin.Engine, container *container.Container) {
 		conversations.Use(authMiddleware) // 应用认证中间件
 		{
 			if chatHandler != nil {
-				conversations.GET("/messages/:projectId", chatHandler.GetProjectMessages) // 获取对话历史
-				conversations.POST("/chat/:projectId", chatHandler.AddChatMessage)        // 添加对话消息
+				conversations.GET("/messages/:guid", chatHandler.GetProjectMessages) // 获取对话历史
+				conversations.POST("/chat/:guid", chatHandler.AddChatMessage)        // 添加对话消息
 			} else {
-				conversations.GET("/messages/:projectId", func(c *gin.Context) {
+				conversations.GET("/messages/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Chat messages endpoint - TODO"})
 				})
-				conversations.POST("/chat/:projectId", func(c *gin.Context) {
+				conversations.POST("/chat/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Chat add message endpoint - TODO"})
 				})
 			}

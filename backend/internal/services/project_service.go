@@ -23,18 +23,18 @@ import (
 type ProjectService interface {
 	// 基础CRUD操作
 	CreateProject(ctx context.Context, req *models.CreateProjectRequest, userID string) (*models.ProjectInfo, error)
-	GetProject(ctx context.Context, projectID, userID string) (*models.ProjectInfo, error)
-	DeleteProject(ctx context.Context, projectID, userID string) error
+	GetProject(ctx context.Context, projectGuid, userID string) (*models.ProjectInfo, error)
+	DeleteProject(ctx context.Context, projectGuid, userID string) error
 	ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*models.PaginationResponse, error)
 
 	// 用户项目管理
 	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*models.PaginationResponse, error)
 
 	// 检查项目访问权限
-	CheckProjectAccess(ctx context.Context, projectID, userID string) (*models.Project, error)
+	CheckProjectAccess(ctx context.Context, projectGuid, userID string) (*models.Project, error)
 
 	// CreateDownloadProjectTask 创建项目下载任务
-	CreateDownloadProjectTask(ctx context.Context, projectID, projectPath string) (string, error)
+	CreateDownloadProjectTask(ctx context.Context, projectID, projectGuid, projectPath string) (string, error)
 
 	// ProcessTask 处理任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
@@ -121,7 +121,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	// 替换为最终的项目路径
-	newProject.ProjectPath = utils.GetProjectPath(userID, newProject.ID)
+	newProject.ProjectPath = utils.GetProjectPath(userID, newProject.GUID)
 	logger.Info("生成项目路径", logger.String("projectPath", newProject.ProjectPath))
 
 	// 自动生成项目配置信息和密码信息
@@ -159,9 +159,10 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 
 	newProject.UserID = userID
 	// asynq 异步调用初始化项目流程
-	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectInitTask(newProject.ID, newProject.ProjectPath))
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectInitTask(newProject.ID, newProject.GUID, newProject.ProjectPath))
 	if err != nil {
 		stage := models.NewDevStage(newProject.ID, constants.DevStatusInitializing, constants.CommandStatusFailed)
+		stage.ProjectGuid = newProject.GUID
 		if err = s.projectStageRepo.Create(ctx, stage); err != nil {
 			logger.Error("插入项目阶段失败",
 				logger.String("error", err.Error()),
@@ -184,7 +185,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 	logger.Info("项目保存成功", logger.String("projectID", newProject.ID))
 
-	projectInfo, err := s.GetProject(ctx, newProject.ID, userID)
+	projectInfo, err := s.GetProject(ctx, newProject.GUID, userID)
 	if err != nil {
 		logger.Error("获取项目信息失败",
 			logger.String("error", err.Error()),
@@ -194,7 +195,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	userMsg := &models.ConversationMessage{
-		ProjectID:       newProject.ID,
+		ProjectGuid:     newProject.GUID,
 		Type:            constants.ConversationTypeUser,
 		AgentRole:       "user",
 		AgentName:       "",
@@ -213,6 +214,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 
 	// 插入项目阶段
 	stage := models.NewDevStage(newProject.ID, constants.DevStatusInitializing, constants.CommandStatusInProgress)
+	stage.ProjectGuid = newProject.GUID
 	if err = s.projectStageRepo.Create(ctx, stage); err != nil {
 		logger.Error("插入项目阶段失败",
 			logger.String("error", err.Error()),
@@ -298,6 +300,7 @@ func (s *projectService) updateProjectStage(ctx context.Context, projectID, task
 	// 没有，才插入环境准备的阶段
 	projectStage := models.NewDevStage(project.ID, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
 	projectStage.TaskID = taskID
+	projectStage.ProjectGuid = project.GUID
 	if err := s.projectStageRepo.Create(ctx, projectStage); err != nil {
 		logger.Error("插入项目阶段失败",
 			logger.String("error", err.Error()),
@@ -335,7 +338,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 20, "生成项目名和描述成功")
 	projectMsg := &models.ConversationMessage{
-		ProjectID:       project.ID,
+		ProjectGuid:     project.GUID,
 		Type:            constants.ConversationTypeSystem,
 		AgentRole:       AgentAnalyst.Role,
 		AgentName:       AgentAnalyst.Name,
@@ -393,7 +396,7 @@ func (s *projectService) initProjectTemplate(ctx context.Context, project *model
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目模板初始化成功")
 
 	projectMsg := &models.ConversationMessage{
-		ProjectID:       project.ID,
+		ProjectGuid:     project.GUID,
 		Type:            constants.ConversationTypeSystem,
 		AgentRole:       AgentDev.Role,
 		AgentName:       AgentDev.Name,
@@ -434,7 +437,7 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 70, "提交代码到GitLab成功")
 	projectMsg := &models.ConversationMessage{
-		ProjectID:       project.ID,
+		ProjectGuid:     project.GUID,
 		Type:            constants.ConversationTypeSystem,
 		AgentRole:       AgentDev.Role,
 		AgentName:       AgentDev.Name,
@@ -462,7 +465,7 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 func (s *projectService) callAgentServer(ctx context.Context, project *models.Project,
 	resultWriter *asynq.ResultWriter, projectStage *models.DevStage) error {
 
-	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GitlabRepoURL))
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GUID, project.GitlabRepoURL))
 	if err != nil {
 		logger.Error("创建项目开发任务失败",
 			logger.String("error", err.Error()),
@@ -480,6 +483,7 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 	)
 
 	devProjectStage := models.NewDevStage(project.ID, constants.DevStatusPendingAgents, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
 	if err := s.projectStageRepo.Create(ctx, devProjectStage); err != nil {
 		logger.Error("插入项目阶段失败",
 			logger.String("error", err.Error()),
@@ -488,12 +492,12 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 	}
 
 	projectMsg := &models.ConversationMessage{
-		ProjectID:  project.ID,
-		Type:       constants.ConversationTypeSystem,
-		AgentRole:  AgentPM.Role,
-		AgentName:  AgentPM.Name,
-		Content:    "项目创建完成，开发流程已启动",
-		IsMarkdown: true,
+		ProjectGuid: project.GUID,
+		Type:        constants.ConversationTypeSystem,
+		AgentRole:   AgentPM.Role,
+		AgentName:   AgentPM.Name,
+		Content:     "项目创建完成，开发流程已启动",
+		IsMarkdown:  true,
 		MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
 			"\",\n\"guid\": \"" + project.GUID +
 			"\",\n\"name\": \"" + project.Name +
@@ -564,8 +568,8 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 }
 
 // GetProject 获取项目信息
-func (s *projectService) GetProject(ctx context.Context, projectID, userID string) (*models.ProjectInfo, error) {
-	project, err := s.CheckProjectAccess(ctx, projectID, userID)
+func (s *projectService) GetProject(ctx context.Context, projectGuid, userID string) (*models.ProjectInfo, error) {
+	project, err := s.CheckProjectAccess(ctx, projectGuid, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -576,28 +580,22 @@ func (s *projectService) GetProject(ctx context.Context, projectID, userID strin
 }
 
 // DeleteProject 删除项目
-func (s *projectService) DeleteProject(ctx context.Context, projectID, userID string) error {
+func (s *projectService) DeleteProject(ctx context.Context, projectGuid, userID string) error {
 	// 检查权限
-	isOwner, err := s.projectRepo.IsOwner(ctx, projectID, userID)
+	project, err := s.CheckProjectAccess(ctx, projectGuid, userID)
 	if err != nil {
 		return err
 	}
-	if !isOwner {
+	if project == nil {
 		return errors.New("access denied")
-	}
-
-	// 获取项目信息
-	project, err := s.projectRepo.GetByID(ctx, projectID)
-	if err != nil {
-		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
 	// 如果项目路径存在，异步打包缓存
 	if project.ProjectPath != "" && utils.IsDirectoryExists(project.ProjectPath) == true {
-		s.asyncClient.Enqueue(tasks.NewProjectBackupTask(projectID, project.ProjectPath))
+		s.asyncClient.Enqueue(tasks.NewProjectBackupTask(project.ID, projectGuid, project.ProjectPath))
 	}
 
-	return s.projectRepo.Delete(ctx, projectID)
+	return s.projectRepo.Delete(ctx, project.ID)
 }
 
 // ListProjects 获取项目列表
@@ -681,15 +679,15 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 }
 
 // 检查项目访问权限
-func (s *projectService) CheckProjectAccess(ctx context.Context, projectID, userID string) (*models.Project, error) {
-	project, err := s.projectRepo.GetByID(ctx, projectID)
+func (s *projectService) CheckProjectAccess(ctx context.Context, projectGuid, userID string) (*models.Project, error) {
+	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
 	if err != nil {
 		return nil, err
 	}
 
 	// 检查权限（用户只能查看自己的项目，管理员可以查看所有项目）
 	// 这里简化处理，实际应该从JWT中获取用户角色
-	isOwner, err := s.projectRepo.IsOwner(ctx, projectID, userID)
+	isOwner, err := s.projectRepo.IsOwner(ctx, project.ID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -702,7 +700,7 @@ func (s *projectService) CheckProjectAccess(ctx context.Context, projectID, user
 // convertToProjectInfo 将Project模型转换为ProjectInfo响应格式
 func (s *projectService) convertToProjectInfo(project *models.Project) *models.ProjectInfo {
 	projectInfo := &models.ProjectInfo{
-		ID:           project.ID,
+		GUID:         project.GUID,
 		Name:         project.Name,
 		Description:  project.Description,
 		Status:       project.Status,
@@ -731,7 +729,7 @@ func (s *projectService) convertToProjectInfo(project *models.Project) *models.P
 }
 
 // DownloadProject 下载项目文件
-func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectID, projectPath string) (string, error) {
+func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectID, projectGuid, projectPath string) (string, error) {
 	// 检查项目路径是否存在
 	if utils.IsDirectoryExists(projectPath) == false {
 		logger.Error("项目路径为空", logger.String("projectPath", projectPath))
@@ -739,7 +737,7 @@ func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectI
 	}
 
 	// 异步方法，返回任务 ID
-	info, err := s.asyncClient.Enqueue(tasks.NewProjectDownloadTask(projectID, projectPath))
+	info, err := s.asyncClient.Enqueue(tasks.NewProjectDownloadTask(projectID, projectGuid, projectPath))
 	if err != nil {
 		return "", fmt.Errorf("下载项目文件失败: %w", err)
 	}

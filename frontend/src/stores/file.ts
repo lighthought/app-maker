@@ -47,7 +47,7 @@ const downloadFile = async (filePath: string) => {
   }
 
   // 获取文件内容
-  const getFileContent = async (projectId: string, filePath: string) => {
+  const getFileContent = async (projectGuid: string, filePath: string) => {
     try {
       const response = await httpService.get<{
         code: number
@@ -58,7 +58,7 @@ const downloadFile = async (filePath: string) => {
           size: number
           modifiedAt: string
         }
-      }>(`/files/filecontent/${projectId}`, {
+      }>(`/files/filecontent/${projectGuid}`, {
         params: { filePath }
       })
 
@@ -75,7 +75,7 @@ const downloadFile = async (filePath: string) => {
   }
 
   // 获取项目文件列表
-  const getProjectFiles = async (projectId: string, path?: string) => {
+  const getProjectFiles = async (projectGuid: string, path?: string) => {
     try {
       const response = await httpService.get<{
         code: number
@@ -87,7 +87,7 @@ const downloadFile = async (filePath: string) => {
           size: number
           modifiedAt: string
         }>
-      }>(`/files/files/${projectId}`, {
+      }>(`/files/files/${projectGuid}`, {
         params: path ? { path } : {}
       })
 
@@ -207,9 +207,9 @@ const downloadFile = async (filePath: string) => {
   }
 
   // 获取项目文件树
-  const getProjectFileTree = async (projectId: string): Promise<FileTreeNode[]> => {
+  const getProjectFileTree = async (projectGuid: string): Promise<FileTreeNode[]> => {
     try {
-      const files = await getProjectFiles(projectId)
+      const files = await getProjectFiles(projectGuid)
       if (files) {
         return buildFileTree(files)
       }
@@ -221,9 +221,9 @@ const downloadFile = async (filePath: string) => {
   }
 
   // 展开文件夹并加载子文件
-  const expandFolder = async (projectId: string, folderPath: string, fileTree: FileTreeNode[]): Promise<void> => {
+  const expandFolder = async (projectGuid: string, folderPath: string, fileTree: FileTreeNode[]): Promise<void> => {
     try {
-      const files = await getProjectFiles(projectId, folderPath)
+      const files = await getProjectFiles(projectGuid, folderPath)
       // 找到对应的文件夹节点
       const folderNode = findNodeByPath(fileTree, folderPath)
       if (folderNode && folderNode.type === 'folder') {

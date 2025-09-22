@@ -83,7 +83,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	logger.Info("项目创建成功",
-		logger.String("projectID", project.ID),
+		logger.String("projectGUID", project.GUID),
 		logger.String("projectName", project.Name),
 		logger.String("userID", userID),
 	)
@@ -103,19 +103,19 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Success 200 {object} models.Response{data=models.ProjectInfo} "获取项目成功"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
 // @Failure 401 {object} models.ErrorResponse "未授权"
 // @Failure 404 {object} models.ErrorResponse "项目不存在"
 // @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/{id} [get]
+// @Router /api/v1/projects/{guid} [get]
 func (h *ProjectHandler) GetProject(c *gin.Context) {
-	projectID := c.Param("id")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -124,7 +124,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
 
-	project, err := h.projectService.GetProject(c.Request.Context(), projectID, userID)
+	project, err := h.projectService.GetProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
@@ -157,19 +157,19 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Success 200 {object} models.Response "项目删除成功"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
 // @Failure 401 {object} models.ErrorResponse "未授权"
 // @Failure 403 {object} models.ErrorResponse "访问被拒绝"
 // @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/{id} [delete]
+// @Router /api/v1/projects/{guid} [delete]
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
-	projectID := c.Param("id")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -178,7 +178,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
 
-	err := h.projectService.DeleteProject(c.Request.Context(), projectID, userID)
+	err := h.projectService.DeleteProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
@@ -262,23 +262,23 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param projectId path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Success 200 {object} map[string]interface{} "成功响应"
 // @Failure 400 {object} map[string]string "请求参数错误"
 // @Failure 500 {object} map[string]string "服务器内部错误"
-// @Router /api/v1/projects/{id}/stages [get]
+// @Router /api/v1/projects/{guid}/stages [get]
 func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
-	projectID := c.Param("id")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      models.VALIDATION_ERROR,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectID)
+	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectGuid)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
@@ -303,20 +303,20 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 // @Accept json
 // @Produce application/zip
 // @Security Bearer
-// @Param id path string true "项目ID"
+// @Param guid path string true "项目GUID"
 // @Success 200 {file} file "项目文件zip包"
 // @Failure 400 {object} models.ErrorResponse "请求参数错误"
 // @Failure 401 {object} models.ErrorResponse "未授权"
 // @Failure 403 {object} models.ErrorResponse "访问被拒绝"
 // @Failure 404 {object} models.ErrorResponse "项目不存在"
 // @Failure 500 {object} models.ErrorResponse "服务器内部错误"
-// @Router /api/v1/projects/download/{projectId} [get]
+// @Router /api/v1/projects/download/{guid} [get]
 func (h *ProjectHandler) DownloadProject(c *gin.Context) {
-	projectID := c.Param("projectId")
-	if projectID == "" {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Code:      http.StatusBadRequest,
-			Message:   "项目ID不能为空",
+			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -326,7 +326,7 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	// 获取项目信息
-	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectID, userID)
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
 			c.JSON(http.StatusForbidden, models.ErrorResponse{
@@ -345,11 +345,11 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	}
 
 	// 生成项目压缩任务
-	taskID, err := h.projectService.CreateDownloadProjectTask(c.Request.Context(), projectID, project.ProjectPath)
+	taskID, err := h.projectService.CreateDownloadProjectTask(c.Request.Context(), project.ID, projectGuid, project.ProjectPath)
 	if err != nil {
 		logger.Error("生成项目压缩任务失败",
 			logger.String("error", err.Error()),
-			logger.String("projectID", projectID),
+			logger.String("projectID", project.ID),
 		)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Code:      http.StatusInternalServerError,
