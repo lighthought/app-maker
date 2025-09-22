@@ -5,12 +5,12 @@
       <div class="progress-text">{{ currentProgress }}%</div>
     </div>
     
-    <div class="stages-container">
+    <div class="stages-container" :class="{ 'horizontal': layout === 'horizontal' }">
       <div
         v-for="(stage, index) in stages"
         :key="stage.id"
         class="stage-item"
-        :class="getStageClass(stage)"
+        :class="[getStageClass(stage), { 'horizontal': layout === 'horizontal' }]"
       >
         <div class="stage-circle">
           <n-icon v-if="stage.status === 'completed'" size="16" color="white">
@@ -24,14 +24,14 @@
         
         <div class="stage-content">
           <div class="stage-name">{{ stage.name }}</div>
-          <div class="stage-description">{{ stage.description }}</div>
+          <div v-if="layout === 'vertical'" class="stage-description">{{ stage.description }}</div>
         </div>
         
         <!-- 连接线 -->
         <div
           v-if="index < stages.length - 1"
           class="stage-connector"
-          :class="getConnectorClass(stage, stages[index + 1])"
+          :class="[getConnectorClass(stage, stages[index + 1]), { 'horizontal': layout === 'horizontal' }]"
         ></div>
       </div>
     </div>
@@ -59,9 +59,12 @@ import type { DevStage } from '@/types/project'
 interface Props {
   stages: DevStage[]
   currentProgress: number
+  layout?: 'vertical' | 'horizontal'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  layout: 'vertical'
+})
 
 // 当前阶段
 const currentStage = computed(() => {
@@ -149,15 +152,21 @@ const ClockIcon = () => h('svg', {
 .dev-stages {
   background: white;
   border-radius: var(--border-radius-lg);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+/* 横向布局样式 */
+.dev-stages.horizontal {
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: 0;
 }
 
 .stages-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .stages-header h3 {
@@ -176,11 +185,25 @@ const ClockIcon = () => h('svg', {
   position: relative;
 }
 
+.stages-container.horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
 .stage-item {
   display: flex;
   align-items: center;
   margin-bottom: var(--spacing-lg);
   position: relative;
+}
+
+.stage-item.horizontal {
+  flex-direction: column;
+  margin-bottom: 0;
+  flex: 1;
+  text-align: center;
 }
 
 .stage-circle {
@@ -193,6 +216,11 @@ const ClockIcon = () => h('svg', {
   flex-shrink: 0;
   margin-right: var(--spacing-md);
   transition: all 0.3s ease;
+}
+
+.stage-item.horizontal .stage-circle {
+  margin-right: 0;
+  margin-bottom: var(--spacing-sm);
 }
 
 .stage-number {
@@ -256,6 +284,13 @@ const ClockIcon = () => h('svg', {
   transition: all 0.3s ease;
 }
 
+.stage-connector.horizontal {
+  position: static;
+  width: 100%;
+  height: 2px;
+  margin: var(--spacing-sm) 0;
+}
+
 .connector-completed {
   background: #38A169;
 }
@@ -274,8 +309,8 @@ const ClockIcon = () => h('svg', {
 
 /* 当前状态信息 */
 .current-status {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
   border-top: 1px solid var(--border-color);
 }
 

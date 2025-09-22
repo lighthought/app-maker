@@ -1,10 +1,13 @@
 <template>
   <div class="conversation-container">
-    <!-- 开发阶段进度 -->
-    <DevStages 
-      :stages="devStages" 
-      :current-progress="currentProgress"
-    />
+    <!-- 开发阶段进度 - 横向展示 -->
+    <div class="progress-section">
+      <DevStages 
+        :stages="devStages" 
+        :current-progress="currentProgress"
+        layout="horizontal"
+      />
+    </div>
     
     <!-- 对话消息列表 -->
     <div class="conversation-messages" ref="messagesContainer">
@@ -32,14 +35,24 @@
         </div>
       </div>
     </div>
+    
+    <!-- 底部输入框 -->
+    <div class="input-section">
+      <SmartInput
+        v-model="inputValue"
+        placeholder="输入您的需求或问题..."
+        @send="handleSendMessage"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, h } from 'vue'
+import { ref, computed, watch, nextTick, h, onMounted, onUnmounted } from 'vue'
 import { NIcon } from 'naive-ui'
 import ConversationMessage from './ConversationMessage.vue'
 import DevStages from './DevStages.vue'
+import SmartInput from './common/SmartInput.vue'
 import { useProjectStore } from '@/stores/project'
 import type { ConversationMessage as ConversationMessageType, DevStage } from '@/types/project'
 
@@ -57,6 +70,10 @@ const devStages = ref<DevStage[]>([])
 const currentProgress = ref(0)
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
+const inputValue = ref('')
+
+// 定时刷新
+let refreshTimer: number | null = null
 
 // 加载开发阶段
 const loadDevStages = async () => {
@@ -123,7 +140,54 @@ const scrollToBottom = () => {
 const toggleMessageExpanded = (messageId: string) => {
   const message = messages.value.find(m => m.id === messageId)
   if (message) {
-    message.isExpanded = !message.isExpanded
+    message.is_expanded = !message.is_expanded
+  }
+}
+
+// 发送消息
+const handleSendMessage = async (content: string) => {
+  if (!content.trim()) return
+  
+  isLoading.value = true
+  
+  try {
+    // 添加用户消息
+    const userMessage = await projectStore.addChatMessage(props.projectId, {
+      type: 'user',
+      content: content.trim(),
+      is_expanded: false
+    })
+    
+    if (userMessage) {
+      messages.value.push(userMessage)
+      scrollToBottom()
+    }
+    
+    // 清空输入框
+    inputValue.value = ''
+    
+    // 这里可以添加发送到后端的逻辑
+    // 后端会通过WebSocket推送AI回复
+    
+  } catch (error) {
+    console.error('发送消息失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 定时刷新数据
+const startAutoRefresh = () => {
+  refreshTimer = window.setInterval(async () => {
+    await loadConversations()
+    await loadDevStages()
+  }, 5000) // 每5秒刷新一次
+}
+
+const stopAutoRefresh = () => {
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer)
+    refreshTimer = null
   }
 }
 
@@ -152,7 +216,7 @@ const initialize = async () => {
     const userMessage = await projectStore.addChatMessage(props.projectId, {
       type: 'user',
       content: props.requirements,
-      isExpanded: false
+      is_expanded: false
     })
     if (userMessage) {
       messages.value.push(userMessage)
@@ -160,10 +224,19 @@ const initialize = async () => {
     
     // 系统消息将通过WebSocket推送
   }
+  
+  // 启动定时刷新
+  startAutoRefresh()
 }
 
-// 初始化
-initialize()
+// 生命周期钩子
+onMounted(() => {
+  initialize()
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
+})
 </script>
 
 <style scoped>
@@ -171,13 +244,28 @@ initialize()
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: #f8fafc;
+}
+
+.progress-section {
+  flex-shrink: 0;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .conversation-messages {
   flex: 1;
   overflow-y: auto;
   padding: var(--spacing-lg);
-  background: var(--background-color);
+  background: #f8fafc;
+}
+
+.input-section {
+  flex-shrink: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: white;
+  border-top: 1px solid #e2e8f0;
 }
 
 /* 加载状态样式 */

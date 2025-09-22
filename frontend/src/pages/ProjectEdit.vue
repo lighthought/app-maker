@@ -14,7 +14,7 @@
               返回
             </n-button>
             <div class="project-info">
-              <h2 class="project-title">{{ project?.name || '项目编辑' }}</h2>
+              <h2 class="project-title">{{ getProjectDisplayName() }}</h2>
               <n-tag :type="getStatusType(project?.status)" size="small">
                 {{ getStatusText(project?.status) }}
               </n-tag>
@@ -93,6 +93,19 @@ const getStatusText = (status?: string) => {
     failed: '失败'
   }
   return statusMap[status || 'draft'] || '草稿'
+}
+
+// 获取项目显示名称
+const getProjectDisplayName = () => {
+  if (!project.value) return '项目编辑'
+  
+  // 如果项目名称是默认的"new-project"，尝试从对话消息中获取实际项目名称
+  if (project.value.name === 'new-project' || project.value.name === '项目编辑') {
+    // 这里可以从对话消息中提取项目名称，或者使用项目ID
+    return `项目 ${project.value.id.slice(-6)}` // 显示项目ID的后6位
+  }
+  
+  return project.value.name || '项目编辑'
 }
 
 // 图标组件

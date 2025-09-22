@@ -1,10 +1,10 @@
 <template>
   <div class="conversation-message" :class="messageClass">
-    <!-- 用户消息 -->
+    <!-- 用户消息 - 右侧显示 -->
     <div v-if="message.type === 'user'" class="user-message">
       <div class="message-content">
         <div class="message-text">{{ message.content }}</div>
-        <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+        <div class="message-time">{{ formatTime(message.created_at) }}</div>
       </div>
       <div class="user-avatar">
         <n-icon size="20" color="white">
@@ -13,72 +13,64 @@
       </div>
     </div>
 
-    <!-- Agent消息 -->
-    <div v-else-if="message.type === 'agent'" class="agent-message">
+    <!-- Agent/系统消息 - 左侧显示 -->
+    <div v-else class="agent-message">
       <div class="agent-avatar" :class="agentAvatarClass">
         <n-icon size="20" color="white">
           <component :is="agentIcon" />
         </n-icon>
       </div>
       <div class="message-content">
-        <div class="agent-header">
-          <span class="agent-name">{{ message.agentName || getAgentName(message.agentRole) }}</span>
-          <span class="agent-role">{{ getAgentRoleText(message.agentRole) }}</span>
+        <div v-if="hasAgentInfo" class="agent-header">
+          <span class="agent-name">{{ message.agent_name || getAgentName(message.agent_role) }}</span>
+          <span class="agent-role">{{ getAgentRoleText(message.agent_role) }}</span>
         </div>
         
         <!-- 普通文本消息 -->
-        <div v-if="!message.isMarkdown" class="message-text">
+        <div v-if="!message.is_markdown" class="message-text">
           {{ message.content }}
         </div>
         
         <!-- Markdown消息 -->
         <div v-else class="markdown-message">
           <div class="markdown-header">
-            <n-button
-              text
-              size="tiny"
-              @click="toggleExpanded"
-              class="expand-btn"
-            >
-              <template #icon>
-                <n-icon>
-                  <component :is="message.isExpanded ? 'ChevronUpIcon' : 'ChevronDownIcon'" />
-                </n-icon>
-              </template>
-              {{ message.isExpanded ? '折叠' : '展开' }}
-            </n-button>
-            <n-button
-              text
-              size="tiny"
-              @click="copyMarkdown"
-              class="copy-btn"
-            >
-              <template #icon>
-                <n-icon><CopyIcon /></n-icon>
-              </template>
-              复制
-            </n-button>
+            <div class="content-preview">
+              <span class="content-text" :title="message.content">{{ message.content }}</span>
+            </div>
+            <div class="action-buttons">
+              <n-button
+                text
+                size="tiny"
+                @click="toggleExpanded"
+                class="expand-btn"
+              >
+                <template #icon>
+                  <n-icon>
+                    <component :is="message.is_expanded ? 'ChevronUpIcon' : 'ChevronDownIcon'" />
+                  </n-icon>
+                </template>
+                {{ message.is_expanded ? '折叠' : '展开' }}
+              </n-button>
+              <n-button
+                text
+                size="tiny"
+                @click="copyMarkdown"
+                class="copy-btn"
+              >
+                <template #icon>
+                  <n-icon><CopyIcon /></n-icon>
+                </template>
+                复制
+              </n-button>
+            </div>
           </div>
           
-          <div v-if="message.isExpanded" class="markdown-content">
+          <div v-if="message.is_expanded" class="markdown-content">
             <div v-html="renderedMarkdown" class="markdown-body"></div>
           </div>
         </div>
         
-        <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-      </div>
-    </div>
-
-    <!-- 系统消息 -->
-    <div v-else-if="message.type === 'system'" class="system-message">
-      <div class="system-icon">
-        <n-icon size="16" color="#666">
-          <InfoIcon />
-        </n-icon>
-      </div>
-      <div class="message-content">
-        <div class="message-text">{{ message.content }}</div>
-        <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+        <div class="message-time">{{ formatTime(message.created_at) }}</div>
       </div>
     </div>
   </div>
@@ -97,6 +89,12 @@ interface Props {
 
 const props = defineProps<Props>()
 
+interface Emits {
+  (e: 'toggle-expanded', messageId: string): void
+}
+
+const emit = defineEmits<Emits>()
+
 // 获取message实例
 const messageApi = useMessage()
 
@@ -109,18 +107,20 @@ const messageClass = computed(() => ({
 
 // Agent头像样式类
 const agentAvatarClass = computed(() => ({
-  'avatar-dev': props.message.agentRole === 'dev',
-  'avatar-pm': props.message.agentRole === 'pm',
-  'avatar-arch': props.message.agentRole === 'arch',
-  'avatar-ux': props.message.agentRole === 'ux',
-  'avatar-qa': props.message.agentRole === 'qa',
-  'avatar-ops': props.message.agentRole === 'ops'
+  'avatar-dev': props.message.agent_role === 'dev',
+  'avatar-pm': props.message.agent_role === 'pm',
+  'avatar-po': props.message.agent_role === 'po',
+  'avatar-architect': props.message.agent_role === 'architect',
+  'avatar-ux-expert': props.message.agent_role === 'ux-expert',
+  'avatar-analyst': props.message.agent_role === 'analyst',
+  'avatar-qa': props.message.agent_role === 'qa',
+  'avatar-ops': props.message.agent_role === 'ops'
 }))
 
 // 渲染的Markdown内容
 const renderedMarkdown = computed(() => {
-  if (!props.message.markdownContent) return ''
-  return marked(props.message.markdownContent)
+  if (!props.message.markdown_content) return ''
+  return marked(props.message.markdown_content)
 })
 
 // 图标组件
@@ -217,12 +217,14 @@ const agentIcon = computed(() => {
   const iconMap = {
     dev: DevIcon,
     pm: PmIcon,
-    arch: ArchIcon,
-    ux: UxIcon,
+    po: PmIcon, // 产品负责人使用产品经理图标
+    architect: ArchIcon,
+    'ux-expert': UxIcon,
+    analyst: ArchIcon, // 分析师使用架构师图标
     qa: QaIcon,
     ops: OpsIcon
   }
-  return iconMap[props.message.agentRole || 'dev'] || DevIcon
+  return iconMap[props.message.agent_role as keyof typeof iconMap] || DevIcon
 })
 
 // 获取Agent名称
@@ -243,13 +245,20 @@ const getAgentRoleText = (role?: string) => {
   const roleMap = {
     dev: '开发工程师',
     pm: '产品经理',
-    arch: '架构师',
-    ux: 'UX设计师',
+    po: '产品负责人',
+    architect: '架构师',
+    'ux-expert': 'UX专家',
+    analyst: '分析师',
     qa: '测试工程师',
     ops: '运维工程师'
   }
   return roleMap[role as keyof typeof roleMap] || '开发工程师'
 }
+
+// 判断是否有Agent信息
+const hasAgentInfo = computed(() => {
+  return !!(props.message.agent_name || props.message.agent_role)
+})
 
 // 格式化时间
 const formatTime = (timestamp: string) => {
@@ -258,15 +267,14 @@ const formatTime = (timestamp: string) => {
 
 // 切换展开状态
 const toggleExpanded = () => {
-  // 这里需要通过emit通知父组件更新状态
-  // 暂时先不实现，后续在父组件中处理
+  emit('toggle-expanded', props.message.id)
 }
 
 // 复制Markdown内容
 const copyMarkdown = async () => {
-  if (props.message.markdownContent) {
+  if (props.message.markdown_content) {
     try {
-      await navigator.clipboard.writeText(props.message.markdownContent)
+      await navigator.clipboard.writeText(props.message.markdown_content)
       // 显示复制成功提示
       messageApi.success('代码复制成功', {
         duration: 2000,
@@ -287,21 +295,23 @@ const copyMarkdown = async () => {
 <style scoped>
 .conversation-message {
   margin-bottom: var(--spacing-lg);
+  padding: 0 var(--spacing-md);
 }
 
-/* 用户消息样式 */
+/* 用户消息样式 - 右侧显示 */
 .user-message {
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
   gap: var(--spacing-sm);
+  margin-left: 20%;
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--primary-color);
+  background: #3b82f6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -309,19 +319,23 @@ const copyMarkdown = async () => {
 }
 
 .user-message .message-content {
-  max-width: 70%;
-  background: var(--primary-color);
+  width: 100%;
+  max-width: 100%;
+  min-width: 300px;
+  background: #3b82f6;
   color: white;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
-  border-bottom-right-radius: var(--border-radius-sm);
+  border-radius: 18px;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Agent消息样式 */
+/* Agent/系统消息样式 - 左侧显示 */
 .agent-message {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm);
+  margin-right: 20%;
 }
 
 .agent-avatar {
@@ -336,18 +350,23 @@ const copyMarkdown = async () => {
 
 .avatar-dev { background: #3182CE; }
 .avatar-pm { background: #38A169; }
-.avatar-arch { background: #D69E2E; }
-.avatar-ux { background: #E53E3E; }
+.avatar-po { background: #38A169; }
+.avatar-architect { background: #D69E2E; }
+.avatar-ux-expert { background: #E53E3E; }
+.avatar-analyst { background: #D69E2E; }
 .avatar-qa { background: #805AD5; }
 .avatar-ops { background: #DD6B20; }
 
 .agent-message .message-content {
-  max-width: 80%;
+  width: 100%;
+  max-width: 100%;
+  min-width: 300px;
   background: white;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
-  border-bottom-left-radius: var(--border-radius-sm);
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .agent-header {
@@ -370,32 +389,6 @@ const copyMarkdown = async () => {
   border-radius: var(--border-radius-sm);
 }
 
-/* 系统消息样式 */
-.system-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-md) 0;
-}
-
-.system-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--background-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.system-message .message-content {
-  background: var(--background-color);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-}
 
 /* 通用样式 */
 .message-text {
@@ -421,9 +414,34 @@ const copyMarkdown = async () => {
 
 .markdown-header {
   display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-sm);
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: #f8fafc;
+  border-radius: var(--border-radius-md);
+  border: 1px solid #e2e8f0;
+}
+
+.content-preview {
+  flex: 1;
+  margin-right: var(--spacing-md);
+}
+
+.content-text {
+  font-size: 0.9rem;
+  color: #374151;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
 }
 
 .expand-btn,

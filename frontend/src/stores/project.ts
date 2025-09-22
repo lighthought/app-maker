@@ -173,13 +173,28 @@ export const useProjectStore = defineStore('project', () => {
       const response = await httpService.get<{
         code: number
         message: string
-        data: PaginationResponse<ConversationMessage>
+        total: number
+        page: number
+        page_size: number
+        total_pages: number
+        data: ConversationMessage[]
+        has_next: boolean
+        has_previous: boolean
+        timestamp: string
       }>(`/chat/messages/${projectId}`, {
         params: { page, pageSize }
       })
 
-      if (response.code === 0 && response.data) {
-        return response.data
+      if (response.code === 0) {
+        return {
+          total: response.total,
+          page: response.page,
+          page_size: response.page_size,
+          total_pages: response.total_pages,
+          data: response.data || [],
+          has_next: response.has_next,
+          has_previous: response.has_previous
+        }
       } else {
         console.error('获取对话历史失败:', response.message)
         return null
@@ -191,7 +206,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   // 添加对话消息
-  const addChatMessage = async (projectId: string, message: Omit<ConversationMessage, 'id' | 'timestamp'>) => {
+  const addChatMessage = async (projectId: string, message: Omit<ConversationMessage, 'id' | 'created_at' | 'updated_at' | 'project_id'>) => {
     try {
       const response = await httpService.post<{
         code: number

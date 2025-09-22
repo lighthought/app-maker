@@ -70,14 +70,16 @@ export interface PaginationInfo {
 // 对话消息类型
 export interface ConversationMessage {
   id: string
+  project_id: string
   type: 'user' | 'agent' | 'system'
-  agentRole?: 'dev' | 'pm' | 'arch' | 'ux' | 'qa' | 'ops'
-  agentName?: string
+  agent_role?: 'dev' | 'pm' | 'po' | 'architect' | 'ux-expert' | 'analyst' | 'qa' | 'ops'
+  agent_name?: string
   content: string
-  timestamp: string
-  isMarkdown?: boolean
-  markdownContent?: string
-  isExpanded?: boolean
+  is_markdown?: boolean
+  markdown_content?: string
+  is_expanded?: boolean
+  created_at: string
+  updated_at: string
 }
 
 // 开发阶段类型
