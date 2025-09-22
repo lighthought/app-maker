@@ -101,8 +101,8 @@ definitions:
       frontend_port:
         example: 3000
         type: integer
-      id:
-        example: PROJ_00000000001
+      guid:
+        example: e080335a93d0456ba9b65ab407710e55
         type: string
       name:
         example: 项目名称
@@ -404,15 +404,15 @@ paths:
       summary: 获取缓存统计信息
       tags:
       - 缓存检查
-  /api/v1/chat/chat/{projectId}:
+  /api/v1/chat/chat/{guid}:
     post:
       consumes:
       - application/json
       description: 为指定项目添加新的对话消息
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: projectId
+        name: guid
         required: true
         type: string
       - description: 对话消息
@@ -446,15 +446,15 @@ paths:
       summary: 添加对话消息
       tags:
       - 对话消息
-  /api/v1/chat/messages/{projectId}:
+  /api/v1/chat/messages/{guid}:
     get:
       consumes:
       - application/json
       description: 获取指定项目的对话消息历史记录，支持分页
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: projectId
+        name: guid
         required: true
         type: string
       - default: 1
@@ -523,15 +523,15 @@ paths:
       summary: 下载文件
       tags:
       - 项目文件
-  /api/v1/files/filecontent/{projectId}:
+  /api/v1/files/filecontent/{guid}:
     get:
       consumes:
       - application/json
       description: 获取指定文件的内容
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: projectId
+        name: guid
         required: true
         type: string
       - description: 文件路径
@@ -564,15 +564,15 @@ paths:
       summary: 获取文件内容
       tags:
       - 项目文件
-  /api/v1/files/files/{projectId}:
+  /api/v1/files/files/{guid}:
     get:
       consumes:
       - application/json
       description: 获取指定项目的文件树结构
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: projectId
+        name: guid
         required: true
         type: string
       - description: 目录路径
@@ -731,15 +731,15 @@ paths:
       summary: 创建项目
       tags:
       - 项目管理
-  /api/v1/projects/{id}:
+  /api/v1/projects/{guid}:
     delete:
       consumes:
       - application/json
       description: 删除指定项目
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: id
+        name: guid
         required: true
         type: string
       produces:
@@ -775,9 +775,9 @@ paths:
       - application/json
       description: 根据项目ID获取项目详细信息
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: id
+        name: guid
         required: true
         type: string
       produces:
@@ -813,15 +813,15 @@ paths:
       summary: 获取项目信息
       tags:
       - 项目管理
-  /api/v1/projects/{id}/stages:
+  /api/v1/projects/{guid}/stages:
     get:
       consumes:
       - application/json
       description: 获取指定项目的开发阶段信息
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: projectId
+        name: guid
         required: true
         type: string
       produces:
@@ -849,15 +849,15 @@ paths:
       summary: 获取项目开发阶段
       tags:
       - 开发阶段
-  /api/v1/projects/download/{projectId}:
+  /api/v1/projects/download/{guid}:
     get:
       consumes:
       - application/json
       description: 将项目文件打包为zip并下载
       parameters:
-      - description: 项目ID
+      - description: 项目GUID
         in: path
-        name: id
+        name: guid
         required: true
         type: string
       produces:

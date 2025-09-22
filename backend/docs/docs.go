@@ -352,7 +352,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/chat/chat/{projectId}": {
+        "/api/v1/chat/chat/{guid}": {
             "post": {
                 "security": [
                     {
@@ -373,8 +373,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "projectId",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     },
@@ -417,7 +417,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/chat/messages/{projectId}": {
+        "/api/v1/chat/messages/{guid}": {
             "get": {
                 "security": [
                     {
@@ -438,8 +438,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "projectId",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     },
@@ -536,7 +536,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/files/filecontent/{projectId}": {
+        "/api/v1/files/filecontent/{guid}": {
             "get": {
                 "security": [
                     {
@@ -557,8 +557,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "projectId",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     },
@@ -599,7 +599,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/files/files/{projectId}": {
+        "/api/v1/files/files/{guid}": {
             "get": {
                 "security": [
                     {
@@ -620,8 +620,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "projectId",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     },
@@ -868,7 +868,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/projects/download/{projectId}": {
+        "/api/v1/projects/download/{guid}": {
             "get": {
                 "security": [
                     {
@@ -889,8 +889,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "id",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     }
@@ -935,7 +935,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/projects/{id}": {
+        "/api/v1/projects/{guid}": {
             "get": {
                 "security": [
                     {
@@ -956,8 +956,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "id",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     }
@@ -1027,8 +1027,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "id",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     }
@@ -1067,7 +1067,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/projects/{id}/stages": {
+        "/api/v1/projects/{guid}/stages": {
             "get": {
                 "security": [
                     {
@@ -1088,8 +1088,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "项目ID",
-                        "name": "projectId",
+                        "description": "项目GUID",
+                        "name": "guid",
                         "in": "path",
                         "required": true
                     }
@@ -1626,9 +1626,9 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 3000
                 },
-                "id": {
+                "guid": {
                     "type": "string",
-                    "example": "PROJ_00000000001"
+                    "example": "e080335a93d0456ba9b65ab407710e55"
                 },
                 "name": {
                     "type": "string",
