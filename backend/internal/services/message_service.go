@@ -10,7 +10,7 @@ import (
 // MessageService 对话消息服务接口
 type MessageService interface {
 	// GetProjectConversations 获取项目对话历史
-	GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int, error)
+	GetProjectConversations(ctx context.Context, projectID string, pageSize, offset int) ([]*models.ConversationMessage, int, error)
 
 	// AddConversationMessage 添加对话消息
 	AddConversationMessage(ctx context.Context, projectID string, message *models.ConversationMessage) (*models.ConversationMessage, error)
@@ -32,8 +32,7 @@ func NewMessageService(MessageRepository repositories.MessageRepository) Message
 	return &messageService{repo: MessageRepository}
 }
 
-func (s *messageService) GetProjectConversations(ctx context.Context, projectID string, page, pageSize int) ([]*models.ConversationMessage, int, error) {
-	offset := (page - 1) * pageSize
+func (s *messageService) GetProjectConversations(ctx context.Context, projectID string, pageSize, offset int) ([]*models.ConversationMessage, int, error) {
 	messages, err := s.repo.GetByProjectID(ctx, projectID, pageSize, offset)
 	if err != nil {
 		return nil, 0, err

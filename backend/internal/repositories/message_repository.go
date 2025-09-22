@@ -3,6 +3,7 @@ package repositories
 import (
 	"autocodeweb-backend/internal/models"
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -50,6 +51,11 @@ func (r *messageRepository) GetByProjectID(ctx context.Context, projectID string
 		Limit(limit).
 		Offset(offset).
 		Find(&messages).Error
+
+	// 添加调试日志
+	fmt.Printf("DEBUG: Query project_msgs for projectID=%s, limit=%d, offset=%d, found %d messages\n",
+		projectID, limit, offset, len(messages))
+
 	return messages, err
 }
 
