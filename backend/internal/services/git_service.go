@@ -42,7 +42,7 @@ func NewGitService() GitService {
 // GitConfig Git配置
 type GitConfig struct {
 	UserID        string
-	ProjectID     string
+	GUID          string
 	ProjectPath   string
 	CommitMessage string
 }
@@ -161,7 +161,7 @@ func (s *gitService) InitializeGit(ctx context.Context, config *GitConfig) (stri
 	projectDir := config.ProjectPath
 
 	logger.Info("初始化Git仓库",
-		logger.String("projectID", config.ProjectID),
+		logger.String("GUID", config.GUID),
 		logger.String("projectPath", projectDir),
 	)
 
@@ -173,11 +173,11 @@ func (s *gitService) InitializeGit(ctx context.Context, config *GitConfig) (stri
 	// 检查是否已经是Git仓库
 	if s.isGitRepository(projectDir) {
 		logger.Info("项目已经是Git仓库，跳过初始化",
-			logger.String("projectID", config.ProjectID),
+			logger.String("GUID", config.GUID),
 		)
 
 		// 添加远程仓库
-		remoteURL := s.buildRemoteURL(config.ProjectID)
+		remoteURL := s.buildRemoteURL(config.GUID)
 		if err := s.runGitCommand(ctx, projectDir, "remote", "add", "origin", remoteURL); err != nil {
 			return "", fmt.Errorf("添加远程仓库失败: %w", err)
 		}
@@ -199,7 +199,7 @@ func (s *gitService) InitializeGit(ctx context.Context, config *GitConfig) (stri
 	}
 
 	// 添加远程仓库
-	remoteURL := s.buildRemoteURL(config.ProjectID)
+	remoteURL := s.buildRemoteURL(config.GUID)
 	if err := s.runGitCommand(ctx, projectDir, "remote", "add", "origin", remoteURL); err != nil {
 		return "", fmt.Errorf("添加远程仓库失败: %w", err)
 	}
@@ -210,7 +210,7 @@ func (s *gitService) InitializeGit(ctx context.Context, config *GitConfig) (stri
 	}
 
 	logger.Info("Git仓库初始化完成",
-		logger.String("projectID", config.ProjectID),
+		logger.String("GUID", config.GUID),
 		logger.String("remoteURL", remoteURL),
 	)
 
@@ -222,7 +222,7 @@ func (s *gitService) CommitAndPush(ctx context.Context, config *GitConfig) error
 	projectDir := config.ProjectPath
 
 	logger.Info("开始提交并推送代码",
-		logger.String("projectID", config.ProjectID),
+		logger.String("GUID", config.GUID),
 		logger.String("projectPath", projectDir),
 	)
 
@@ -234,7 +234,7 @@ func (s *gitService) CommitAndPush(ctx context.Context, config *GitConfig) error
 	// 检查是否有变更
 	if !s.hasChanges(projectDir) {
 		logger.Info("没有文件变更，跳过提交",
-			logger.String("projectID", config.ProjectID),
+			logger.String("GUID", config.GUID),
 		)
 		return nil
 	}
@@ -242,7 +242,7 @@ func (s *gitService) CommitAndPush(ctx context.Context, config *GitConfig) error
 	// 提交变更
 	commitMsg := config.CommitMessage
 	if commitMsg == "" {
-		commitMsg = fmt.Sprintf("Auto commit by App Maker - %s", config.ProjectID)
+		commitMsg = fmt.Sprintf("Auto commit by App Maker - %s", config.GUID)
 	}
 
 	if err := s.runGitCommand(ctx, projectDir, "commit", "-m", commitMsg); err != nil {
@@ -250,12 +250,12 @@ func (s *gitService) CommitAndPush(ctx context.Context, config *GitConfig) error
 	}
 
 	// 推送到远程仓库
-	if err := s.pushToRemote(ctx, projectDir, config.ProjectID); err != nil {
+	if err := s.pushToRemote(ctx, projectDir, config.GUID); err != nil {
 		return fmt.Errorf("推送代码失败: %w", err)
 	}
 
 	logger.Info("代码提交并推送完成",
-		logger.String("projectID", config.ProjectID),
+		logger.String("GUID", config.GUID),
 		logger.String("commitMessage", commitMsg),
 	)
 
@@ -263,9 +263,9 @@ func (s *gitService) CommitAndPush(ctx context.Context, config *GitConfig) error
 }
 
 // pushToRemote 推送到远程仓库
-func (s *gitService) pushToRemote(ctx context.Context, projectDir, projectID string) error {
+func (s *gitService) pushToRemote(ctx context.Context, projectDir, guid string) error {
 	// 构建SSH格式的远程URL
-	remoteURL := s.buildRemoteURL(projectID)
+	remoteURL := s.buildRemoteURL(guid)
 
 	// 设置远程URL
 	if err := s.runGitCommand(ctx, projectDir, "remote", "set-url", "origin", remoteURL); err != nil {
@@ -284,7 +284,7 @@ func (s *gitService) pushToRemote(ctx context.Context, projectDir, projectID str
 }
 
 // buildRemoteURL 构建远程仓库URL（SSH格式）
-func (s *gitService) buildRemoteURL(projectID string) string {
+func (s *gitService) buildRemoteURL(guid string) string {
 	// 从GITLAB_URL提取主机名
 	hostname := strings.TrimPrefix(s.gitlabURL, "git@")
 	hostname = strings.TrimPrefix(hostname, "https://")
@@ -292,7 +292,7 @@ func (s *gitService) buildRemoteURL(projectID string) string {
 	hostname = strings.TrimSuffix(hostname, ":22")
 	hostname = strings.Split(hostname, ":")[0]
 
-	return fmt.Sprintf("git@%s:app-maker/%s.git", hostname, projectID)
+	return fmt.Sprintf("git@%s:app-maker/%s.git", hostname, guid)
 }
 
 // runGitCommand 执行Git命令

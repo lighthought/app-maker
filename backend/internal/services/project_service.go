@@ -495,9 +495,10 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 		Content:    "项目创建完成，开发流程已启动",
 		IsMarkdown: true,
 		MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
+			"\",\n\"guid\": \"" + project.GUID +
 			"\",\n\"name\": \"" + project.Name +
 			"\",\n\"path\":\"" + project.ProjectPath +
-			"\",\n \"taskID\": \"" + taskInfo.ID + "\"}\n```",
+			"\",\n \"taskID\": \"" + taskInfo.ID + "\"\n}\n```",
 		IsExpanded: false,
 	}
 
@@ -756,7 +757,7 @@ func (s *projectService) commitProjectToGit(ctx context.Context, project *models
 	// 构建Git配置
 	gitConfig := &GitConfig{
 		UserID:        project.UserID,
-		ProjectID:     project.ID,
+		GUID:          project.GUID,
 		ProjectPath:   project.ProjectPath,
 		CommitMessage: fmt.Sprintf("Auto commit by App Maker - %s", project.Name),
 	}
