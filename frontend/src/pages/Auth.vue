@@ -41,15 +41,36 @@
           @submit.prevent="handleSubmit"
           class="auth-form"
         >
-          <!-- 用户名/邮箱 -->
+          <!-- 邮箱 -->
           <n-form-item
-            :label="isLogin ? '邮箱' : '用户名'"
+            label="邮箱"
+            path="email"
+            class="form-item"
+          >
+            <n-input
+              v-model:value="formData.email"
+              type="text"
+              placeholder="请输入邮箱"
+              size="large"
+              clearable
+              class="form-input"
+            >
+              <template #prefix>
+                <n-icon size="16"><MailIcon /></n-icon>
+              </template>
+            </n-input>
+          </n-form-item>
+          
+          <!-- 用户名(仅注册时显示) -->
+          <n-form-item
+            v-if="!isLogin"
+            label="用户名"
             path="username"
             class="form-item"
           >
             <n-input
               v-model:value="formData.username"
-              :placeholder="isLogin ? '请输入邮箱' : '请输入用户名'"
+              placeholder="请输入用户名"
               size="large"
               clearable
               class="form-input"
@@ -99,27 +120,6 @@
             >
               <template #prefix>
                 <n-icon size="16"><LockIcon /></n-icon>
-              </template>
-            </n-input>
-          </n-form-item>
-
-          <!-- 邮箱（仅注册时显示） -->
-          <n-form-item
-            v-if="!isLogin"
-            label="邮箱"
-            path="email"
-            class="form-item"
-          >
-            <n-input
-              v-model:value="formData.email"
-              type="text"
-              placeholder="请输入邮箱"
-              size="large"
-              clearable
-              class="form-input"
-            >
-              <template #prefix>
-                <n-icon size="16"><MailIcon /></n-icon>
               </template>
             </n-input>
           </n-form-item>
@@ -269,21 +269,15 @@ const formData = reactive({
 
 // 表单验证规则
 const formRules = computed(() => ({
-  username: [
+  username: isLogin.value ? [] : [
     {
       required: true,
-      message: isLogin.value ? '请输入邮箱' : '请输入用户名',
+      message: '请输入用户名',
       trigger: 'blur'
     },
     {
       validator: (rule: any, value: string) => {
-        if (isLogin.value) {
-          // 登录时验证邮箱格式
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          if (!emailRegex.test(value)) {
-            return new Error('请输入有效的邮箱地址')
-          }
-        } else {
+        {
           // 注册时验证用户名格式
           if (value.length < 3) {
             return new Error('用户名至少需要3个字符')
@@ -296,7 +290,7 @@ const formRules = computed(() => ({
       trigger: 'blur'
     }
   ],
-  email: isLogin.value ? [] : [
+  email: [
     {
       required: true,
       message: '请输入邮箱',
@@ -350,7 +344,7 @@ const handleSubmit = async () => {
     if (isLogin.value) {
       // 登录逻辑
       const loginData = {
-        email: formData.username, // 登录时使用邮箱
+        email: formData.email,
         password: formData.password
       }
       
