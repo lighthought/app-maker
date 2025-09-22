@@ -276,16 +276,14 @@ const formRules = computed(() => ({
       trigger: 'blur'
     },
     {
-      validator: (rule: any, value: string) => {
-        {
-          // 注册时验证用户名格式
-          if (value.length < 3) {
-            return new Error('用户名至少需要3个字符')
-          }
-          if (value.length > 20) {
-            return new Error('用户名不能超过20个字符')
-          }
+      validator: (rule: any, value: string) => {        
+        // 注册时验证用户名格式
+        if (value.length < 3) {
+          return new Error('用户名至少需要3个字符')
         }
+        if (value.length > 20) {
+          return new Error('用户名不能超过20个字符')
+        }        
       },
       trigger: 'blur'
     }
