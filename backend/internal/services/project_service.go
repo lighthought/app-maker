@@ -193,6 +193,24 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		return nil, err
 	}
 
+	userMsg := &models.ConversationMessage{
+		ProjectID:       newProject.ID,
+		Type:            constants.ConversationTypeUser,
+		AgentRole:       "user",
+		AgentName:       "",
+		Content:         newProject.Requirements,
+		IsMarkdown:      false,
+		MarkdownContent: newProject.Requirements,
+		IsExpanded:      true,
+	}
+
+	if err := s.projectMsgRepo.Create(ctx, userMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", newProject.ID),
+		)
+	}
+
 	// 插入项目阶段
 	stage := models.NewDevStage(newProject.ID, constants.DevStatusInitializing, constants.CommandStatusInProgress)
 	if err = s.projectStageRepo.Create(ctx, stage); err != nil {
@@ -234,70 +252,79 @@ func (s *projectService) reportTaskAndStageError(ctx context.Context,
 	)
 }
 
-// HandleProjectInitTask 处理项目初始化任务
-func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Task) error {
-	resultWriter := t.ResultWriter()
-	logger.Info("处理项目初始化任务", logger.String("taskID", resultWriter.TaskID()))
-
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 10, "项目初始化任务执行中")
-
-	var payload models.ProjectTaskPayload
-	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
-		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
-	}
-	logger.Info("处理项目初始化任务", logger.String("taskID", resultWriter.TaskID()))
-
+// updateProjectStage 更新项目阶段
+func (s *projectService) updateProjectStage(ctx context.Context, projectID string) (*models.Project, *models.DevStage) {
 	// 更新 initializing 的 stage 为 done，表示 API 内部这个 async 调用成功，也获取到了合法的数据
-	if err := s.projectStageRepo.UpdateStageToDone(ctx, payload.ProjectID, constants.DevStatusInitializing); err != nil {
+	if err := s.projectStageRepo.UpdateStageToDone(ctx, projectID, constants.DevStatusInitializing); err != nil {
 		logger.Error("更新项目阶段失败",
 			logger.String("error", err.Error()),
-			logger.String("projectID", payload.ProjectID),
+			logger.String("projectID", projectID),
 		)
 	}
 
-	project, err := s.projectRepo.GetByID(ctx, payload.ProjectID)
+	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("获取项目信息失败: %w", err)
+		logger.Error("获取项目信息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", projectID),
+		)
+		return nil, nil
 	}
 
 	project.SetDevStatus(constants.DevStatusSetupEnvironment)
 	s.projectRepo.Update(ctx, project)
 
-	userMsg := &models.ConversationMessage{
-		ProjectID:       project.ID,
-		Type:            constants.ConversationTypeUser,
-		AgentRole:       "user",
-		AgentName:       "",
-		Content:         "用户需求",
-		IsMarkdown:      false,
-		MarkdownContent: project.Requirements,
-		IsExpanded:      true,
-	}
-
-	if err := s.projectMsgRepo.Create(ctx, userMsg); err != nil {
-		logger.Error("保存项目消息失败",
+	// 已经有过环境准备的阶段，取原来的数据
+	projectStages, err := s.projectStageRepo.GetByProjectID(ctx, projectID)
+	if err != nil {
+		logger.Error("获取项目阶段失败",
 			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
+			logger.String("projectID", projectID),
 		)
 	}
+	for _, stage := range projectStages {
+		if stage.Name == constants.DevStatusSetupEnvironment {
+			stage.SetStatus(constants.CommandStatusInProgress)
+			s.projectStageRepo.Update(ctx, stage)
+			return project, stage
+		}
+	}
 
-	// 插入环境准备的阶段
+	// 没有，才插入环境准备的阶段
 	projectStage := models.NewDevStage(project.ID, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
 	if err := s.projectStageRepo.Create(ctx, projectStage); err != nil {
 		logger.Error("插入项目阶段失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
+		return project, nil
+	}
+	return project, projectStage
+}
+
+// updateProjectNameAndBrief 更新项目名和描述
+func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project *models.Project,
+	resultWriter *asynq.ResultWriter, projectStage *models.DevStage) {
+	if project == nil || projectStage == nil {
+		logger.Error("项目或项目阶段为空")
+		return
 	}
 
-	logger.Info("开始生成项目名和描述",
+	// 已经生成过，跳过
+	if project.Name != "" && project.Name != "newproj" && project.Description != "" {
+		utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "项目名和描述已存在")
+		logger.Info("项目名和描述已存在，跳过生成")
+		return
+	}
+
+	logger.Info("1. 开始生成项目名和描述",
 		logger.String("projectID", project.ID),
 		logger.String("requirements", project.Requirements),
 	)
 	summary, err := utils.GenerateProjectSummary(project.Requirements)
 	if err != nil {
 		s.reportTaskAndStageError(ctx, project.ID, "生成项目名和描述失败", resultWriter, projectStage)
-		return fmt.Errorf("生成项目名和描述失败: %w", err)
+		return
 	}
 
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 20, "生成项目名和描述成功")
@@ -318,7 +345,7 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 			logger.String("projectID", project.ID),
 		)
 	}
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "保存项目消息成功")
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "项目简介已生成")
 
 	project.Name = strings.ToLower(summary.Title)
 	project.Description = summary.Content
@@ -330,12 +357,21 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 
 	s.projectRepo.Update(ctx, project)
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "更新项目信息成功")
+}
 
-	// 2. 初始化项目模板
+func (s *projectService) initProjectTemplate(ctx context.Context, project *models.Project,
+	resultWriter *asynq.ResultWriter, projectStage *models.DevStage) {
 	logger.Info("2. 开始初始化项目模板",
 		logger.String("projectID", project.ID),
 		logger.String("projectPath", project.ProjectPath),
 	)
+
+	// 已经初始化过，跳过
+	if project.ProjectPath != "" && utils.IsDirectoryExists(project.ProjectPath) {
+		utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目模板已初始化")
+		logger.Info("项目模板已初始化，跳过初始化")
+		return
+	}
 
 	if err := s.templateService.InitializeProject(ctx, project); err != nil {
 		// 模板初始化失败不影响项目创建，但记录错误
@@ -345,11 +381,12 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 			logger.String("projectPath", project.ProjectPath),
 		)
 		s.reportTaskAndStageError(ctx, project.ID, "项目模板初始化失败", resultWriter, projectStage)
-		return fmt.Errorf("项目模板初始化失败: %w", err)
+		return
 	}
+
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目模板初始化成功")
 
-	projectMsg2 := &models.ConversationMessage{
+	projectMsg := &models.ConversationMessage{
 		ProjectID:       project.ID,
 		Type:            constants.ConversationTypeSystem,
 		AgentRole:       AgentDev.Role,
@@ -360,15 +397,26 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		IsExpanded:      false,
 	}
 
-	if err := s.projectMsgRepo.Create(ctx, projectMsg2); err != nil {
+	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
 		logger.Error("保存项目消息失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
 	}
+}
 
-	// 3. 提交代码到GitLab，触发自动编译打包
-	err = s.commitProjectToGit(ctx, project)
+// commitProject 提交代码到GitLab
+func (s *projectService) commitProject(ctx context.Context, project *models.Project,
+	resultWriter *asynq.ResultWriter, projectStage *models.DevStage) error {
+
+	// 已经提交过，跳过
+	if project.GitlabRepoURL != "" {
+		utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 70, "项目代码已提交到GitLab")
+		logger.Info("项目代码已提交到GitLab，跳过提交")
+		return nil
+	}
+
+	err := s.commitProjectToGit(ctx, project)
 	if err != nil {
 		logger.Error("提交代码到GitLab失败",
 			logger.String("error", err.Error()),
@@ -379,7 +427,7 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 	}
 
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 70, "提交代码到GitLab成功")
-	projectMsg3 := &models.ConversationMessage{
+	projectMsg := &models.ConversationMessage{
 		ProjectID:       project.ID,
 		Type:            constants.ConversationTypeSystem,
 		AgentRole:       AgentDev.Role,
@@ -390,7 +438,7 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		IsExpanded:      false,
 	}
 
-	if err := s.projectMsgRepo.Create(ctx, projectMsg3); err != nil {
+	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
 		logger.Error("保存项目消息失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
@@ -401,8 +449,13 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		s.reportTaskAndStageError(ctx, project.ID, "GitLab仓库URL为空", resultWriter, projectStage)
 		return fmt.Errorf("GitLab仓库URL为空")
 	}
+	return nil
+}
 
-	// asynq 异步调用 agents-server 的接口
+// callAgentServer 调用AgentServer
+func (s *projectService) callAgentServer(ctx context.Context, project *models.Project,
+	resultWriter *asynq.ResultWriter, projectStage *models.DevStage) error {
+
 	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GitlabRepoURL))
 	if err != nil {
 		logger.Error("创建项目开发任务失败",
@@ -428,7 +481,7 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		)
 	}
 
-	projectMsg4 := &models.ConversationMessage{
+	projectMsg := &models.ConversationMessage{
 		ProjectID:  project.ID,
 		Type:       constants.ConversationTypeSystem,
 		AgentRole:  AgentPM.Role,
@@ -442,7 +495,7 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 		IsExpanded: false,
 	}
 
-	if err := s.projectMsgRepo.Create(ctx, projectMsg4); err != nil {
+	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
 		logger.Error("保存项目消息失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
@@ -458,6 +511,48 @@ func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Tas
 
 	projectStage.SetStatus(constants.CommandStatusDone)
 	s.projectStageRepo.Update(ctx, projectStage)
+	return nil
+}
+
+// HandleProjectInitTask 处理项目初始化任务
+func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Task) error {
+	resultWriter := t.ResultWriter()
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 10, "项目初始化任务执行中")
+
+	var payload models.ProjectTaskPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+	logger.Info("处理项目初始化任务",
+		logger.String("taskID", resultWriter.TaskID()),
+		logger.String("projectID", payload.ProjectID),
+	)
+
+	// 0. 更新项目阶段
+	project, projectStage := s.updateProjectStage(ctx, payload.ProjectID)
+	if project == nil || projectStage == nil {
+		logger.Error("项目或项目阶段为空")
+		return fmt.Errorf("项目或项目阶段为空")
+	}
+
+	// 1. 更新项目名和描述
+	s.updateProjectNameAndBrief(ctx, project, resultWriter, projectStage)
+
+	// 2. 初始化项目模板
+	s.initProjectTemplate(ctx, project, resultWriter, projectStage)
+
+	// 3. 提交代码到GitLab，触发自动编译打包
+	err := s.commitProject(ctx, project, resultWriter, projectStage)
+	if err != nil {
+		return fmt.Errorf("提交代码到GitLab失败: %w", err)
+	}
+
+	// 4. asynq 异步调用 agents-server 的接口
+	err = s.callAgentServer(ctx, project, resultWriter, projectStage)
+	if err != nil {
+		return fmt.Errorf("调用AgentServer失败: %w", err)
+	}
+
 	return nil
 }
 
