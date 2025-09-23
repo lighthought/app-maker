@@ -23,16 +23,19 @@ type ProjectStageService interface {
 type projectStageService struct {
 	projectRepo repositories.ProjectRepository
 	stageRepo   repositories.StageRepository
+	messageRepo repositories.MessageRepository
 }
 
 // NewTaskExecutionService 创建任务执行服务
 func NewProjectStageService(
 	projectRepo repositories.ProjectRepository,
 	stageRepo repositories.StageRepository,
+	messageRepo repositories.MessageRepository,
 ) ProjectStageService {
 	return &projectStageService{
 		projectRepo: projectRepo,
 		stageRepo:   stageRepo,
+		messageRepo: messageRepo,
 	}
 }
 
@@ -70,28 +73,25 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
-	s.executeProjectDevelopment(ctx, project)
+	s.executeProjectDevelopment(ctx, project, resultWriter)
 	utils.UpdateResult(resultWriter, constants.CommandStatusDone, 100, "项目开发任务完成")
 	return nil
 }
 
 // executeProjectDevelopment 执行项目开发流程
-func (s *projectStageService) executeProjectDevelopment(ctx context.Context, project *models.Project) {
+func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter) {
 	logger.Info("开始执行项目开发流程",
 		logger.String("projectID", project.ID),
 	)
-
-	// // 更新项目状态为环境就绪
-	project.DevStatus = constants.DevStatusCheckRequirement
-	project.DevProgress = constants.GetDevStageProgress(project.DevStatus)
-	s.projectRepo.Update(ctx, project)
 
 	// 2. 执行开发阶段
 	stages := []struct {
 		status      string
 		description string
-		executor    func(context.Context, *models.Project) error
+		executor    func(context.Context, *models.Project, *asynq.ResultWriter) error
 	}{
+		{constants.DevStatusCheckRequirement, "检查需求", s.checkRequirement},
 		{constants.DevStatusGeneratePRD, "生成PRD文档", s.generatePRD},
 		{constants.DevStatusDefineUXStandard, "定义UX标准", s.defineUXStandards},
 		{constants.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
@@ -110,7 +110,7 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context, pro
 		s.projectRepo.Update(ctx, project)
 
 		// 执行阶段
-		if err := stage.executor(ctx, project); err != nil {
+		if err := stage.executor(ctx, project, resultWriter); err != nil {
 			logger.Error("开发阶段执行失败",
 				logger.String("projectID", project.ID),
 				logger.String("stage", stage.status),
@@ -136,120 +136,455 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context, pro
 	)
 }
 
+// checkRequirement 检查需求
+func (s *projectStageService) checkRequirement(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusCheckRequirement)
+	s.projectRepo.Update(ctx, project)
+
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusCheckRequirement, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	// TODO: 调用AgentServer检查需求
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentAnalyst.Role,
+		AgentName:       AgentAnalyst.Name,
+		Content:         "项目需求已检查完成",
+		IsMarkdown:      false,
+		MarkdownContent: "项目需求已检查完成",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 10, "项目需求已检查完成")
+	return nil
+}
+
 // generatePRD 生成PRD文档
-func (s *projectStageService) generatePRD(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) generatePRD(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusGeneratePRD)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始生成产品需求文档...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusGeneratePRD, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	//s.addTaskLog(ctx, task.ID, "success", "PRD文档生成完成")
+	// TODO: 调用AgentServer生成PRD文档
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentPM.Role,
+		AgentName:       AgentPM.Name,
+		Content:         "项目PRD文档已生成",
+		IsMarkdown:      true,
+		MarkdownContent: "项目PRD文档已生成",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 20, "项目PRD文档已生成")
 	return nil
 }
 
 // defineUXStandards 定义UX标准
-func (s *projectStageService) defineUXStandards(ctx context.Context, project *models.Project) error {
-	// := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) defineUXStandards(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusDefineUXStandard)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始定义用户体验标准...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusDefineUXStandard, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 定义UX标准
+	// TODO: 调用AgentServer定义UX标准
 
-	//s.addTaskLog(ctx, task.ID, "success", "UX标准定义完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentUXExpert.Role,
+		AgentName:       AgentUXExpert.Name,
+		Content:         "项目UX标准已定义",
+		IsMarkdown:      true,
+		MarkdownContent: "项目UX标准已定义",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "项目UX标准已定义")
 	return nil
 }
 
 // designArchitecture 设计系统架构
-func (s *projectStageService) designArchitecture(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) designArchitecture(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusDesignArchitecture)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始设计系统架构...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusDesignArchitecture, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 设计架构
+	// TODO: 调用AgentServer设计系统架构
 
-	//s.addTaskLog(ctx, task.ID, "success", "系统架构设计完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentArchitect.Role,
+		AgentName:       AgentArchitect.Name,
+		Content:         "项目系统架构已设计",
+		IsMarkdown:      true,
+		MarkdownContent: "项目系统架构已设计",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "项目系统架构已设计")
 	return nil
 }
 
 // defineDataModel 定义数据模型
-func (s *projectStageService) defineDataModel(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) defineDataModel(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusDefineDataModel)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始定义数据模型...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusDefineDataModel, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 定义数据模型
+	// TODO: 调用AgentServer定义数据模型
 
-	//s.addTaskLog(ctx, task.ID, "success", "数据模型定义完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentArchitect.Role,
+		AgentName:       AgentArchitect.Name,
+		Content:         "项目数据模型已定义",
+		IsMarkdown:      true,
+		MarkdownContent: "项目数据模型已定义",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 45, "项目数据模型已定义")
 	return nil
 }
 
 // defineAPIs 定义API接口
-func (s *projectStageService) defineAPIs(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) defineAPIs(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusDefineAPI)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始定义API接口...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusDefineAPI, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 定义API接口
+	// TODO: 调用AgentServer定义API接口
 
-	//s.addTaskLog(ctx, task.ID, "success", "API接口定义完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentArchitect.Role,
+		AgentName:       AgentArchitect.Name,
+		Content:         "项目API接口已定义",
+		IsMarkdown:      true,
+		MarkdownContent: "项目API接口已定义",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 50, "项目API接口已定义")
 	return nil
 }
 
 // planEpicsAndStories 划分Epic和Story
-func (s *projectStageService) planEpicsAndStories(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) planEpicsAndStories(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusPlanEpicAndStory)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始划分Epic和Story...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusPlanEpicAndStory, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 划分Epic和Story
+	// TODO: 调用AgentServer划分Epic和Story
 
-	//s.addTaskLog(ctx, task.ID, "success", "Epic和Story划分完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentPO.Role,
+		AgentName:       AgentPO.Name,
+		Content:         "项目Epic和Story已划分",
+		IsMarkdown:      true,
+		MarkdownContent: "项目Epic和Story已划分",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 55, "项目Epic和Story已划分")
 	return nil
 }
 
 // developStories 开发Story功能
-func (s *projectStageService) developStories(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) developStories(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusDevelopStory)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始开发Story功能...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusDevelopStory, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 开发Story功能
+	// TODO: 调用AgentServer开发Story功能
 
-	//s.addTaskLog(ctx, task.ID, "success", "Story功能开发完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentDev.Role,
+		AgentName:       AgentDev.Name,
+		Content:         "项目Story功能已开发",
+		IsMarkdown:      true,
+		MarkdownContent: "项目Story功能已开发",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目Story功能已开发")
 	return nil
 }
 
 // fixBugs 修复开发问题
-func (s *projectStageService) fixBugs(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) fixBugs(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusFixBug)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始修复开发问题...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusFixBug, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 修复问题
+	// TODO: 调用AgentServer修复开发问题
 
-	//s.addTaskLog(ctx, task.ID, "success", "开发问题修复完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentDev.Role,
+		AgentName:       AgentDev.Name,
+		Content:         "项目开发问题已修复",
+		IsMarkdown:      true,
+		MarkdownContent: "项目开发问题已修复",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 65, "项目开发问题已修复")
 	return nil
 }
 
 // runTests 执行自动测试
-func (s *projectStageService) runTests(ctx context.Context, project *models.Project) error {
-	//projectDir := utils.GetProjectPath(project.UserID, project.ID)
+func (s *projectStageService) runTests(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
+	project.SetDevStatus(constants.DevStatusRunTest)
+	s.projectRepo.Update(ctx, project)
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始执行自动测试...")
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusRunTest, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	// 使用 cursor-cli 执行测试
+	// TODO: 调用AgentServer修复开发问题
 
-	//s.addTaskLog(ctx, task.ID, "success", "自动测试执行完成")
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentDev.Role,
+		AgentName:       AgentDev.Name,
+		Content:         "项目自动测试已执行",
+		IsMarkdown:      true,
+		MarkdownContent: "项目自动测试已执行",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 75, "项目自动测试已执行")
 	return nil
 }
 
 // packageProject 打包项目
-func (s *projectStageService) packageProject(ctx context.Context, project *models.Project) error {
+func (s *projectStageService) packageProject(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
 
-	//s.addTaskLog(ctx, task.ID, "info", "开始打包项目...")
+	project.SetDevStatus(constants.DevStatusDeploy)
+	s.projectRepo.Update(ctx, project)
 
-	// 使用 cursor-cli 打包项目
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusDeploy, constants.CommandStatusInProgress)
+	devProjectStage.ProjectGuid = project.GUID
+	if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+		logger.Error("插入项目阶段失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
 
-	//s.addTaskLog(ctx, task.ID, "success", "项目打包完成")
+	// TODO: 调用AgentServer打包部署项目
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeAgent,
+		AgentRole:       AgentDev.Role,
+		AgentName:       AgentDev.Name,
+		Content:         "项目项目已打包部署",
+		IsMarkdown:      true,
+		MarkdownContent: "项目项目已打包部署",
+		IsExpanded:      false,
+	}
+
+	if err := s.messageRepo.Create(ctx, projectMsg); err != nil {
+		logger.Error("保存项目消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectID", project.ID),
+		)
+	}
+
+	devProjectStage.SetStatus(constants.CommandStatusDone)
+	s.stageRepo.Update(ctx, devProjectStage)
+
+	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 80, "项目项目已打包部署")
 	return nil
 }
 

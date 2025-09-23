@@ -161,7 +161,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	// asynq 异步调用初始化项目流程
 	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectInitTask(newProject.ID, newProject.GUID, newProject.ProjectPath))
 	if err != nil {
-		stage := models.NewDevStage(newProject.ID, constants.DevStatusInitializing, constants.CommandStatusFailed)
+		stage := models.NewDevStage(newProject.ID, newProject.GUID, constants.DevStatusInitializing, constants.CommandStatusFailed)
 		stage.ProjectGuid = newProject.GUID
 		if err = s.projectStageRepo.Create(ctx, stage); err != nil {
 			logger.Error("插入项目阶段失败",
@@ -213,7 +213,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	// 插入项目阶段
-	stage := models.NewDevStage(newProject.ID, constants.DevStatusInitializing, constants.CommandStatusInProgress)
+	stage := models.NewDevStage(newProject.ID, newProject.GUID, constants.DevStatusInitializing, constants.CommandStatusInProgress)
 	stage.ProjectGuid = newProject.GUID
 	if err = s.projectStageRepo.Create(ctx, stage); err != nil {
 		logger.Error("插入项目阶段失败",
@@ -298,7 +298,7 @@ func (s *projectService) updateProjectStage(ctx context.Context, projectID, task
 	}
 
 	// 没有，才插入环境准备的阶段
-	projectStage := models.NewDevStage(project.ID, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
+	projectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
 	projectStage.TaskID = taskID
 	projectStage.ProjectGuid = project.GUID
 	if err := s.projectStageRepo.Create(ctx, projectStage); err != nil {
@@ -402,7 +402,7 @@ func (s *projectService) initProjectTemplate(ctx context.Context, project *model
 		AgentName:       AgentDev.Name,
 		Content:         "项目模板初始化成功",
 		IsMarkdown:      true,
-		MarkdownContent: "* 项目ID：" + project.ID + ",\n* 项目名称：" + project.Name + ",\n* 项目路径：" + project.ProjectPath,
+		MarkdownContent: "* 项目GUID：" + project.GUID + ",\n* 项目名称：" + project.Name + ",\n* 项目路径：" + project.ProjectPath,
 		IsExpanded:      false,
 	}
 
@@ -443,7 +443,7 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 		AgentName:       AgentDev.Name,
 		Content:         "项目代码已成功提交到GitLab",
 		IsMarkdown:      true,
-		MarkdownContent: "* 项目ID：" + project.ID + ", \n* 项目名称：" + project.Name + ",\n* GitLab仓库路径：" + project.GitlabRepoURL,
+		MarkdownContent: "* 项目GUID：" + project.GUID + ", \n* 项目名称：" + project.Name + ",\n* GitLab仓库路径：" + project.GitlabRepoURL,
 		IsExpanded:      false,
 	}
 
@@ -451,12 +451,13 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 		logger.Error("保存项目消息失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
+			logger.String("projectGUID", project.GUID),
 		)
 	}
 
 	if project.GitlabRepoURL == "" {
 		s.reportTaskAndStageError(ctx, project.ID, "GitLab仓库URL为空", resultWriter, projectStage)
-		return fmt.Errorf("GitLab仓库URL为空")
+		return fmt.Errorf("GitLab仓库URL为空, projectGUID: %s", project.GUID)
 	}
 	return nil
 }
@@ -482,7 +483,7 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 		logger.String("status", project.Status),
 	)
 
-	devProjectStage := models.NewDevStage(project.ID, constants.DevStatusPendingAgents, constants.CommandStatusInProgress)
+	devProjectStage := models.NewDevStage(project.ID, project.GUID, constants.DevStatusPendingAgents, constants.CommandStatusInProgress)
 	devProjectStage.ProjectGuid = project.GUID
 	if err := s.projectStageRepo.Create(ctx, devProjectStage); err != nil {
 		logger.Error("插入项目阶段失败",
@@ -777,7 +778,6 @@ func (s *projectService) commitProjectToGit(ctx context.Context, project *models
 	}
 
 	project.GitlabRepoURL = giturl
-
 	// 提交并推送代码
 	if err := s.gitService.CommitAndPush(ctx, gitConfig); err != nil {
 		logger.Error("提交代码到GitLab失败",
@@ -788,7 +788,6 @@ func (s *projectService) commitProjectToGit(ctx context.Context, project *models
 	}
 
 	project.Status = constants.CommandStatusInProgress
-	project.GitlabRepoURL = gitConfig.ProjectPath
 	s.projectRepo.Update(ctx, project)
 
 	logger.Info("项目代码已成功提交到GitLab",

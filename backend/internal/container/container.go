@@ -106,7 +106,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)
 	fileService := services.NewFileService(asyncClient)
 	projectTemplateService := services.NewProjectTemplateService(fileService)
-	projectStageService := services.NewProjectStageService(projectRepository, stageRepository)
+	projectStageService := services.NewProjectStageService(projectRepository, stageRepository, messageRepository)
 	projectNameGenerator := services.NewProjectNameGenerator()
 	gitService := services.NewGitService()
 	gitService.SetupSSH()
