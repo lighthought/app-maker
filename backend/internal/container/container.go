@@ -10,6 +10,7 @@ import (
 	"autocodeweb-backend/pkg/auth"
 	"autocodeweb-backend/pkg/cache"
 	"autocodeweb-backend/pkg/logger"
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -43,14 +44,16 @@ type Container struct {
 	MessageService         services.MessageService
 	GitService             services.GitService
 	FileService            services.FileService
+	WebSocketService       services.WebSocketService
 
 	// Handlers
-	UserHandler    *handlers.UserHandler
-	TaskHandler    *handlers.TaskHandler
-	ProjectHandler *handlers.ProjectHandler
-	FileHandler    *handlers.FileHandler
-	ChatHandler    *handlers.ChatHandler
-	CacheHandler   *handlers.CacheHandler
+	UserHandler      *handlers.UserHandler
+	TaskHandler      *handlers.TaskHandler
+	ProjectHandler   *handlers.ProjectHandler
+	FileHandler      *handlers.FileHandler
+	ChatHandler      *handlers.ChatHandler
+	CacheHandler     *handlers.CacheHandler
+	WebSocketHandler *handlers.WebSocketHandler
 }
 
 func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Container {
@@ -103,22 +106,33 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	messageRepository := repositories.NewMessageRepository(db)
 
 	// services
+	webSocketService := services.NewWebSocketService()
+	messageService := services.NewMessageService(messageRepository)
+
 	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)
 	fileService := services.NewFileService(asyncClient)
 	projectTemplateService := services.NewProjectTemplateService(fileService)
-	projectStageService := services.NewProjectStageService(projectRepository, stageRepository, messageRepository)
+	projectStageService := services.NewProjectStageService(projectRepository, stageRepository, messageRepository, webSocketService)
 	projectNameGenerator := services.NewProjectNameGenerator()
 	gitService := services.NewGitService()
 	gitService.SetupSSH()
+
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
-		asyncClient, projectTemplateService, projectNameGenerator, gitService)
+		asyncClient, projectTemplateService, projectNameGenerator, gitService, webSocketService)
 
 	// 有缓存，才处理异步任务
 	if cacheInstance != nil {
 		projectTaskHandler := worker.NewProjectTaskWorker()
 		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService)
 	}
-	messageService := services.NewMessageService(messageRepository)
+
+	// 启动 WebSocket 服务
+	go func() {
+		logger.Info("WebSocket 服务启动中...")
+		if err := webSocketService.Start(context.Background()); err != nil {
+			logger.Error("WebSocket 服务启动失败", logger.String("error", err.Error()))
+		}
+	}()
 
 	// handlers
 	cacheHandler := handlers.NewCacheHandler(cacheInstance, cachMonitor)
@@ -127,6 +141,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	projectHandler := handlers.NewProjectHandler(projectService, projectStageService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
 	userHandler := handlers.NewUserHandler(userService)
+	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, projectService, jwtService)
 	return &Container{
 		AsyncClient:            asyncClient,
 		JWTService:             jwtService,
@@ -145,12 +160,14 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		ProjectNameGenerator:   projectNameGenerator,
 		MessageService:         messageService,
 		GitService:             gitService,
+		WebSocketService:       webSocketService,
 		CacheHandler:           cacheHandler,
 		ChatHandler:            chatHandler,
 		FileHandler:            fileHandler,
 		ProjectHandler:         projectHandler,
 		TaskHandler:            taskHandler,
 		UserHandler:            userHandler,
+		WebSocketHandler:       webSocketHandler,
 	}
 }
 

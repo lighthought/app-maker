@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     requirements TEXT NOT NULL,
     user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'in_progress', 'done', 'failed')),
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed')),
     dev_status VARCHAR(50) DEFAULT 'pending',
     dev_progress INTEGER DEFAULT 0 CHECK (dev_progress >= 0 AND dev_progress <= 100),
     current_task_id VARCHAR(50),

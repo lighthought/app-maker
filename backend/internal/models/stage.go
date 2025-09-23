@@ -29,14 +29,17 @@ func (DevStage) TableName() string {
 	return "dev_stages"
 }
 
-func NewDevStage(projectId, projectGuid, name, status string) *DevStage {
+func NewDevStage(project *Project, stageName string, status string) *DevStage {
+	if status == "" {
+		status = constants.CommandStatusInProgress
+	}
 	return &DevStage{
-		ProjectID:   projectId,
-		ProjectGuid: projectGuid,
-		Name:        name,
+		ProjectID:   project.ID,
+		ProjectGuid: project.GUID,
+		Name:        stageName,
 		Status:      status,
 		Progress:    constants.GetProgressByCommandStatus(status),
-		Description: constants.GetDevStageDescription(name),
+		Description: constants.GetDevStageDescription(stageName),
 	}
 }
 

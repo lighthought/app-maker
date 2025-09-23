@@ -3,6 +3,7 @@ package models
 import (
 	"autocodeweb-backend/internal/constants"
 	"encoding/json"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,10 +18,10 @@ type Project struct {
 	Name             string         `json:"name" gorm:"size:100;not null"`
 	Description      string         `json:"description" gorm:"type:text"`
 	Requirements     string         `json:"requirements" gorm:"type:text;not null"`
-	Status           string         `json:"status" gorm:"size:20;not null;default:'draft'"` // draft, in_progress, done, failed
-	DevStatus        string         `json:"dev_status" gorm:"size:50;default:'pending'"`    // 开发子状态
-	DevProgress      int            `json:"dev_progress" gorm:"default:0"`                  // 开发进度 0-100
-	CurrentTaskID    string         `json:"current_task_id" gorm:"type:varchar(50)"`        // 当前执行的任务ID
+	Status           string         `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, done, failed
+	DevStatus        string         `json:"dev_status" gorm:"size:50;default:'pending'"`      // 开发子状态
+	DevProgress      int            `json:"dev_progress" gorm:"default:0"`                    // 开发进度 0-100
+	CurrentTaskID    string         `json:"current_task_id" gorm:"type:varchar(50)"`          // 当前执行的任务ID
 	BackendPort      int            `json:"backend_port" gorm:"not null;default:9501"`
 	FrontendPort     int            `json:"frontend_port" gorm:"not null;default:3501"`
 	RedisPort        int            `json:"redis_port" gorm:"not null;default:7501"`
@@ -39,6 +40,25 @@ type Project struct {
 	CreatedAt        time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+func GetDefaultProject(userID, requirements string) *Project {
+	var guid string
+	guid = uuid.New().String()
+	guid = strings.ReplaceAll(guid, "-", "")
+	filePath := filepath.Join("/app/data/projects", userID, guid) // 这里是假的路径，需要替换为真实的路径
+	newProject := &Project{
+		GUID:         guid,
+		Requirements: requirements,
+		UserID:       userID,
+		Status:       constants.CommandStatusPending,
+		ProjectPath:  filePath,
+		BackendPort:  9501,
+		FrontendPort: 3501,
+		RedisPort:    7501,
+		PostgresPort: 5501,
+	}
+	return newProject
 }
 
 func (p *Project) SetDevStatus(status string) {

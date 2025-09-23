@@ -1,6 +1,7 @@
 package models
 
 import (
+	"autocodeweb-backend/internal/constants"
 	"time"
 
 	"gorm.io/gorm"
@@ -25,6 +26,20 @@ type ConversationMessage struct {
 // TableName 指定表名
 func (ConversationMessage) TableName() string {
 	return "project_msgs"
+}
+
+// NewUserMessage 创建用户消息
+func NewUserMessage(project *Project) *ConversationMessage {
+	return &ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            constants.ConversationTypeUser,
+		AgentRole:       "user",
+		AgentName:       "",
+		Content:         project.Requirements,
+		IsMarkdown:      false,
+		MarkdownContent: project.Requirements,
+		IsExpanded:      true,
+	}
 }
 
 // BeforeCreate 创建前的钩子

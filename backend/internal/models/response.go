@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 // Response 通用响应结构
 type Response struct {
@@ -74,6 +76,37 @@ type ProjectInfo struct {
 	User         UserInfo  `json:"user,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// convertToProjectInfo 将Project模型转换为ProjectInfo响应格式
+func ConvertToProjectInfo(project *Project) *ProjectInfo {
+	projectInfo := &ProjectInfo{
+		GUID:         project.GUID,
+		Name:         project.Name,
+		Description:  project.Description,
+		Status:       project.Status,
+		Requirements: project.Requirements,
+		ProjectPath:  project.ProjectPath,
+		BackendPort:  project.BackendPort,
+		FrontendPort: project.FrontendPort,
+		UserID:       project.UserID,
+		CreatedAt:    project.CreatedAt,
+		UpdatedAt:    project.UpdatedAt,
+	}
+
+	// 转换用户信息
+	if project.User.ID != "" {
+		projectInfo.User = UserInfo{
+			ID:        project.User.ID,
+			Email:     project.User.Email,
+			Username:  project.User.Username,
+			Role:      project.User.Role,
+			Status:    project.User.Status,
+			CreatedAt: project.User.CreatedAt,
+		}
+	}
+
+	return projectInfo
 }
 
 // LoginResponse 登录响应

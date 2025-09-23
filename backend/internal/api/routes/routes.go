@@ -25,6 +25,21 @@ func Register(engine *gin.Engine, container *container.Container) {
 	// 创建认证中间件
 	authMiddleware := middleware.AuthMiddleware(jwtService)
 
+	// WebSocket 路由 - 直接注册到引擎上，不使用 API 路由组
+	var webSocketHandler = container.WebSocketHandler
+	if webSocketHandler != nil {
+		// WebSocket 连接路由 - 需要认证
+		engine.GET("/ws/project/:guid", authMiddleware, webSocketHandler.WebSocketUpgrade)
+
+		// WebSocket 管理路由 - 需要认证
+		wsAdmin := engine.Group("/ws/admin")
+		wsAdmin.Use(authMiddleware)
+		{
+			wsAdmin.GET("/stats", webSocketHandler.GetWebSocketStats)
+			wsAdmin.GET("/health", webSocketHandler.HealthCheck)
+		}
+	}
+
 	// API v1 路由组
 	routers := engine.Group("/api/v1")
 	{
