@@ -1,5 +1,25 @@
 <template>
   <div class="conversation-container">
+    <!-- WebSocket 状态指示器 -->
+    <div v-if="wsError || wsStatus === 'reconnecting'" class="ws-status-bar">
+      <NAlert 
+        v-if="wsError" 
+        type="error" 
+        :title="`WebSocket 连接错误: ${wsError}`"
+        closable
+        @close="wsError = null"
+      >
+        <div style="margin-top: 8px;">
+          <n-button size="small" @click="wsReconnect">重连</n-button>
+        </div>
+      </NAlert>
+      <NAlert 
+        v-else-if="wsStatus === 'reconnecting'" 
+        type="warning" 
+        :title="`正在重连... (${wsReconnectAttempts}/5)`"
+      />
+    </div>
+
     <!-- 开发阶段进度 - 横向展示 -->
     <div class="progress-section">
       <DevStages 
@@ -49,11 +69,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, h, onMounted, onUnmounted } from 'vue'
-import { NIcon } from 'naive-ui'
+import { NIcon, NAlert, NButton } from 'naive-ui'
 import ConversationMessage from './ConversationMessage.vue'
 import DevStages from './DevStages.vue'
 import SmartInput from './common/SmartInput.vue'
 import { useProjectStore } from '@/stores/project'
+import { useWebSocket } from '@/composables/useWebSocket'
 import type { ConversationMessage as ConversationMessageType, DevStage } from '@/types/project'
 
 interface Props {
@@ -64,6 +85,21 @@ interface Props {
 const props = defineProps<Props>()
 const projectStore = useProjectStore()
 
+// WebSocket 集成
+const {
+  status: wsStatus,
+  isConnected: wsConnected,
+  error: wsError,
+  reconnectAttempts: wsReconnectAttempts,
+  projectStages: wsProjectStages,
+  projectMessages: wsProjectMessages,
+  projectStatus: wsProjectStatus,
+  connect: wsConnect,
+  disconnect: wsDisconnect,
+  reconnect: wsReconnect,
+  sendUserFeedback: wsSendUserFeedback
+} = useWebSocket(props.projectGuid)
+
 // 响应式数据
 const messages = ref<ConversationMessageType[]>([])
 const devStages = ref<DevStage[]>([])
@@ -72,7 +108,7 @@ const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const inputValue = ref('')
 
-// 定时刷新
+// 定时刷新（作为 WebSocket 的备用方案）
 let refreshTimer: number | null = null
 
 // 加载开发阶段
@@ -98,6 +134,21 @@ const loadConversations = async () => {
     }
   } catch (error) {
     console.error('加载对话历史失败:', error)
+  }
+}
+
+// 同步 WebSocket 数据到本地状态
+const syncWebSocketData = () => {
+  // 同步项目阶段数据
+  if (wsProjectStages.value.length > 0) {
+    devStages.value = [...wsProjectStages.value]
+    updateCurrentProgress()
+  }
+  
+  // 同步项目消息数据
+  if (wsProjectMessages.value.length > 0) {
+    messages.value = [...wsProjectMessages.value]
+    scrollToBottom()
   }
 }
 
@@ -254,12 +305,15 @@ const handleSendMessage = async (content: string) => {
   }
 }
 
-// 定时刷新数据
+// 定时刷新数据（作为 WebSocket 的备用方案）
 const startAutoRefresh = () => {
-  refreshTimer = window.setInterval(async () => {
-    await mergeConversations() // 使用智能合并而不是完全替换
-    await loadDevStages()
-  }, 5000) // 每5秒刷新一次
+  // 只有在 WebSocket 未连接时才启动定时刷新
+  if (!wsConnected.value) {
+    refreshTimer = window.setInterval(async () => {
+      await mergeConversations() // 使用智能合并而不是完全替换
+      await loadDevStages()
+    }, 5000) // 每5秒刷新一次
+  }
 }
 
 const stopAutoRefresh = () => {
@@ -268,6 +322,26 @@ const stopAutoRefresh = () => {
     refreshTimer = null
   }
 }
+
+// 监听 WebSocket 连接状态
+watch(wsConnected, (connected) => {
+  if (connected) {
+    // WebSocket 连接成功，停止定时刷新
+    stopAutoRefresh()
+    // 同步 WebSocket 数据
+    syncWebSocketData()
+  } else {
+    // WebSocket 断开，启动定时刷新作为备用
+    startAutoRefresh()
+  }
+})
+
+// 监听 WebSocket 数据变化
+watch([wsProjectStages, wsProjectMessages], () => {
+  if (wsConnected.value) {
+    syncWebSocketData()
+  }
+}, { deep: true })
 
 
 // 图标组件
@@ -285,6 +359,7 @@ const LoadingIcon = () => h('svg', {
 
 // 初始化
 const initialize = async () => {
+  // 先加载初始数据
   await loadDevStages()
   await loadConversations()
   
@@ -303,8 +378,14 @@ const initialize = async () => {
     // 系统消息将通过WebSocket推送
   }
   
-  // 启动定时刷新
-  startAutoRefresh()
+  // 启动 WebSocket 连接
+  try {
+    await wsConnect()
+  } catch (error) {
+    console.error('WebSocket 连接失败，将使用定时刷新:', error)
+    // WebSocket 连接失败，启动定时刷新作为备用
+    startAutoRefresh()
+  }
 }
 
 // 生命周期钩子
@@ -314,6 +395,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopAutoRefresh()
+  wsDisconnect()
 })
 </script>
 
@@ -323,6 +405,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: #f8fafc;
+}
+
+.ws-status-bar {
+  flex-shrink: 0;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .progress-section {

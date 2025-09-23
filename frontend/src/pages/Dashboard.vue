@@ -260,7 +260,7 @@
                 编辑
               </n-button>
               <n-button 
-                v-if="currentProject.status !== 'draft'"
+                v-if="currentProject.status !== 'pending'"
                 @click="previewProject(currentProject.guid)"
               >
                 预览
@@ -392,7 +392,7 @@ const currentDownloadProjectGuid = ref('')
 // 状态选项
 const statusOptions = [
   { label: '全部状态', value: '' },
-  { label: '草稿', value: 'draft' },
+  { label: '草稿', value: 'pending' },
   { label: '进行中', value: 'in_progress' },
   { label: '已完成', value: 'done' },
   { label: '失败', value: 'failed' }

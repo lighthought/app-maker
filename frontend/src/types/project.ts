@@ -3,7 +3,7 @@ export interface Project {
   guid: string
   name: string
   description: string
-  status: 'draft' | 'in_progress' | 'done' | 'failed'
+  status: 'pending' | 'in_progress' | 'done' | 'failed'
   requirements: string
   projectPath: string
   backendPort: number

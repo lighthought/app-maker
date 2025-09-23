@@ -212,23 +212,23 @@ const loadProjectFiles = async () => {
 // 获取状态类型
 const getStatusType = (status?: string): 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error' => {
   const statusMap: Record<string, 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error'> = {
-    draft: 'default',
+    pending: 'default',
     in_progress: 'warning',
     done: 'success',
     failed: 'error'
   }
-  return statusMap[status || 'draft'] || 'default'
+  return statusMap[status || 'pending'] || 'default'
 }
 
 // 获取状态文本
 const getStatusText = (status?: string) => {
   const statusMap: Record<string, string> = {
-    draft: '草稿',
+    pending: '草稿',
     in_progress: '进行中',
     done: '已完成',
     failed: '失败'
   }
-  return statusMap[status || 'draft'] || '草稿'
+  return statusMap[status || 'pending'] || '草稿'
 }
 
 // 获取文件图标
