@@ -4,7 +4,7 @@
       <h3>开发进度</h3>
     </div>
     
-    <div class="stages-container" :class="{ 'horizontal': layout === 'horizontal' }">
+    <div ref="stagesContainer" class="stages-container" :class="{ 'horizontal': layout === 'horizontal' }">
       <div
         v-for="(stage, index) in stages"
         :key="stage.id"
@@ -16,7 +16,7 @@
         </div>
         
         <div class="stage-content">
-          <div class="stage-name">{{ stage.name }}</div>
+          <div class="stage-name">{{ getStageDisplayName(stage.name) }}</div>
           <div v-if="layout === 'vertical'" class="stage-description">{{ stage.description }}</div>
         </div>
         
@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, ref, watch, nextTick } from 'vue'
 import { NIcon } from 'naive-ui'
 import type { DevStage } from '@/types/project'
 
@@ -64,11 +64,69 @@ const props = withDefaults(defineProps<Props>(), {
   layout: 'vertical'
 })
 
+// 滚动容器引用
+const stagesContainer = ref<HTMLElement>()
+
 // 当前阶段
 const currentStage = computed(() => {
   return props.stages.find(stage => stage.status === 'in_progress') || 
          props.stages[props.stages.length - 1]
 })
+
+// 获取阶段显示名称（中文翻译）
+const getStageDisplayName = (stageName: string) => {
+  const nameMap: Record<string, string> = {
+    'initializing': '初始化',
+    'setup_environment': '环境配置',
+    'pending_agents': '等待处理',
+    'check_requirement': '需求检查',
+    'generate_prd': '生成PRD',
+    'define_ux_standard': 'UX标准',
+    'design_architecture': '架构设计',
+    'define_data_model': '数据模型',
+    'define_api': 'API设计',
+    'plan_epic_and_story': '任务规划',
+    'develop_story': '功能开发',
+    'fix_bug': '问题修复',
+    'run_test': '自动测试',
+    'deploy': '项目部署',
+    'done': '完成',
+    'failed': '失败'
+  }
+  return nameMap[stageName] || stageName
+}
+
+// 监听阶段变化，自动滚动到最新阶段
+watch(() => props.stages, (newStages, oldStages) => {
+  if (newStages.length > (oldStages?.length || 0)) {
+    // 有新阶段添加，滚动到最新阶段
+    nextTick(() => {
+      scrollToLatestStage()
+    })
+  }
+}, { deep: true })
+
+// 滚动到最新阶段
+const scrollToLatestStage = () => {
+  if (!stagesContainer.value || props.layout !== 'horizontal') return
+  
+  const container = stagesContainer.value
+  const latestStage = container.querySelector('.stage-item:last-child') as HTMLElement
+  
+  if (latestStage) {
+    const containerWidth = container.clientWidth
+    const stageLeft = latestStage.offsetLeft
+    const stageWidth = latestStage.clientWidth
+    
+    // 计算滚动位置，让最新阶段显示在容器右侧
+    const scrollLeft = Math.max(0, stageLeft + stageWidth - containerWidth + 20)
+    
+    container.scrollTo({
+      left: scrollLeft,
+      behavior: 'smooth'
+    })
+  }
+}
 
 // 获取阶段样式类
 const getStageClass = (stage: DevStage) => ({
@@ -167,8 +225,6 @@ const ClockIcon = () => h('svg', {
 .dev-stages {
   background: white;
   border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
 }
 
 /* 横向布局样式 */
@@ -221,21 +277,42 @@ const ClockIcon = () => h('svg', {
 .stages-container.horizontal {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-md);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+.stages-container.horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+
+.stages-container.horizontal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stages-container.horizontal::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+.stages-container.horizontal::-webkit-scrollbar-thumb:hover {
+  background: #A0AEC0;
 }
 
 .stage-item {
   display: flex;
   align-items: center;
   margin-bottom: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
   position: relative;
 }
 
 .stage-item.horizontal {
   flex-direction: column;
   margin-bottom: 0;
-  flex: 1;
+  flex-shrink: 0;
+  min-width: 80px;
   text-align: center;
 }
 
@@ -280,7 +357,6 @@ const ClockIcon = () => h('svg', {
 .stage-name {
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
 }
 
 .stage-description {
@@ -354,9 +430,10 @@ const ClockIcon = () => h('svg', {
 
 .stage-connector.horizontal {
   position: static;
-  width: 100%;
+  width: var(--spacing-md);
   height: 2px;
   margin: var(--spacing-sm) 0;
+  flex-shrink: 0;
 }
 
 .connector-done {
@@ -377,8 +454,8 @@ const ClockIcon = () => h('svg', {
 
 /* 当前状态信息 */
 .current-status {
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
   border-top: 1px solid var(--border-color);
 }
 
@@ -429,6 +506,14 @@ const ClockIcon = () => h('svg', {
   
   .stage-connector {
     left: 13px;
+  }
+  
+  .stage-item.horizontal {
+    min-width: 60px;
+  }
+  
+  .stage-name {
+    font-size: 0.8rem;
   }
 }
 </style>
