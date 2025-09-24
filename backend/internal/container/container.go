@@ -106,7 +106,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	messageRepository := repositories.NewMessageRepository(db)
 
 	// services
-	webSocketService := services.NewWebSocketService()
+	webSocketService := services.NewWebSocketService(asyncClient)
 	messageService := services.NewMessageService(messageRepository)
 
 	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)
@@ -123,7 +123,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	// 有缓存，才处理异步任务
 	if cacheInstance != nil {
 		projectTaskHandler := worker.NewProjectTaskWorker()
-		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService)
+		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService, webSocketService)
 	}
 
 	// 启动 WebSocket 服务
@@ -175,7 +175,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 	projectTaskHandler *worker.ProjectTaskHandler,
 	projectService services.ProjectService,
-	projectStageService services.ProjectStageService) {
+	projectStageService services.ProjectStageService,
+	webSocketService services.WebSocketService) {
 	// 配置 Worker
 	server := asynq.NewServer(
 		redisClientOpt,
@@ -196,6 +197,7 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 	mux.Handle(models.TypeProjectBackup, projectTaskHandler)
 	mux.Handle(models.TypeProjectInit, projectService)
 	mux.Handle(models.TypeProjectDevelopment, projectStageService)
+	mux.Handle(models.TypeWebSocketBroadcast, webSocketService)
 	// ... 注册其他任务处理器
 
 	// 启动服务器

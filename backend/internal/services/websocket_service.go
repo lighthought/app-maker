@@ -7,8 +7,11 @@ import (
 	"time"
 
 	"autocodeweb-backend/internal/models"
+	"autocodeweb-backend/internal/tasks"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
+
+	"github.com/hibiken/asynq"
 )
 
 // WebSocketService WebSocket 服务接口
@@ -33,20 +36,49 @@ type WebSocketService interface {
 
 	// 健康检查
 	GetStats() map[string]interface{}
+
+	// ProcessTask 处理任务
+	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
 // webSocketService WebSocket 服务实现
 type webSocketService struct {
-	hub *models.WebSocketHub
+	hub         *models.WebSocketHub
+	asyncClient *asynq.Client
 }
 
 // NewWebSocketService 创建 WebSocket 服务
-func NewWebSocketService() WebSocketService {
+func NewWebSocketService(asyncClient *asynq.Client) WebSocketService {
 	hub := models.NewWebSocketHub()
 
 	return &webSocketService{
-		hub: hub,
+		hub:         hub,
+		asyncClient: asyncClient,
 	}
+}
+
+// ProcessTask 处理任务
+func (s *webSocketService) ProcessTask(ctx context.Context, task *asynq.Task) error {
+	if task.Type() != models.TypeWebSocketBroadcast {
+		return fmt.Errorf("不支持的任务类型: %s", task.Type())
+	}
+
+	payload := &models.WebSocketTaskPayload{}
+	err := json.Unmarshal(task.Payload(), payload)
+	if err != nil {
+		logger.Error("解析WebSocket消息广播任务失败", logger.String("error", err.Error()))
+		return err
+	}
+
+	projectGUID := payload.ProjectGUID
+	message := payload.Message
+
+	s.BroadcastToProject(projectGUID, message)
+	logger.Info("WebSocket消息广播任务处理完成",
+		logger.String("projectGUID", projectGUID),
+		logger.String("message", message.Type),
+	)
+	return nil
 }
 
 // RegisterClient 注册客户端连接
@@ -138,13 +170,21 @@ func (s *webSocketService) NotifyProjectStageUpdate(projectGUID string, stage *m
 		ID:          fmt.Sprintf("stage_%s_%d", stage.ID, utils.GetTimeNow().Unix()),
 	}
 
-	s.BroadcastToProject(projectGUID, message)
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewWebSocketBroadcastTask(projectGUID, message))
+	if err != nil {
+		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
+
+		// 异步失败，改为同步
+		s.BroadcastToProject(projectGUID, message)
+		return
+	}
 
 	logger.Info("项目阶段更新通知已发送",
 		logger.String("projectGUID", projectGUID),
 		logger.String("stageID", stage.ID),
 		logger.String("stageName", stage.Name),
 		logger.String("status", stage.Status),
+		logger.String("taskID", taskInfo.ID),
 	)
 }
 
@@ -158,18 +198,26 @@ func (s *webSocketService) NotifyProjectMessage(projectGUID string, message *mod
 		ID:          fmt.Sprintf("message_%s_%d", message.ID, utils.GetTimeNow().Unix()),
 	}
 
-	s.BroadcastToProject(projectGUID, wsMessage)
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewWebSocketBroadcastTask(projectGUID, wsMessage))
+	if err != nil {
+		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
+
+		// 异步失败，改为同步
+		s.BroadcastToProject(projectGUID, wsMessage)
+		return
+	}
 
 	logger.Info("项目消息通知已发送",
 		logger.String("projectGUID", projectGUID),
 		logger.String("messageID", message.ID),
 		logger.String("messageType", message.Type),
+		logger.String("taskID", taskInfo.ID),
 	)
 }
 
 // NotifyProjectInfoUpdate 通知项目信息更新
 func (s *webSocketService) NotifyProjectInfoUpdate(projectGUID string, project *models.Project) {
-	info := models.ConvertToProjectInfo(project)
+	info := project.GetUpdateInfo()
 	message := &models.WebSocketMessage{
 		Type:        "project_info_update",
 		ProjectGUID: projectGUID,
@@ -178,13 +226,20 @@ func (s *webSocketService) NotifyProjectInfoUpdate(projectGUID string, project *
 		ID:          fmt.Sprintf("info_%s_%d", projectGUID, utils.GetTimeNow().Unix()),
 	}
 
-	s.BroadcastToProject(projectGUID, message)
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewWebSocketBroadcastTask(projectGUID, message))
+	if err != nil {
+		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
+		// 异步失败，改为同步
+		s.BroadcastToProject(projectGUID, message)
+		return
+	}
 
 	logger.Info("项目信息更新通知已发送",
 		logger.String("projectGUID", message.ProjectGUID),
 		logger.String("timestamp", message.Timestamp),
 		logger.String("id", message.ID),
 		logger.String("type", message.Type),
+		logger.String("taskID", taskInfo.ID),
 	)
 }
 

@@ -77,3 +77,16 @@ func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task 
 		asynq.MaxRetry(1),
 		asynq.Retention(1*time.Hour))
 }
+
+// 创建WebSocket消息广播任务
+func NewWebSocketBroadcastTask(projectGUID string, message *models.WebSocketMessage) *asynq.Task {
+	payload := models.WebSocketTaskPayload{
+		ProjectGUID: projectGUID,
+		Message:     message,
+	}
+	return asynq.NewTask(models.TypeWebSocketBroadcast,
+		payload.ToBytes(),
+		asynq.Queue("default"),
+		asynq.MaxRetry(1),
+		asynq.Retention(1*time.Hour))
+}

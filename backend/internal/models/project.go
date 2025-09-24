@@ -11,6 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
+type ProjectInfoUpdate struct {
+	Name        string `json:"name" gorm:"size:100;not null"`
+	Status      string `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, done, failed
+	Description string `json:"description" gorm:"type:text"`
+	PreviewUrl  string `json:"preview_url" gorm:"size:500"`
+}
+
 // Project 项目模型
 type Project struct {
 	ID               string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('PROJ', 'public.projects_id_num_seq')"`
@@ -59,6 +66,15 @@ func GetDefaultProject(userID, requirements string) *Project {
 		PostgresPort: 5501,
 	}
 	return newProject
+}
+
+func (p *Project) GetUpdateInfo() ProjectInfoUpdate {
+	return ProjectInfoUpdate{
+		Name:        p.Name,
+		Status:      p.Status,
+		Description: p.Description,
+		PreviewUrl:  p.PreviewUrl,
+	}
 }
 
 func (p *Project) SetDevStatus(status string) {

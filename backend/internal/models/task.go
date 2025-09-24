@@ -9,6 +9,7 @@ const (
 	TypeProjectBackup      = "project:backup"      // 备份项目
 	TypeProjectInit        = "project:init"        // 初始化项目
 	TypeProjectDevelopment = "project:development" // 开发项目
+	TypeWebSocketBroadcast = "ws:broadcast"        // WebSocket 消息广播
 )
 
 // 任务优先级
@@ -59,6 +60,19 @@ type ProjectTaskPayload struct {
 
 // 只有项目ID的负载转换为 []byte
 func (p *ProjectTaskPayload) ToBytes() []byte {
+	bytes, err := json.Marshal(p)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}
+
+type WebSocketTaskPayload struct {
+	ProjectGUID string            `json:"project_guid"`
+	Message     *WebSocketMessage `json:"message"`
+}
+
+func (p *WebSocketTaskPayload) ToBytes() []byte {
 	bytes, err := json.Marshal(p)
 	if err != nil {
 		return nil
