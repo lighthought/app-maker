@@ -12,10 +12,21 @@ import (
 )
 
 type ProjectInfoUpdate struct {
+	ID          string `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('PROJ', 'public.projects_id_num_seq')"`
+	GUID        string `json:"guid" gorm:"size:50;not null"`
 	Name        string `json:"name" gorm:"size:100;not null"`
 	Status      string `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, done, failed
 	Description string `json:"description" gorm:"type:text"`
 	PreviewUrl  string `json:"preview_url" gorm:"size:500"`
+}
+
+func (p *ProjectInfoUpdate) Copy(other *ProjectInfoUpdate) {
+	p.ID = other.ID
+	p.GUID = other.GUID
+	p.Name = other.Name
+	p.Status = other.Status
+	p.Description = other.Description
+	p.PreviewUrl = other.PreviewUrl
 }
 
 // Project 项目模型
@@ -68,8 +79,10 @@ func GetDefaultProject(userID, requirements string) *Project {
 	return newProject
 }
 
-func (p *Project) GetUpdateInfo() ProjectInfoUpdate {
-	return ProjectInfoUpdate{
+func (p *Project) GetUpdateInfo() *ProjectInfoUpdate {
+	return &ProjectInfoUpdate{
+		ID:          p.ID,
+		GUID:        p.GUID,
 		Name:        p.Name,
 		Status:      p.Status,
 		Description: p.Description,

@@ -68,8 +68,8 @@ func (p *ProjectTaskPayload) ToBytes() []byte {
 }
 
 type WebSocketTaskPayload struct {
-	ProjectGUID string            `json:"project_guid"`
-	Message     *WebSocketMessage `json:"message"`
+	ProjectGUID string `json:"project_guid"`
+	MessageType string `json:"message_type"`
 }
 
 func (p *WebSocketTaskPayload) ToBytes() []byte {

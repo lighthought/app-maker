@@ -335,6 +335,8 @@ watch([wsProjectStages, wsProjectMessages], () => {
 watch(wsProjectInfo, (newInfo) => {
   if (newInfo && Object.keys(newInfo).length > 0) {
     emit('projectInfoUpdate', {
+      id: newInfo.id,
+      guid: newInfo.guid,
       name: newInfo.name,
       status: newInfo.status,
       description: newInfo.description,

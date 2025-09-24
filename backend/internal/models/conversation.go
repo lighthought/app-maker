@@ -23,9 +23,31 @@ type ConversationMessage struct {
 	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
+// ConversationMessageCache 对话消息缓存模型
+type ConversationMessageCache struct {
+	ProjectGUID string                `json:"project_guid"`
+	Messages    []ConversationMessage `json:"messages"`
+}
+
 // TableName 指定表名
 func (ConversationMessage) TableName() string {
 	return "project_msgs"
+}
+
+// Copy 复制对话消息
+func (c *ConversationMessage) Copy(other *ConversationMessage) {
+	c.ID = other.ID
+	c.ProjectGuid = other.ProjectGuid
+	c.Type = other.Type
+	c.AgentRole = other.AgentRole
+	c.AgentName = other.AgentName
+	c.Content = other.Content
+	c.IsMarkdown = other.IsMarkdown
+	c.MarkdownContent = other.MarkdownContent
+	c.IsExpanded = other.IsExpanded
+	c.CreatedAt = other.CreatedAt
+	c.UpdatedAt = other.UpdatedAt
+	c.DeletedAt = other.DeletedAt
 }
 
 // NewUserMessage 创建用户消息

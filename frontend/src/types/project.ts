@@ -1,6 +1,8 @@
 
 // 项目信息更新
 export interface ProjectInfoUpdate {
+  id: string
+  guid: string
   name: string
   status: string
   description: string
