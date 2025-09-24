@@ -71,9 +71,10 @@ func (s *webSocketService) UnregisterClient(client *models.WebSocketClient) {
 // BroadcastToProject 向指定项目广播消息
 func (s *webSocketService) BroadcastToProject(projectGUID string, message *models.WebSocketMessage) {
 	message.ProjectGUID = projectGUID
+	jsonMessage, _ := json.Marshal(message)
 	logger.Info("[ws] 向指定项目广播消息",
 		logger.String("projectGUID", projectGUID),
-		logger.String("message", message.Data.(string)))
+		logger.String("message", string(jsonMessage)))
 	s.hub.Broadcast <- message
 }
 
@@ -81,10 +82,10 @@ func (s *webSocketService) BroadcastToProject(projectGUID string, message *model
 func (s *webSocketService) BroadcastToUser(userID string, message *models.WebSocketMessage) {
 	s.hub.Mutex.RLock()
 	defer s.hub.Mutex.RUnlock()
-
+	jsonMessage, _ := json.Marshal(message)
 	logger.Info("[ws] 向指定用户广播消息",
 		logger.String("userID", userID),
-		logger.String("message", message.Data.(string)))
+		logger.String("message", string(jsonMessage)))
 
 	for client := range s.hub.Clients {
 		if client.UserID == userID {
@@ -108,9 +109,9 @@ func (s *webSocketService) BroadcastToUser(userID string, message *models.WebSoc
 func (s *webSocketService) BroadcastToAll(message *models.WebSocketMessage) {
 	s.hub.Mutex.RLock()
 	defer s.hub.Mutex.RUnlock()
-
+	jsonMessage, _ := json.Marshal(message)
 	logger.Info("[ws] 向所有客户端广播消息",
-		logger.String("message", message.Data.(string)))
+		logger.String("message", string(jsonMessage)))
 
 	for client := range s.hub.Clients {
 		select {
