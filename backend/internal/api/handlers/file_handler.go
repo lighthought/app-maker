@@ -108,9 +108,9 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 
 	files, err := h.fileService.GetProjectFiles(c.Request.Context(), userID, projectGuid, path)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取文件列表失败",
+			Message:   "获取文件列表失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -162,9 +162,9 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 
 	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectGuid, filePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取文件内容失败",
+			Message:   "获取文件内容失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return

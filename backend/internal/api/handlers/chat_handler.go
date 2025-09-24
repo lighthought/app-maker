@@ -74,9 +74,9 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	// 获取对话消息
 	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectGuid, pageSize, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取对话历史失败",
+			Message:   "获取对话历史失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -168,9 +168,9 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 
 	result, err := h.messageService.AddConversationMessage(c.Request.Context(), message)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "添加对话消息失败",
+			Message:   "添加对话消息失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return

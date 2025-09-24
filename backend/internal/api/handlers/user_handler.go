@@ -130,7 +130,7 @@ func (h *UserHandler) Logout(c *gin.Context) {
 	// 调用登出服务（对于纯JWT实现，主要是客户端清除token）
 	err := h.userService.Logout(c.Request.Context(), userID, "")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.Response{
+		c.JSON(http.StatusOK, models.Response{
 			Code:      models.ERROR_CODE,
 			Message:   "登出失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -319,7 +319,7 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 
 	response, err := h.userService.GetUserList(c.Request.Context(), page, pageSize)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.Response{
+		c.JSON(http.StatusOK, models.Response{
 			Code:      models.ERROR_CODE,
 			Message:   "获取用户列表失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -385,7 +385,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	err := h.userService.DeleteUser(c.Request.Context(), targetUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.Response{
+		c.JSON(http.StatusOK, models.Response{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "删除用户失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),

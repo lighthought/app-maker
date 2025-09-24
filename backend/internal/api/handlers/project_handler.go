@@ -74,7 +74,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("userID", userID),
 		)
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "创建项目失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -134,7 +134,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "获取项目失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -188,7 +188,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "删除项目失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -244,7 +244,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 
 	pagination, err := h.projectService.GetUserProjects(c.Request.Context(), userID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "获取项目列表失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -280,7 +280,7 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 
 	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectGuid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "获取开发阶段失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -336,7 +336,7 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      http.StatusInternalServerError,
 			Message:   "获取项目信息失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -351,7 +351,7 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      http.StatusInternalServerError,
 			Message:   "生成项目压缩任务失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),

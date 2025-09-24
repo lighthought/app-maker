@@ -62,9 +62,9 @@ func (h *CacheHandler) HealthCheck(c *gin.Context) {
 func (h *CacheHandler) GetStats(c *gin.Context) {
 	stats, err := h.monitor.GetFullStats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取统计信息失败",
+			Message:   "获取统计信息失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -90,9 +90,9 @@ func (h *CacheHandler) GetStats(c *gin.Context) {
 func (h *CacheHandler) GetMemoryUsage(c *gin.Context) {
 	memory, err := h.monitor.GetMemoryUsage()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取内存使用情况失败",
+			Message:   "获取内存使用情况失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -118,9 +118,9 @@ func (h *CacheHandler) GetMemoryUsage(c *gin.Context) {
 func (h *CacheHandler) GetKeyspaceStats(c *gin.Context) {
 	stats, err := h.monitor.GetKeyspaceStats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取键空间统计失败",
+			Message:   "获取键空间统计失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
@@ -146,9 +146,9 @@ func (h *CacheHandler) GetKeyspaceStats(c *gin.Context) {
 func (h *CacheHandler) GetPerformanceMetrics(c *gin.Context) {
 	metrics, err := h.monitor.GetPerformanceMetrics()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
-			Message:   "获取性能指标失败",
+			Message:   "获取性能指标失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return

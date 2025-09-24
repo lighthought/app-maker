@@ -48,7 +48,7 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	if err != nil {
 		completedTasks, err := s.inspector.ListCompletedTasks("default")
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			c.JSON(http.StatusOK, models.ErrorResponse{
 				Code:      models.INTERNAL_ERROR,
 				Message:   "获取任务状态失败: " + err.Error(),
 				Timestamp: utils.GetCurrentTime(),
@@ -102,7 +102,7 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 
 	err = json.Unmarshal(info.Result, &taskResult)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+		c.JSON(http.StatusOK, models.ErrorResponse{
 			Code:      models.INTERNAL_ERROR,
 			Message:   "解析任务结果失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
