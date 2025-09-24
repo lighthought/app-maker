@@ -52,17 +52,28 @@ func NewWebSocketService() WebSocketService {
 
 // RegisterClient 注册客户端连接
 func (s *webSocketService) RegisterClient(client *models.WebSocketClient) {
+	logger.Info("[ws] 注册客户端连接",
+		logger.String("clientID", client.ID),
+		logger.String("userID", client.UserID),
+		logger.String("projectGUID", client.ProjectGUID))
 	s.hub.Register <- client
 }
 
 // UnregisterClient 注销客户端连接
 func (s *webSocketService) UnregisterClient(client *models.WebSocketClient) {
+	logger.Info("[ws] 注销客户端连接",
+		logger.String("clientID", client.ID),
+		logger.String("userID", client.UserID),
+		logger.String("projectGUID", client.ProjectGUID))
 	s.hub.Unregister <- client
 }
 
 // BroadcastToProject 向指定项目广播消息
 func (s *webSocketService) BroadcastToProject(projectGUID string, message *models.WebSocketMessage) {
 	message.ProjectGUID = projectGUID
+	logger.Info("[ws] 向指定项目广播消息",
+		logger.String("projectGUID", projectGUID),
+		logger.String("message", message.Data.(string)))
 	s.hub.Broadcast <- message
 }
 
@@ -70,6 +81,10 @@ func (s *webSocketService) BroadcastToProject(projectGUID string, message *model
 func (s *webSocketService) BroadcastToUser(userID string, message *models.WebSocketMessage) {
 	s.hub.Mutex.RLock()
 	defer s.hub.Mutex.RUnlock()
+
+	logger.Info("[ws] 向指定用户广播消息",
+		logger.String("userID", userID),
+		logger.String("message", message.Data.(string)))
 
 	for client := range s.hub.Clients {
 		if client.UserID == userID {
@@ -93,6 +108,9 @@ func (s *webSocketService) BroadcastToUser(userID string, message *models.WebSoc
 func (s *webSocketService) BroadcastToAll(message *models.WebSocketMessage) {
 	s.hub.Mutex.RLock()
 	defer s.hub.Mutex.RUnlock()
+
+	logger.Info("[ws] 向所有客户端广播消息",
+		logger.String("message", message.Data.(string)))
 
 	for client := range s.hub.Clients {
 		select {

@@ -93,7 +93,9 @@ export class WebSocketService implements WebSocketConnection {
       this.ws.onmessage = (event) => {
         try {
           const message: WebSocketServerMessage = JSON.parse(event.data)
-          console.log('WebSocket message received:', message)
+          if (message.type !== 'pong') {
+            console.log('WebSocket message received:', message)
+          }
           this.handlers.onMessage?.(message)
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error)
@@ -135,7 +137,9 @@ export class WebSocketService implements WebSocketConnection {
       }
       
       this.ws!.send(JSON.stringify(messageWithTimestamp))
-      console.log('WebSocket message sent:', messageWithTimestamp)
+      if (messageWithTimestamp.type !== 'ping') {
+        console.log('WebSocket message sent:', messageWithTimestamp)
+      }
     } catch (error) {
       console.error('Failed to send WebSocket message:', error)
     }
