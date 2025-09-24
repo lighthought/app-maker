@@ -1,4 +1,4 @@
-.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services docker-check docker-start docker-stop docker-status docker-ensure docker-service-start docker-service-stop docker-service-restart docker-install-check
+.PHONY: help build build-dev build-prod run-dev run-prod test clean validate-config network-create network-check network-clean external-services docker-check docker-start docker-stop docker-status docker-ensure docker-service-start docker-service-stop docker-service-restart docker-install-check print-ssh-pub
 
 # 默认目标
 help:
@@ -185,6 +185,7 @@ run-dev: docker-ensure network-create
 	@echo "Traefik Dashboard: http://localhost:8080 or http://traefik.app-maker.localhost"
 	@echo "Swagger Docs: http://localhost:8098/swagger/index.html" or http://api.app-maker.localhost/swagger/index.html
 	docker-compose up -d
+	@$(MAKE) print-ssh-pub
 
 # 启动生产环境
 run-prod: docker-ensure network-create
@@ -194,6 +195,26 @@ run-prod: docker-ensure network-create
 	@echo "Traefik Dashboard: http://localhost:8080 or http://traefik.thought-light.com"
 	@echo "Swagger Docs: http://localhost:8080/swagger/index.html" or http://api.thought-light.com/swagger/index.html
 	docker-compose -f docker-compose.prod.yml up -d
+	@$(MAKE) print-ssh-pub
+
+# 打印SSH公钥
+print-ssh-pub:
+	@echo "=========================================="
+	@echo "Checking GitLab SSH Connection..."
+	@echo "=========================================="
+	@docker-compose exec -T backend ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -T git@gitlab.lighthought.com >nul 2>&1 && ( \
+		echo "[OK] SSH key is already configured for GitLab!" && \
+		echo "GitLab connection is working properly." \
+	) || ( \
+		echo "[WARNING] SSH key not configured for GitLab" && \
+		echo "Please add SSH Keys to gitlab to ensure API has the rights to operate git repositories" && \
+		echo "" && \
+		echo "Backend container SSH public key:" && \
+		echo "----------------------------------" && \
+		docker-compose exec -T backend cat /home/appuser/.ssh/id_rsa.pub 2>nul || echo "[WARNING] SSH public key not found in backend container" \
+	)
+	@echo ""
+	@echo "=========================================="
 
 # 停止开发环境
 stop-dev:
