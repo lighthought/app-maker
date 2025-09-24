@@ -1,7 +1,7 @@
 import { ref, watch, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { AppConfig } from './config'
-import type { ConversationMessage, DevStage, Project } from '@/types/project'
+import type { ConversationMessage, DevStage, ProjectInfoUpdate } from '@/types/project'
 import type { WebSocketServerMessage, WebSocketClientMessage } from '@/types/websocket'
 
 // WebSocket 连接状态
@@ -334,7 +334,7 @@ export function useWebSocket(projectGuid: string) {
   // 项目相关状态
   const projectStages = ref<DevStage[]>([])
   const projectMessages = ref<ConversationMessage[]>([])
-  const projectInfo = ref<Project>({} as Project)
+  const projectInfo = ref<ProjectInfoUpdate>({} as ProjectInfoUpdate)
 
   // 创建 WebSocket 连接
   const ws = createProjectWebSocket(projectGuid, {

@@ -1,3 +1,12 @@
+
+// 项目信息更新
+export interface ProjectInfoUpdate {
+  name: string
+  status: string
+  description: string
+  previewUrl?: string
+}
+
 export interface Project {
   id: string
   guid: string
@@ -71,12 +80,4 @@ export interface DevStage {
   description: string
   failed_reason: string
   task_id: string
-}
-
-// 项目信息更新
-export interface ProjectInfoUpdate {
-  name: string
-  status: string
-  description: string
-  previewUrl?: string
 }
