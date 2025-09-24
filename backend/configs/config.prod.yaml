@@ -30,3 +30,6 @@ bmad:
 log:
   level: "warn"
   file: "/var/log/autocodeweb/app.log"
+
+asynq:
+  concurrency: 100

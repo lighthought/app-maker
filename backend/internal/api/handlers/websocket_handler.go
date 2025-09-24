@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
 	"autocodeweb-backend/internal/utils"
@@ -404,9 +405,17 @@ func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
 			"health":    "/ws/admin/health",
 		},
 		"message_types": []string{
-			"ping", "pong", "join_project", "leave_project",
-			"project_stage_update", "project_message", "project_info_update",
-			"agent_message", "user_feedback", "user_feedback_response", "error",
+			constants.WebSocketMessageTypePing,
+			constants.WebSocketMessageTypePong,
+			constants.WebSocketMessageTypeJoinProject,
+			constants.WebSocketMessageTypeLeaveProject,
+			constants.WebSocketMessageTypeProjectStageUpdate,
+			constants.WebSocketMessageTypeProjectMessage,
+			constants.WebSocketMessageTypeProjectInfoUpdate,
+			constants.WebSocketMessageTypeAgentMessage,
+			constants.WebSocketMessageTypeUserFeedback,
+			constants.WebSocketMessageTypeUserFeedbackResponse,
+			constants.WebSocketMessageTypeError,
 		},
 	}
 

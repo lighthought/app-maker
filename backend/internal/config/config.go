@@ -163,6 +163,8 @@ func setDefaults() {
 	viper.SetDefault("cors.allowed_headers", []string{"*"})
 	viper.SetDefault("cors.allow_credentials", false)
 	viper.SetDefault("cors.max_age", 86400)
+
+	viper.SetDefault("asynq.concurrency", 100)
 }
 
 func validateConfig(config *Config) error {

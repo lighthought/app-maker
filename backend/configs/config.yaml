@@ -36,3 +36,7 @@ ai:
 log:
   level: "debug"
   file: "./logs/app.log"
+
+
+asynq:
+  concurrency: 100

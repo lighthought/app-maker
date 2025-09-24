@@ -7,6 +7,12 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+const (
+	taskQueueDefault  = "default"
+	taskMaxRetry      = 1
+	taskRetentionHour = 4 * time.Hour
+)
+
 // 创建发送邮件的任务
 func NewEmailDeliveryTask(userID string, content string) *asynq.Task {
 	payload := models.EmailTaskPayload{
@@ -16,9 +22,9 @@ func NewEmailDeliveryTask(userID string, content string) *asynq.Task {
 	// 通常我们会返回一个唯一的任务ID，方便后续查询，Asynq会自动生成
 	return asynq.NewTask(models.TypeEmailDelivery,
 		payload.ToBytes(),
-		asynq.Queue("default"),
-		asynq.MaxRetry(1),
-		asynq.Retention(1*time.Hour))
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
 }
 
 // 创建下载项目任务
@@ -30,9 +36,9 @@ func NewProjectDownloadTask(projectID, projectGuid, projectPath string) *asynq.T
 	}
 	return asynq.NewTask(models.TypeProjectDownload,
 		payload.ToBytes(),
-		asynq.Queue("default"),
-		asynq.MaxRetry(1),
-		asynq.Retention(1*time.Hour))
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
 }
 
 // 创建备份项目任务
@@ -45,9 +51,9 @@ func NewProjectBackupTask(projectID, projectGuid, projectPath string) *asynq.Tas
 
 	return asynq.NewTask(models.TypeProjectBackup,
 		payload.ToBytes(),
-		asynq.Queue("default"),
-		asynq.MaxRetry(1),
-		asynq.Retention(1*time.Hour))
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
 }
 
 // 创建项目开发任务
@@ -59,9 +65,9 @@ func NewProjectDevelopmentTask(projectID, projectGuid, gitlabRepoURL string) *as
 	}
 	return asynq.NewTask(models.TypeProjectDevelopment,
 		payload.ToBytes(),
-		asynq.Queue("default"),
-		asynq.MaxRetry(1),
-		asynq.Retention(1*time.Hour))
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
 }
 
 // 创建项目初始化任务
@@ -73,20 +79,20 @@ func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task 
 	}
 	return asynq.NewTask(models.TypeProjectInit,
 		payload.ToBytes(),
-		asynq.Queue("default"),
-		asynq.MaxRetry(1),
-		asynq.Retention(1*time.Hour))
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
 }
 
 // 创建WebSocket消息广播任务
-func NewWebSocketBroadcastTask(projectGUID string, message *models.WebSocketMessage) *asynq.Task {
+func NewWebSocketBroadcastTask(projectGUID string, messageType string) *asynq.Task {
 	payload := models.WebSocketTaskPayload{
 		ProjectGUID: projectGUID,
-		Message:     message,
+		MessageType: messageType,
 	}
 	return asynq.NewTask(models.TypeWebSocketBroadcast,
 		payload.ToBytes(),
-		asynq.Queue("default"),
-		asynq.MaxRetry(1),
-		asynq.Retention(1*time.Hour))
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
 }
