@@ -111,11 +111,16 @@ docker-service-restart:
 	@net start "com.docker.service" >nul 2>&1 && echo "[OK] Docker service restarted" || echo "[WARNING] Docker service restart failed"
 
 docker-image-pull:
-	@echo "Pulling Docker images..."
-	docker pull golang:1.24-alpine
-	docker pull alpine:latest
-	docker pull node:18-alpine
-	docker pull nginx:alpine
+	@echo "Checking Docker images..."
+	@echo "Checking golang:1.24-alpine..."
+	@docker image inspect golang:1.24-alpine >nul 2>&1 || docker pull golang:1.24-alpine
+	@echo "Checking alpine:latest..."
+	@docker image inspect alpine:latest >nul 2>&1 || docker pull alpine:latest
+	@echo "Checking node:18-alpine..."
+	@docker image inspect node:18-alpine >nul 2>&1 || docker pull node:18-alpine
+	@echo "Checking nginx:alpine..."
+	@docker image inspect nginx:alpine >nul 2>&1 || docker pull nginx:alpine
+	@echo "Docker images check completed."
 
 # 检查 Docker Desktop 安装路径
 docker-install-check:
