@@ -25,7 +25,6 @@ type WebSocketService interface {
 	// 项目事件
 	NotifyProjectStageUpdate(projectGUID string, stage *models.DevStage)
 	NotifyProjectMessage(projectGUID string, message *models.ConversationMessage)
-	NotifyProjectStatusChange(projectGUID string, status string)
 	NotifyProjectInfoUpdate(projectGUID string, info *models.Project)
 
 	// 启动和停止
@@ -165,26 +164,6 @@ func (s *webSocketService) NotifyProjectMessage(projectGUID string, message *mod
 		logger.String("projectGUID", projectGUID),
 		logger.String("messageID", message.ID),
 		logger.String("messageType", message.Type),
-	)
-}
-
-// NotifyProjectStatusChange 通知项目状态变更
-func (s *webSocketService) NotifyProjectStatusChange(projectGUID string, status string) {
-	message := &models.WebSocketMessage{
-		Type:        "project_status_change",
-		ProjectGUID: projectGUID,
-		Data: map[string]string{
-			"status": status,
-		},
-		Timestamp: utils.GetCurrentTime(),
-		ID:        fmt.Sprintf("status_%s_%d", projectGUID, utils.GetTimeNow().Unix()),
-	}
-
-	s.BroadcastToProject(projectGUID, message)
-
-	logger.Info("项目状态变更通知已发送",
-		logger.String("projectGUID", projectGUID),
-		logger.String("status", status),
 	)
 }
 

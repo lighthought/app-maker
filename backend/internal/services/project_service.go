@@ -292,7 +292,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 	project.SetDevStatus(constants.DevStatusSetupEnvironment)
 	s.projectRepo.Update(ctx, project)
 
-	s.webSocketService.NotifyProjectStatusChange(project.GUID, constants.CommandStatusInProgress)
+	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
 
 	// 已经有过环境准备的阶段，取原来的数据
 	projectStages, err := s.projectStageRepo.GetByProjectID(ctx, projectID)
@@ -380,6 +380,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 	)
 
 	s.projectRepo.Update(ctx, project)
+	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "更新项目信息成功")
 }
 
@@ -514,7 +515,7 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 	project.Status = constants.CommandStatusInProgress
 	project.CurrentTaskID = taskInfo.ID
 	s.projectRepo.Update(ctx, project)
-	s.webSocketService.NotifyProjectStatusChange(project.GUID, constants.CommandStatusInProgress)
+	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
 
 	projectStage.SetStatus(constants.CommandStatusDone)
 	s.updateStage(ctx, projectStage)

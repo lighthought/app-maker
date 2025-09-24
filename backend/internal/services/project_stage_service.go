@@ -184,6 +184,7 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
 	project.SetDevStatus(constants.DevStatusDone)
 	project.Status = constants.CommandStatusDone
 	s.projectRepo.Update(ctx, project)
+	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
 
 	logger.Info("项目开发流程执行完成",
 		logger.String("projectID", project.ID),

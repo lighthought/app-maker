@@ -405,7 +405,7 @@ func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
 		},
 		"message_types": []string{
 			"ping", "pong", "join_project", "leave_project",
-			"project_stage_update", "project_message", "project_status_change",
+			"project_stage_update", "project_message", "project_info_update",
 			"agent_message", "user_feedback", "user_feedback_response", "error",
 		},
 	}
