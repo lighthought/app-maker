@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -79,9 +80,25 @@ func (h *WebSocketHub) Run() {
 		case message := <-h.Broadcast:
 			h.Mutex.RLock()
 			if projectClients, exists := h.Projects[message.ProjectGUID]; exists {
+				// 将整个消息序列化为 JSON 字节数组
+				var dataBytes []byte
+				if jsonData, err := json.Marshal(message); err == nil {
+					dataBytes = jsonData
+				} else {
+					// 如果序列化失败，发送错误消息
+					errorMsg := map[string]interface{}{
+						"type":      "error",
+						"message":   "Failed to serialize WebSocket message",
+						"timestamp": time.Now().Format(time.RFC3339),
+					}
+					if errorData, err := json.Marshal(errorMsg); err == nil {
+						dataBytes = errorData
+					}
+				}
+
 				for client := range projectClients {
 					select {
-					case client.Send <- message.Data.([]byte):
+					case client.Send <- dataBytes:
 					default:
 						close(client.Send)
 						delete(h.Clients, client)
