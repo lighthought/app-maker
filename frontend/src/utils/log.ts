@@ -47,16 +47,16 @@ Request: ${JSON.stringify(request, null, 2)}`
 
   logRequest(config: AxiosRequestConfig): void {
     if (!this.enabled) return
-    console.group(`🚀 API Request`)
-    console.log(this.formatRequest(config))
-    console.groupEnd()
+    //console.group(`🚀 API Request`)
+    //console.log(this.formatRequest(config))
+    //console.groupEnd()
   }
 
   logResponse(response: AxiosResponse): void {
     if (!this.enabled) return
-    console.group(`✅ API Response`)
-    console.log(this.formatResponse(response))
-    console.groupEnd()
+    //console.group(`✅ API Response`)
+    //console.log(this.formatResponse(response))
+    //console.groupEnd()
   }
 
   logError(error: any): void {

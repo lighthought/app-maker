@@ -357,6 +357,7 @@ const ClockIcon = () => h('svg', {
 .stage-name {
   font-weight: 500;
   color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .stage-description {
@@ -454,7 +455,7 @@ const ClockIcon = () => h('svg', {
 
 /* 当前状态信息 */
 .current-status {
-  margin-top: var(--spacing-xs);
+  margin-top: var(--spacing-md);
   padding-top: var(--spacing-xs);
   border-top: 1px solid var(--border-color);
 }
