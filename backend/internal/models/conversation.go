@@ -12,7 +12,7 @@ type ConversationMessage struct {
 	ID              string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('MSG', 'public.project_msgs_id_num_seq')"`
 	ProjectGuid     string         `json:"project_guid" gorm:"type:varchar(50);"`
 	Type            string         `json:"type" gorm:"size:20;not null"` // user, agent, system
-	AgentRole       string         `json:"agent_role" gorm:"size:20"`    // dev, pm, arch, ux, qa, ops
+	AgentRole       string         `json:"agent_role" gorm:"size:20"`    // user, dev, pm, arch, ux, qa, ops
 	AgentName       string         `json:"agent_name" gorm:"size:100"`   // Agent名称
 	Content         string         `json:"content" gorm:"type:text"`
 	IsMarkdown      bool           `json:"is_markdown" gorm:"default:false"`
@@ -34,7 +34,7 @@ func NewUserMessage(project *Project) *ConversationMessage {
 		ProjectGuid:     project.GUID,
 		Type:            constants.ConversationTypeUser,
 		AgentRole:       "user",
-		AgentName:       "",
+		AgentName:       "user",
 		Content:         project.Requirements,
 		IsMarkdown:      false,
 		MarkdownContent: project.Requirements,

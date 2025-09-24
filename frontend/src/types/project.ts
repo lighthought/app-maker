@@ -73,7 +73,7 @@ export interface ConversationMessage {
   id: string
   project_id: string
   type: 'user' | 'agent' | 'system'
-  agent_role?: 'dev' | 'pm' | 'po' | 'architect' | 'ux-expert' | 'analyst' | 'qa' | 'ops'
+  agent_role?: 'user' | 'dev' | 'pm' | 'po' | 'architect' | 'ux-expert' | 'analyst' | 'qa' | 'ops'
   agent_name?: string
   content: string
   is_markdown?: boolean

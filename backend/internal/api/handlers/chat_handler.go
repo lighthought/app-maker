@@ -144,6 +144,16 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 		return
 	}
 
+	if req.Type == "" {
+		req.Type = "user"
+	}
+	if req.AgentRole == "" {
+		req.AgentRole = "user"
+	}
+	if req.AgentName == "" {
+		req.AgentName = "user"
+	}
+
 	// 创建对话消息
 	message := &models.ConversationMessage{
 		ProjectGuid:     projectGuid,
