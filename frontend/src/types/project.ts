@@ -28,16 +28,6 @@ export interface CreateProjectData {
   requirements: string
 }
 
-export interface UpdateProjectData {
-  name?: string
-  description?: string
-  requirements?: string
-  status?: Project['status']
-  backendPort?: number
-  frontendPort?: number
-  tagIds?: string[]
-}
-
 export interface ProjectListRequest {
   page?: number
   pageSize?: number
@@ -45,16 +35,6 @@ export interface ProjectListRequest {
   tagIds?: string[]
   userId?: string
   search?: string
-}
-
-export interface PaginationResponse<T> {
-  total: number
-  page: number
-  page_size: number
-  total_pages: number
-  data: T[]
-  has_next: boolean
-  has_previous: boolean
 }
 
 // 前端使用的分页信息接口（驼峰命名）
@@ -66,7 +46,6 @@ export interface PaginationInfo {
   hasNext: boolean
   hasPrevious: boolean
 }
-
 
 // 对话消息类型
 export interface ConversationMessage {
@@ -92,4 +71,12 @@ export interface DevStage {
   description: string
   failed_reason: string
   task_id: string
+}
+
+// 项目信息更新
+export interface ProjectInfoUpdate {
+  name: string
+  status: string
+  description: string
+  previewUrl?: string
 }

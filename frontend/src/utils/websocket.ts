@@ -1,6 +1,7 @@
 import { ref, watch, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { AppConfig } from './config'
+import type { ConversationMessage, DevStage, Project } from '@/types/project'
 import type { WebSocketServerMessage, WebSocketClientMessage } from '@/types/websocket'
 
 // WebSocket 连接状态
@@ -331,9 +332,9 @@ export function useWebSocket(projectGuid: string) {
   const reconnectAttempts = ref(0)
 
   // 项目相关状态
-  const projectStages = ref<any[]>([])
-  const projectMessages = ref<any[]>([])
-  const projectStatus = ref<string>('')
+  const projectStages = ref<DevStage[]>([])
+  const projectMessages = ref<ConversationMessage[]>([])
+  const projectInfo = ref<Project>({} as Project)
 
   // 创建 WebSocket 连接
   const ws = createProjectWebSocket(projectGuid, {
@@ -355,6 +356,10 @@ export function useWebSocket(projectGuid: string) {
     },
     onMessage: (message: WebSocketServerMessage) => {
       switch (message.type) {
+        case 'project_info_update':
+          const infoData = message.data;
+          projectInfo.value = infoData;
+          break;
         case 'project_stage_update':
           const stageData = message.data
           const existingStageIndex = projectStages.value.findIndex(stage => stage.id === stageData.id)
@@ -379,10 +384,6 @@ export function useWebSocket(projectGuid: string) {
           }
           
           projectMessages.value.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-          break
-
-        case 'project_status_change':
-          projectStatus.value = message.data.status
           break
 
         case 'error':
@@ -421,7 +422,7 @@ export function useWebSocket(projectGuid: string) {
     // 项目数据
     projectStages,
     projectMessages,
-    projectStatus,
+    projectInfo,
     
     // 方法
     connect: ws.connect,

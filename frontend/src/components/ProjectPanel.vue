@@ -555,6 +555,11 @@ watch(() => props.project, (newProject) => {
   }
 }, { immediate: true })
 
+// 暴露方法给父组件
+defineExpose({
+  refreshFiles
+})
+
 // 初始化
 onMounted(async () => {
   // 如果项目数据已经存在，直接加载文件

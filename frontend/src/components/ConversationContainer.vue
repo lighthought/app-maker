@@ -24,7 +24,6 @@
     <div class="progress-section">
       <DevStages 
         :stages="devStages" 
-        :current-progress="currentProgress"
         layout="horizontal"
       />
     </div>
@@ -75,14 +74,21 @@ import DevStages from './DevStages.vue'
 import SmartInput from './common/SmartInput.vue'
 import { useProjectStore } from '@/stores/project'
 import { useWebSocket } from '@/utils/websocket'
-import type { ConversationMessage as ConversationMessageType, DevStage } from '@/types/project'
+import type { ConversationMessage as ConversationMessageType, DevStage, ProjectInfoUpdate } from '@/types/project'
 
 interface Props {
   projectGuid: string
   requirements: string
+  project?: any // 接收项目信息
 }
 
 const props = defineProps<Props>()
+
+// 定义事件
+const emit = defineEmits<{
+  projectInfoUpdate: [info: ProjectInfoUpdate]
+  projectEnvSetup: []
+}>()
 const projectStore = useProjectStore()
 
 // WebSocket 集成
@@ -93,7 +99,7 @@ const {
   reconnectAttempts: wsReconnectAttempts,
   projectStages: wsProjectStages,
   projectMessages: wsProjectMessages,
-  projectStatus: wsProjectStatus,
+  projectInfo: wsProjectInfo,
   connect: wsConnect,
   disconnect: wsDisconnect,
   reconnect: wsReconnect,
@@ -103,7 +109,6 @@ const {
 // 响应式数据
 const messages = ref<ConversationMessageType[]>([])
 const devStages = ref<DevStage[]>([])
-const currentProgress = ref(0)
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const inputValue = ref('')
@@ -117,7 +122,6 @@ const loadDevStages = async () => {
     const stages = await projectStore.getProjectStages(props.projectGuid)
     if (stages) {
       devStages.value = stages
-      updateCurrentProgress()
     }
   } catch (error) {
     console.error('加载开发阶段失败:', error)
@@ -142,12 +146,11 @@ const syncWebSocketData = () => {
   // 同步项目阶段数据
   if (wsProjectStages.value.length > 0) {
     devStages.value = [...wsProjectStages.value]
-    updateCurrentProgress()
   }
   
-  // 同步项目消息数据
-  if (wsProjectMessages.value.length > 0) {
-    messages.value = [...wsProjectMessages.value]
+  // 同步项目消息数据 - 移除长度检查，避免过滤掉消息
+  messages.value = [...wsProjectMessages.value]
+  if (messages.value.length > 0) {
     scrollToBottom()
   }
 }
@@ -231,31 +234,6 @@ const mergeConversations = async () => {
   }
 }
 
-
-// 更新开发阶段状态
-const updateDevStage = (stageId: string, status: 'pending' | 'in_progress' | 'done' | 'failed') => {
-  const stage = devStages.value.find(s => s.id === stageId)
-  if (stage) {
-    stage.status = status
-    updateCurrentProgress()
-  }
-}
-
-// 更新当前进度
-const updateCurrentProgress = () => {
-  const completedStages = devStages.value.filter(s => s.status === 'done')
-  const inProgressStage = devStages.value.find(s => s.status === 'in_progress')
-  
-  if (inProgressStage) {
-    currentProgress.value = inProgressStage.progress
-  } else if (completedStages.length > 0) {
-    const lastCompleted = completedStages[completedStages.length - 1]
-    currentProgress.value = lastCompleted.progress
-  } else {
-    currentProgress.value = 0
-  }
-}
-
 // 滚动到底部
 const scrollToBottom = () => {
   nextTick(() => {
@@ -280,6 +258,16 @@ const handleSendMessage = async (content: string) => {
   isLoading.value = true
   
   try {
+    // 如果项目已完成且没有 WebSocket 连接，重新启动连接
+    if (isProjectCompleted() && !wsConnected.value) {
+      console.log('用户发送新消息，重新启动 WebSocket 连接')
+      try {
+        await wsConnect()
+      } catch (error) {
+        console.error('重新启动 WebSocket 连接失败:', error)
+      }
+    }
+    
     // 添加用户消息
     const userMessage = await projectStore.addChatMessage(props.projectGuid, {
       type: 'user',
@@ -343,6 +331,37 @@ watch([wsProjectStages, wsProjectMessages], () => {
   }
 }, { deep: true })
 
+// 监听项目信息更新
+watch(wsProjectInfo, (newInfo) => {
+  if (newInfo && Object.keys(newInfo).length > 0) {
+    emit('projectInfoUpdate', {
+      name: newInfo.name,
+      status: newInfo.status,
+      description: newInfo.description,
+      previewUrl: newInfo.previewUrl,
+    })
+
+    
+  }
+}, { deep: true })
+
+// 监听 setup_environment 阶段状态变化
+const previousSetupStatus = ref<string | null>(null)
+watch(wsProjectStages, (newStages) => {
+  if (newStages && newStages.length > 0) {
+    const setupStage = newStages.find(stage => stage.name === 'setup_environment')
+    if (setupStage) {
+      const currentStatus = setupStage.status
+      // 只有当状态从 in_progress 变为 done 时才触发
+      if (previousSetupStatus.value === 'in_progress' && currentStatus === 'done') {
+        console.log('setup_environment 阶段已完成，通知刷新文件树')
+        emit('projectEnvSetup')
+      }
+      previousSetupStatus.value = currentStatus
+    }
+  }
+}, { deep: true })
+
 
 // 图标组件
 const LoadingIcon = () => h('svg', { 
@@ -357,11 +376,24 @@ const LoadingIcon = () => h('svg', {
   })
 ])
 
+// 检查项目是否已完成
+const isProjectCompleted = () => {
+  // 统一使用 project.value?.status 来判断项目是否完成或失败
+  return props.project?.status === 'done' || props.project?.status === 'failed'
+}
+
+
 // 初始化
 const initialize = async () => {
   // 先加载初始数据
   await loadDevStages()
   await loadConversations()
+  
+  // 检查项目是否已完成
+  if (isProjectCompleted()) {
+    console.log('项目已完成，不启动 WebSocket 连接和定时刷新')
+    return
+  }
   
   // 启动 WebSocket 连接
   try {

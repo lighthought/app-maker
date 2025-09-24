@@ -18,7 +18,7 @@ export interface WebSocketClientMessage {
 
 // WebSocket 服务端消息类型（接收自服务端）
 export interface WebSocketServerMessage {
-  type: 'project_stage_update' | 'project_message' | 'project_status_change' | 'agent_message' | 'user_feedback_response' | 'pong' | 'error' | 'project_joined' | 'project_left'
+  type: 'project_info_update' | 'project_stage_update' | 'project_message' | 'agent_message' | 'user_feedback_response' | 'pong' | 'error' | 'project_joined' | 'project_left'
   projectGuid: string
   data: any
   timestamp: string

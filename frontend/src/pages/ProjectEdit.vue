@@ -26,6 +26,9 @@
             <ConversationContainer
               :project-guid="projectGuid"
               :requirements="project?.requirements || ''"
+              :project="project"
+              @project-info-update="handleProjectInfoUpdate"
+              @project-env-setup="handleProjectEnvSetup"
             />
           </div>
         </div>
@@ -41,7 +44,7 @@
         
         <!-- 右侧项目面板 -->
         <div class="right-panel" :style="{ width: rightWidth + '%' }">
-          <ProjectPanel :project="project" />
+          <ProjectPanel ref="projectPanelRef" :project="project" />
         </div>
       </div>
     </div>
@@ -55,7 +58,7 @@ import { NButton, NIcon, NTag } from 'naive-ui'
 import ConversationContainer from '@/components/ConversationContainer.vue'
 import ProjectPanel from '@/components/ProjectPanel.vue'
 import { useProjectStore } from '@/stores/project'
-import type { Project } from '@/types/project'
+import type { Project, ProjectInfoUpdate } from '@/types/project'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,6 +72,9 @@ const loading = ref(false)
 const leftWidth = ref(50)
 const rightWidth = ref(50)
 const isResizing = ref(false)
+
+// 组件引用
+const projectPanelRef = ref<any>(null)
 
 // 计算属性
 const projectGuid = computed(() => route.params.guid as string)
@@ -106,6 +112,35 @@ const getProjectDisplayName = () => {
   }
   
   return project.value.name || '项目编辑'
+}
+
+// 处理项目信息更新
+const handleProjectInfoUpdate = (info: ProjectInfoUpdate) => {
+  if (!project.value) return
+  
+  // 更新项目信息
+  if (info.name) {
+    project.value.name = info.name
+  }
+  if (info.status) {
+    project.value.status = info.status as any
+  }
+  if (info.description) {
+    project.value.description = info.description
+  }
+  if (info.previewUrl) {
+    project.value.previewUrl = info.previewUrl
+  }
+  
+  console.log('项目信息已更新:', info)
+}
+
+// 处理项目环境配置完成
+const handleProjectEnvSetup = () => {
+  if (projectPanelRef.value && projectPanelRef.value.refreshFiles) {
+    console.log('项目环境配置完成，刷新文件树')
+    projectPanelRef.value.refreshFiles()
+  }
 }
 
 // 图标组件
