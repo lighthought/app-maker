@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"autocodeweb-backend/internal/models"
@@ -61,19 +62,52 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	logger.Info("[ws] 项目GUID", logger.String("projectGUID", projectGUID))
 
+	// 在升级 WebSocket 之前进行认证验证
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Code:      models.UNAUTHORIZED,
+			Message:   "Token is required",
+			Timestamp: utils.GetCurrentTime(),
+		})
+		return
+	}
+
+	logger.Info("[ws] 获取Token", logger.String("token", token))
+
+	parts := strings.Split(token, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Code:      models.UNAUTHORIZED,
+			Message:   "Invalid authorization format",
+			Timestamp: utils.GetCurrentTime(),
+		})
+		c.Abort()
+		return
+	}
+
+	realToken := parts[1]
+
+	claims, err := h.jwtService.ValidateToken(realToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Code:      models.UNAUTHORIZED,
+			Message:   "Invalid token",
+			Timestamp: utils.GetCurrentTime(),
+		})
+		return
+	}
+
 	// 升级 HTTP 连接到 WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
-			Message:   "WebSocket 升级失败",
-			Timestamp: utils.GetCurrentTime(),
-		})
 		logger.Error("WebSocket 升级失败", logger.String("error", err.Error()))
 		return
 	}
 
-	userID := c.GetString("user_id")
+	userID := claims.UserID
+	logger.Info("[ws] 获取UserID", logger.String("userID", userID))
+
 	// 创建客户端连接
 	client := &models.WebSocketClient{
 		ID:          uuid.New().String(),

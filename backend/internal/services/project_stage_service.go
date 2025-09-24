@@ -113,11 +113,21 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 			s.projectRepo.Update(ctx, project)
 			s.webSocketService.NotifyProjectStageUpdate(project.GUID, stage)
 
-			logger.Info("插入项目阶段成功", logger.String("projectID", project.ID))
+			logger.Info("插入项目阶段成功", logger.String("projectID", project.ID), logger.String("stageID", stage.ID))
 		} else {
 			stage.ProjectID = project.ID
 			stage.ProjectGuid = project.GUID
-			s.stageRepo.Update(ctx, stage)
+			if err := s.stageRepo.Update(ctx, stage); err != nil {
+				logger.Error("更新项目阶段失败",
+					logger.String("error", err.Error()),
+					logger.String("projectID", project.ID),
+					logger.String("stageID", stage.ID),
+					logger.String("stageName", stage.Name),
+					logger.String("status", stage.Status),
+				)
+			}
+			s.webSocketService.NotifyProjectStageUpdate(project.GUID, stage)
+			logger.Info("更新项目阶段成功", logger.String("projectID", project.ID), logger.String("stageID", stage.ID))
 		}
 	}
 }

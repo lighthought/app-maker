@@ -74,7 +74,7 @@ import ConversationMessage from './ConversationMessage.vue'
 import DevStages from './DevStages.vue'
 import SmartInput from './common/SmartInput.vue'
 import { useProjectStore } from '@/stores/project'
-import { useWebSocket } from '@/composables/useWebSocket'
+import { useWebSocket } from '@/utils/websocket'
 import type { ConversationMessage as ConversationMessageType, DevStage } from '@/types/project'
 
 interface Props {
@@ -362,21 +362,6 @@ const initialize = async () => {
   // 先加载初始数据
   await loadDevStages()
   await loadConversations()
-  
-  // 如果没有对话历史，添加初始消息
-  if (messages.value.length === 0) {
-    // 添加用户需求消息
-    const userMessage = await projectStore.addChatMessage(props.projectGuid, {
-      type: 'user',
-      content: props.requirements,
-      is_expanded: false
-    })
-    if (userMessage) {
-      messages.value.push(userMessage)
-    }
-    
-    // 系统消息将通过WebSocket推送
-  }
   
   // 启动 WebSocket 连接
   try {

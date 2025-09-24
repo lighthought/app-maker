@@ -125,7 +125,7 @@ import { useUserStore } from '@/stores/user'
 import type { WebSocketClientMessage } from '@/types/websocket'
 
 // 消息提示
-const message = useMessage()
+const messageApi = useMessage()
 const userStore = useUserStore()
 
 // 响应式数据
@@ -141,12 +141,15 @@ const messageHistory = ref<Array<{
 const incomingMessageCount = ref(0)
 const outgoingMessageCount = ref(0)
 
+// 消息提示
+const message = useMessage()
+
 // WebSocket 相关状态
 const wsStatus = ref<'connecting' | 'connected' | 'disconnected' | 'error' | 'reconnecting'>('disconnected')
 const isConnected = ref(false)
 const wsError = ref<string | null>(null)
 const reconnectAttempts = ref(0)
-const ws = ref<WebSocket | null>(null)
+const ws = ref<any>(null)
 
 // 监听 projectGuid 变化
 watch(projectGuid, (newGuid: string) => {
@@ -197,7 +200,7 @@ const messageTypeOptions = [
 // 方法
 const connect = async () => {
   if (!projectGuid.value) {
-    message.warning('请输入项目 GUID')
+    messageApi.warning('请输入项目 GUID')
     return
   }
   
@@ -205,105 +208,80 @@ const connect = async () => {
     wsStatus.value = 'connecting'
     wsError.value = null
     
-    // 检查是否有 JWT Token
-    if (!userStore.token) {
-      message.error('请先登录')
-      return
-    }
-    
-    // 构建 WebSocket URL，通过查询参数传递 JWT Token
-    const token = userStore.token.startsWith('Bearer ') ? userStore.token : `Bearer ${userStore.token}`
-    const wsUrl = `ws://localhost:8098/ws/project/${projectGuid.value}?token=${encodeURIComponent(token)}`
-    console.log('Connecting to WebSocket:', wsUrl)
-    
-    // 创建 WebSocket 连接
-    ws.value = new WebSocket(wsUrl)
-    
-    ws.value.onopen = () => {
-      console.log('WebSocket connected successfully')
-      wsStatus.value = 'connected'
-      isConnected.value = true
-      reconnectAttempts.value = 0
-      message.success('WebSocket 连接成功')
-      
-      // 发送加入项目消息
-      sendJoinProjectMessage()
-    }
-    
-    ws.value.onclose = (event) => {
-      console.log('WebSocket closed:', event.code, event.reason)
-      wsStatus.value = 'disconnected'
-      isConnected.value = false
-      
-      if (!event.wasClean) {
-        wsError.value = `WebSocket 连接异常关闭: ${event.code} - ${event.reason}`
-        message.error(`连接异常关闭: ${event.code}`)
-      }
-    }
-    
-    ws.value.onerror = (error) => {
-      console.error('WebSocket error:', error)
-      wsStatus.value = 'error'
-      isConnected.value = false
-      wsError.value = 'WebSocket 连接错误'
-      message.error('WebSocket 连接失败')
-    }
-    
-    ws.value.onmessage = (event) => {
-      try {
-        const receivedMessage = JSON.parse(event.data)
-        console.log('Received WebSocket message:', receivedMessage)
+    // 使用新的 WebSocket 工具
+    const { createProjectWebSocket } = await import('@/utils/websocket')
+    ws.value = createProjectWebSocket(projectGuid.value, {
+      onOpen: () => {
+        console.log('WebSocket connected successfully')
+        wsStatus.value = 'connected'
+        isConnected.value = true
+        reconnectAttempts.value = 0
+        messageApi.success('WebSocket 连接成功')
+      },
+      onClose: (event) => {
+        console.log('WebSocket closed:', event.code, event.reason)
+        wsStatus.value = 'disconnected'
+        isConnected.value = false
         
-        // 添加到消息历史
-        addToHistory('incoming', receivedMessage.type, receivedMessage)
-        incomingMessageCount.value++
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error)
+        if (!event.wasClean) {
+          wsError.value = `WebSocket 连接异常关闭: ${event.code} - ${event.reason}`
+          messageApi.error(`连接异常关闭: ${event.code}`)
+        }
+      },
+      onError: (error) => {
+        console.error('WebSocket error:', error)
+        wsStatus.value = 'error'
+        isConnected.value = false
+        wsError.value = 'WebSocket 连接错误'
+        messageApi.error('WebSocket 连接失败')
+      },
+      onMessage: (receivedMessage) => {
+        try {
+          console.log('Received WebSocket message:', receivedMessage)
+          
+          // 添加到消息历史
+          addToHistory('incoming', receivedMessage.type, receivedMessage)
+          incomingMessageCount.value++
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error)
+        }
+      },
+      onReconnect: (attempt) => {
+        wsStatus.value = 'reconnecting'
+        reconnectAttempts.value = attempt
+        messageApi.info(`正在重连... (${attempt}/3)`)
       }
-    }
+    })
+    
+    await ws.value.connect()
     
   } catch (error) {
     wsStatus.value = 'error'
     wsError.value = error instanceof Error ? error.message : '连接失败'
-    message.error(`连接失败: ${error}`)
+    messageApi.error(`连接失败: ${error}`)
   }
 }
 
 const disconnect = () => {
   if (ws.value) {
-    ws.value.close()
+    ws.value.disconnect()
     ws.value = null
   }
   wsStatus.value = 'disconnected'
   isConnected.value = false
-  message.info('WebSocket 已断开')
+  messageApi.info('WebSocket 已断开')
 }
 
 const reconnect = () => {
-  disconnect()
-  setTimeout(() => {
-    connect()
-  }, 1000)
-}
-
-const sendJoinProjectMessage = () => {
-  if (ws.value && ws.value.readyState === WebSocket.OPEN) {
-    const joinMessage = {
-      type: 'join_project',
-      projectGuid: projectGuid.value,
-      timestamp: new Date().toISOString(),
-      id: `join_${Date.now()}`
-    }
-    
-    ws.value.send(JSON.stringify(joinMessage))
-    addToHistory('outgoing', joinMessage.type, joinMessage)
-    outgoingMessageCount.value++
+  if (ws.value) {
+    ws.value.reconnect()
   }
 }
 
+
 const sendMessage = () => {
   if (!isConnected.value || !messageType.value || !ws.value) {
-    message.warning('请先连接并选择消息类型')
+    messageApi.warning('请先连接并选择消息类型')
     return
   }
 
@@ -331,7 +309,7 @@ const sendMessage = () => {
       try {
         data = { ...data, ...JSON.parse(messageData.value) }
       } catch (e) {
-        message.warning('自定义数据不是有效的 JSON 格式')
+        messageApi.warning('自定义数据不是有效的 JSON 格式')
         return
       }
     }
@@ -344,16 +322,16 @@ const sendMessage = () => {
       id: `debug_${Date.now()}`
     }
 
-    // 直接发送消息
-    ws.value.send(JSON.stringify(wsMessage))
+    // 使用新的 WebSocket 工具发送消息
+    ws.value.send(wsMessage)
     
     // 添加到消息历史
     addToHistory('outgoing', wsMessage.type, wsMessage)
     outgoingMessageCount.value++
     
-    message.success('消息发送成功')
+    messageApi.success('消息发送成功')
   } catch (error) {
-    message.error(`发送失败: ${error}`)
+    messageApi.error(`发送失败: ${error}`)
   }
 }
 

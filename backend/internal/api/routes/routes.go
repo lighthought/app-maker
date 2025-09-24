@@ -28,7 +28,7 @@ func Register(engine *gin.Engine, container *container.Container) {
 	// WebSocket 路由 - 直接注册到引擎上，不使用 API 路由组
 	var webSocketHandler = container.WebSocketHandler
 	if webSocketHandler != nil {
-		// WebSocket 连接路由 - 需要认证
+		// WebSocket 连接路由 - Token 通过查询参数传递，在 Handler 内部验证
 		engine.GET("/ws/project/:guid", webSocketHandler.WebSocketUpgrade)
 	}
 
