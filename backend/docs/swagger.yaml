@@ -492,6 +492,33 @@ paths:
       summary: 获取项目对话历史
       tags:
       - 对话消息
+  /api/v1/debug/websocket:
+    get:
+      consumes:
+      - application/json
+      description: 获取 WebSocket 服务的调试信息，包括连接统计、活跃连接等
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/models.Response'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取 WebSocket 调试信息
+      tags:
+      - WebSocket调试
   /api/v1/files/download:
     get:
       consumes:

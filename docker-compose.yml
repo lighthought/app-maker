@@ -108,6 +108,11 @@ services:
       # 声明服务名称为 backend-service，使用 8080 端口提供服务
       - "traefik.http.services.app-maker-backend.loadbalancer.server.scheme=http"
       - "traefik.http.services.app-maker-backend.loadbalancer.server.port=8080"
+      # 添加处理 WebSocket 升级的中间件
+      - "traefik.http.routers.backend-router.middlewares=websocket-headers@docker"
+       # 定义中间件本身
+      - "traefik.http.middlewares.websocket-headers.headers.customrequestheaders.Upgrade=websocket"
+      - "traefik.http.middlewares.websocket-headers.headers.customrequestheaders.Connection=Upgrade"
 
   # PostgreSQL 数据库
   postgres:

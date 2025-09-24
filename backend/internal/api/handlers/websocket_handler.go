@@ -40,8 +40,8 @@ func NewWebSocketHandler(
 				// 在生产环境中应该检查 Origin
 				return true
 			},
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
+			ReadBufferSize:  4096,
+			WriteBufferSize: 4096,
 		},
 	}
 }
@@ -59,50 +59,25 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 		return
 	}
 
-	// 获取 JWT Token
-	token := c.GetHeader("Authorization")
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
-			Message:   "缺少认证令牌",
-			Timestamp: utils.GetCurrentTime(),
-		})
-		return
-	}
-
-	// 验证 JWT Token
-	claims, err := h.jwtService.ValidateToken(token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
-			Message:   "认证令牌无效",
-			Timestamp: utils.GetCurrentTime(),
-		})
-		return
-	}
-
-	// 检查项目访问权限
-	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGUID, claims.UserID)
-	if err != nil {
-		c.JSON(http.StatusForbidden, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
-			Message:   "无权限访问该项目",
-			Timestamp: utils.GetCurrentTime(),
-		})
-		return
-	}
+	logger.Info("[ws] 项目GUID", logger.String("projectGUID", projectGUID))
 
 	// 升级 HTTP 连接到 WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Code:      models.INTERNAL_ERROR,
+			Message:   "WebSocket 升级失败",
+			Timestamp: utils.GetCurrentTime(),
+		})
 		logger.Error("WebSocket 升级失败", logger.String("error", err.Error()))
 		return
 	}
 
+	userID := c.GetString("user_id")
 	// 创建客户端连接
 	client := &models.WebSocketClient{
 		ID:          uuid.New().String(),
-		UserID:      claims.UserID,
+		UserID:      userID,
 		ProjectGUID: projectGUID,
 		Conn:        conn,
 		Send:        make(chan []byte, 256),
@@ -120,7 +95,6 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 		logger.String("clientID", client.ID),
 		logger.String("userID", client.UserID),
 		logger.String("projectGUID", projectGUID),
-		logger.String("projectName", project.Name),
 	)
 }
 
@@ -365,6 +339,47 @@ func (h *WebSocketHandler) HealthCheck(c *gin.Context) {
 		Code:      models.SUCCESS_CODE,
 		Message:   "WebSocket 服务健康",
 		Data:      health,
+		Timestamp: utils.GetCurrentTime(),
+	})
+}
+
+// GetWebSocketDebugInfo 获取 WebSocket 调试信息
+// @Summary 获取 WebSocket 调试信息
+// @Description 获取 WebSocket 服务的调试信息，包括连接统计、活跃连接等
+// @Tags WebSocket调试
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} models.Response{data=map[string]interface{}}
+// @Failure 401 {object} models.ErrorResponse
+// @Router /api/v1/debug/websocket [get]
+func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
+	stats := h.webSocketService.GetStats()
+
+	// 获取活跃连接信息
+	activeConnections := make([]map[string]interface{}, 0)
+
+	// 这里可以添加更多调试信息
+	debugInfo := map[string]interface{}{
+		"stats":              stats,
+		"active_connections": activeConnections,
+		"server_time":        time.Now().Format(time.RFC3339),
+		"endpoints": map[string]string{
+			"websocket": "/ws/project/:guid",
+			"stats":     "/ws/admin/stats",
+			"health":    "/ws/admin/health",
+		},
+		"message_types": []string{
+			"ping", "pong", "join_project", "leave_project",
+			"project_stage_update", "project_message", "project_status_change",
+			"agent_message", "user_feedback", "user_feedback_response", "error",
+		},
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Code:      models.SUCCESS_CODE,
+		Message:   "WebSocket 调试信息获取成功",
+		Data:      debugInfo,
 		Timestamp: utils.GetCurrentTime(),
 	})
 }

@@ -29,15 +29,7 @@ func Register(engine *gin.Engine, container *container.Container) {
 	var webSocketHandler = container.WebSocketHandler
 	if webSocketHandler != nil {
 		// WebSocket 连接路由 - 需要认证
-		engine.GET("/ws/project/:guid", authMiddleware, webSocketHandler.WebSocketUpgrade)
-
-		// WebSocket 管理路由 - 需要认证
-		wsAdmin := engine.Group("/ws/admin")
-		wsAdmin.Use(authMiddleware)
-		{
-			wsAdmin.GET("/stats", webSocketHandler.GetWebSocketStats)
-			wsAdmin.GET("/health", webSocketHandler.HealthCheck)
-		}
+		engine.GET("/ws/project/:guid", webSocketHandler.WebSocketUpgrade)
 	}
 
 	// API v1 路由组
@@ -220,6 +212,19 @@ func Register(engine *gin.Engine, container *container.Container) {
 			} else {
 				tasks.GET("/:id", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Task status endpoint - TODO"})
+				})
+			}
+		}
+
+		// 8.调试路由
+		debug := routers.Group("/debug")
+		debug.Use(authMiddleware) // 应用认证中间件
+		{
+			if webSocketHandler != nil {
+				debug.GET("/websocket", webSocketHandler.GetWebSocketDebugInfo) // WebSocket 调试信息
+			} else {
+				debug.GET("/websocket", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "WebSocket debug endpoint - TODO"})
 				})
 			}
 		}

@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
     name: 'Auth',
     component: () => import('@/pages/Auth.vue'),
     meta: { title: '登录/注册', requiresAuth: false }
+  },
+  {
+    path: '/debug/websocket',
+    name: 'WebSocketDebug',
+    component: () => import('@/pages/WebSocketDebug.vue'),
+    meta: { title: 'WebSocket 调试', requiresAuth: true, layout: 'default' }
   }
 ]
 
