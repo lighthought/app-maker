@@ -61,12 +61,6 @@ func (ds *DevStageInfo) Copy(other *DevStageInfo) {
 	ds.TaskID = other.TaskID
 }
 
-// DevStageCache 开发阶段缓存模型
-type DevStageCache struct {
-	ProjectGUID string         `json:"project_guid"`
-	Stages      []DevStageInfo `json:"stages"`
-}
-
 func (DevStage) TableName() string {
 	return "dev_stages"
 }

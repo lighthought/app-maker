@@ -68,8 +68,11 @@ func (p *ProjectTaskPayload) ToBytes() []byte {
 }
 
 type WebSocketTaskPayload struct {
-	ProjectGUID string `json:"project_guid"`
-	MessageType string `json:"message_type"`
+	ProjectGUID string `json:"project_guid"` // 项目GUID
+	MessageType string `json:"message_type"` // 消息类型，在常量TypeWebSocketBroadcast中定义
+	MessageID   string `json:"message_id"`   // 消息ID，当消息类型为project_message时，必填
+	StageID     string `json:"stage_id"`     // 阶段ID，当消息类型为project_stage_update时，必填
+	ProjectID   string `json:"project_id"`   // 项目ID，当消息类型为project_info_update时，必填
 }
 
 func (p *WebSocketTaskPayload) ToBytes() []byte {

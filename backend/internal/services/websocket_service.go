@@ -8,9 +8,9 @@ import (
 
 	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
+	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/tasks"
 	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/cache"
 	"autocodeweb-backend/pkg/logger"
 
 	"github.com/hibiken/asynq"
@@ -23,9 +23,9 @@ type WebSocketService interface {
 	UnregisterClient(client *models.WebSocketClient)
 
 	// 项目事件
-	NotifyProjectStageUpdate(projectGUID string, stage *models.DevStage)
-	NotifyProjectMessage(projectGUID string, message *models.ConversationMessage)
-	NotifyProjectInfoUpdate(projectGUID string, info *models.Project)
+	NotifyProjectStageUpdate(ctx context.Context, projectGUID string, stage *models.DevStage)
+	NotifyProjectMessage(ctx context.Context, projectGUID string, message *models.ConversationMessage)
+	NotifyProjectInfoUpdate(ctx context.Context, projectGUID string, info *models.Project)
 
 	// 启动和停止
 	Start(ctx context.Context) error
@@ -42,154 +42,24 @@ type WebSocketService interface {
 type webSocketService struct {
 	hub         *models.WebSocketHub
 	asyncClient *asynq.Client
-	cache       cache.Cache
-	cacheHour   time.Duration
+	stageRepo   repositories.StageRepository
+	messageRepo repositories.MessageRepository
+	projectRepo repositories.ProjectRepository
 }
 
 // NewWebSocketService 创建 WebSocket 服务
-func NewWebSocketService(asyncClient *asynq.Client, cache cache.Cache) WebSocketService {
-	hub := models.NewWebSocketHub()
-	cacheHour := 24 * time.Hour // TODO: 有了管理页面以后，根据配置页面里头的时间来设置
-
+func NewWebSocketService(asyncClient *asynq.Client,
+	stageRepo repositories.StageRepository,
+	messageRepo repositories.MessageRepository,
+	projectRepo repositories.ProjectRepository,
+) WebSocketService {
 	return &webSocketService{
-		hub:         hub,
+		hub:         models.NewWebSocketHub(),
 		asyncClient: asyncClient,
-		cache:       cache,
-		cacheHour:   cacheHour,
+		stageRepo:   stageRepo,
+		messageRepo: messageRepo,
+		projectRepo: projectRepo,
 	}
-}
-
-// saveDevStageToCache 保存开发阶段到缓存
-func (s *webSocketService) saveDevStageToCache(projectGUID string, stage *models.DevStageInfo) error {
-	var devStageCache models.DevStageCache
-	var err error
-	cacheKey := fmt.Sprintf("dev_stage:%s", projectGUID)
-
-	if s.cache.Exists(cacheKey) {
-		err = s.cache.Get(cacheKey, &devStageCache)
-		if err != nil {
-			return fmt.Errorf("获取开发阶段缓存失败: %w", err)
-		}
-	}
-
-	devStageCache.Stages = append(devStageCache.Stages, *stage)
-	devStageCache.ProjectGUID = projectGUID
-
-	err = s.cache.Set(cacheKey, devStageCache, s.cacheHour)
-	if err != nil {
-		return fmt.Errorf("保存开发阶段缓存失败: %w", err)
-	}
-
-	return nil
-}
-
-// saveConversationMessageToCache 保存对话消息到缓存
-func (s *webSocketService) saveConversationMessageToCache(projectGUID string, message *models.ConversationMessage) error {
-	cacheKey := fmt.Sprintf("conversation_message:%s", projectGUID)
-	var conversationMessageCache models.ConversationMessageCache
-	var err error
-
-	if s.cache.Exists(cacheKey) {
-		err = s.cache.Get(cacheKey, &conversationMessageCache)
-		if err != nil {
-			return fmt.Errorf("获取对话消息缓存失败: %w", err)
-		}
-	}
-
-	conversationMessageCache.Messages = append(conversationMessageCache.Messages, *message)
-	conversationMessageCache.ProjectGUID = projectGUID
-
-	err = s.cache.Set(cacheKey, conversationMessageCache, s.cacheHour)
-	if err != nil {
-		return fmt.Errorf("保存对话消息缓存失败: %w", err)
-	}
-
-	return nil
-}
-
-// SaveProjectInfoToCache 保存项目信息到缓存
-func (s *webSocketService) saveProjectInfoUpdateToCache(projectGUID string, info *models.ProjectInfoUpdate) error {
-	cacheKey := fmt.Sprintf("project_info_update:%s", projectGUID)
-	var projectInfoCache models.ProjectInfoUpdate
-	projectInfoCache.Copy(info)
-
-	err := s.cache.Set(cacheKey, projectInfoCache, s.cacheHour)
-	if err != nil {
-		return fmt.Errorf("保存项目信息缓存失败: %w", err)
-	}
-
-	return nil
-}
-
-// getProjectStagesFromCache 从缓存中获取开发阶段
-func (s *webSocketService) getProjectStagesFromCache(projectGUID string) (*[]models.DevStageInfo, error) {
-	cacheKey := fmt.Sprintf("dev_stage:%s", projectGUID)
-
-	if !s.cache.Exists(cacheKey) {
-		logger.Info("开发阶段缓存不存在", logger.String("projectGUID", projectGUID))
-		return nil, nil
-	}
-
-	var devStageCache models.DevStageCache
-	err := s.cache.Get(cacheKey, &devStageCache)
-	if err != nil {
-		return nil, fmt.Errorf("获取开发阶段缓存失败: %w", err)
-	}
-
-	if len(devStageCache.Stages) == 0 {
-		logger.Info("开发阶段缓存不存在", logger.String("projectGUID", projectGUID))
-		return nil, nil
-	}
-
-	devStage := &devStageCache.Stages
-	devStageCache.Stages = []models.DevStageInfo{}
-	s.cache.Set(cacheKey, devStageCache, s.cacheHour)
-	return devStage, nil
-}
-
-// getConversationMessagesFromCache 从缓存中获取对话消息
-func (s *webSocketService) getConversationMessagesFromCache(projectGUID string) (*[]models.ConversationMessage, error) {
-	cacheKey := fmt.Sprintf("conversation_message:%s", projectGUID)
-
-	if !s.cache.Exists(cacheKey) {
-		logger.Info("对话消息缓存不存在", logger.String("projectGUID", projectGUID))
-		return nil, nil
-	}
-
-	var conversationMessageCache models.ConversationMessageCache
-	err := s.cache.Get(cacheKey, &conversationMessageCache)
-	if err != nil {
-		return nil, fmt.Errorf("获取对话消息缓存失败: %w, projectGUID: %s", err, projectGUID)
-	}
-
-	if len(conversationMessageCache.Messages) == 0 {
-		logger.Info("对话消息缓存不存在", logger.String("projectGUID", projectGUID))
-		return nil, nil
-	}
-
-	messages := conversationMessageCache.Messages
-	conversationMessageCache.Messages = []models.ConversationMessage{}
-	s.cache.Set(cacheKey, conversationMessageCache, s.cacheHour)
-	return &messages, nil
-}
-
-// GetProjectInfoUpdateFromCache 从缓存中获取项目更新信息
-func (s *webSocketService) getProjectInfoUpdateFromCache(projectGUID string) (*models.ProjectInfoUpdate, error) {
-	cacheKey := fmt.Sprintf("project_info_update:%s", projectGUID)
-	var projectInfoCache models.ProjectInfoUpdate
-
-	if !s.cache.Exists(cacheKey) {
-		logger.Info("项目信息缓存不存在", logger.String("projectGUID", projectGUID))
-		return nil, nil
-	}
-
-	err := s.cache.Get(cacheKey, &projectInfoCache)
-	if err != nil {
-		logger.Error("获取项目信息缓存失败", logger.String("error", err.Error()))
-		return nil, fmt.Errorf("获取项目信息缓存失败: %w", err)
-	}
-
-	return &projectInfoCache, nil
 }
 
 // ProcessTask 处理任务
@@ -210,37 +80,18 @@ func (s *webSocketService) ProcessTask(ctx context.Context, task *asynq.Task) er
 
 	switch messageType {
 	case constants.WebSocketMessageTypeProjectStageUpdate:
-		devStages, err := s.getProjectStagesFromCache(projectGUID)
-		if err != nil {
-			logger.Error("获取开发阶段缓存失败", logger.String("error", err.Error()))
-			return err
-		}
-		if devStages != nil {
-			for _, devStage := range *devStages {
-				s.broadcastProjectStage(projectGUID, &devStage)
-			}
+		if payload.StageID != "" {
+			return s.broadcastProjectStage(ctx, projectGUID, payload.StageID)
 		}
 		return nil
 	case constants.WebSocketMessageTypeProjectMessage:
-		messages, err := s.getConversationMessagesFromCache(projectGUID)
-		if err != nil {
-			logger.Error("获取对话消息缓存失败", logger.String("error", err.Error()))
-			return err
-		}
-		if messages != nil {
-			for _, message := range *messages {
-				s.broadcastProjectMessage(projectGUID, &message)
-			}
+		if payload.MessageID != "" {
+			return s.broadcastProjectMessage(ctx, projectGUID, payload.MessageID)
 		}
 		return nil
 	case constants.WebSocketMessageTypeProjectInfoUpdate:
-		projectInfoUpdate, err := s.getProjectInfoUpdateFromCache(projectGUID)
-		if err != nil {
-			logger.Error("获取项目信息缓存失败", logger.String("error", err.Error()))
-			return err
-		}
-		if projectInfoUpdate != nil {
-			s.broadcastProjectInfoUpdate(projectGUID, projectInfoUpdate)
+		if payload.ProjectID != "" {
+			return s.broadcastProjectInfoUpdate(ctx, projectGUID, payload.ProjectID)
 		}
 		return nil
 	default:
@@ -328,63 +179,90 @@ func (s *webSocketService) broadcastToAll(message *models.WebSocketMessage) {
 }
 
 // broadcastProjectStage 广播项目阶段
-func (s *webSocketService) broadcastProjectStage(projectGUID string, stage *models.DevStageInfo) {
+func (s *webSocketService) broadcastProjectStage(ctx context.Context, projectGUID, stageID string) error {
+	if stageID == "" || projectGUID == "" {
+		logger.Error("项目阶段ID或项目GUID为空")
+		return fmt.Errorf("项目阶段ID或项目GUID为空")
+	}
+
+	stage, err := s.stageRepo.GetByID(ctx, stageID)
+	if err != nil {
+		logger.Error("获取项目阶段失败", logger.String("error", err.Error()))
+		return fmt.Errorf("获取项目阶段失败: %w", err)
+	}
+
+	var stageInfo = models.DevStageInfo{}
+	stageInfo.CopyFromDevStage(stage)
 	message := &models.WebSocketMessage{
 		Type:        constants.WebSocketMessageTypeProjectStageUpdate,
 		ProjectGUID: projectGUID,
-		Data:        stage,
+		Data:        stageInfo,
 		Timestamp:   utils.GetCurrentTime(),
-		ID:          fmt.Sprintf("stage_%s_%d", stage.ID, utils.GetTimeNow().Unix()),
+		ID:          fmt.Sprintf("%s_%d", stage.ID, utils.GetTimeNow().Unix()),
 	}
 	s.broadcastToProject(projectGUID, message)
+	return nil
 }
 
 // broadcastProjectMessage 广播项目消息
-func (s *webSocketService) broadcastProjectMessage(projectGUID string, message *models.ConversationMessage) {
+func (s *webSocketService) broadcastProjectMessage(ctx context.Context, projectGUID, messageID string) error {
+	if messageID == "" || projectGUID == "" {
+		logger.Error("项目消息ID或项目GUID为空")
+		return fmt.Errorf("项目消息ID或项目GUID为空")
+	}
+
+	message, err := s.messageRepo.GetByID(ctx, messageID)
+	if err != nil {
+		logger.Error("获取项目消息失败", logger.String("error", err.Error()))
+		return fmt.Errorf("获取项目消息失败: %w", err)
+	}
 	wsMessage := &models.WebSocketMessage{
 		Type:        constants.WebSocketMessageTypeProjectMessage,
 		ProjectGUID: projectGUID,
 		Data:        message,
 		Timestamp:   utils.GetCurrentTime(),
-		ID:          fmt.Sprintf("message_%s_%d", message.ID, utils.GetTimeNow().Unix()),
+		ID:          fmt.Sprintf("%s_%d", message.ID, utils.GetTimeNow().Unix()),
 	}
 	s.broadcastToProject(projectGUID, wsMessage)
+	return nil
 }
 
 // broadcastProjectInfoUpdate 广播项目信息更新
-func (s *webSocketService) broadcastProjectInfoUpdate(projectGUID string, info *models.ProjectInfoUpdate) {
+func (s *webSocketService) broadcastProjectInfoUpdate(ctx context.Context, projectGUID, projectID string) error {
+	if projectID == "" || projectGUID == "" {
+		logger.Error("项目ID或项目GUID为空")
+		return fmt.Errorf("项目ID或项目GUID为空")
+	}
+
+	project, err := s.projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		logger.Error("获取项目失败", logger.String("error", err.Error()))
+		return fmt.Errorf("获取项目失败: %w", err)
+	}
+
+	projectInfo := project.GetUpdateInfo()
+
 	message := &models.WebSocketMessage{
 		Type:        constants.WebSocketMessageTypeProjectInfoUpdate,
 		ProjectGUID: projectGUID,
-		Data:        info,
+		Data:        projectInfo,
 		Timestamp:   utils.GetCurrentTime(),
-		ID:          fmt.Sprintf("info_%s_%d", projectGUID, utils.GetTimeNow().Unix()),
+		ID:          fmt.Sprintf("%s_%d", projectInfo.ID, utils.GetTimeNow().Unix()),
 	}
 	s.broadcastToProject(projectGUID, message)
+	return nil
 }
 
 // NotifyProjectStageUpdate 通知项目阶段更新
-func (s *webSocketService) NotifyProjectStageUpdate(projectGUID string, stage *models.DevStage) {
-	devStageInfo := &models.DevStageInfo{}
-	devStageInfo.CopyFromDevStage(stage)
-
-	err := s.saveDevStageToCache(projectGUID, devStageInfo)
-	if err != nil {
-		logger.Error("保存开发阶段缓存失败", logger.String("error", err.Error()))
-
-		// 缓存获取失败，直接同步发送
-		s.broadcastProjectStage(projectGUID, devStageInfo)
-		return
-	}
-
+func (s *webSocketService) NotifyProjectStageUpdate(ctx context.Context, projectGUID string, stage *models.DevStage) {
 	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectStageUpdate),
+		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectStageUpdate, stage.ID),
 	)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
 
 		// 异步失败，改为同步
-		s.broadcastProjectStage(projectGUID, devStageInfo)
+		s.broadcastProjectStage(ctx, projectGUID, stage.ID)
 		return
 	}
 
@@ -398,24 +276,15 @@ func (s *webSocketService) NotifyProjectStageUpdate(projectGUID string, stage *m
 }
 
 // NotifyProjectMessage 通知项目新消息
-func (s *webSocketService) NotifyProjectMessage(projectGUID string, message *models.ConversationMessage) {
-	err := s.saveConversationMessageToCache(projectGUID, message)
-	if err != nil {
-		logger.Error("保存对话消息缓存失败", logger.String("error", err.Error()))
-
-		// 缓存获取失败，直接同步发送
-		s.broadcastProjectMessage(projectGUID, message)
-		return
-	}
-
+func (s *webSocketService) NotifyProjectMessage(ctx context.Context, projectGUID string, message *models.ConversationMessage) {
 	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectMessage),
+		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectMessage, message.ID),
 	)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
 
 		// 异步失败，改为同步
-		s.broadcastProjectMessage(projectGUID, message)
+		s.broadcastProjectMessage(ctx, projectGUID, message.ID)
 		return
 	}
 
@@ -428,30 +297,21 @@ func (s *webSocketService) NotifyProjectMessage(projectGUID string, message *mod
 }
 
 // NotifyProjectInfoUpdate 通知项目信息更新
-func (s *webSocketService) NotifyProjectInfoUpdate(projectGUID string, project *models.Project) {
-	info := project.GetUpdateInfo()
-	err := s.saveProjectInfoUpdateToCache(projectGUID, info)
-	if err != nil {
-		logger.Error("保存项目信息缓存失败", logger.String("error", err.Error()))
-
-		s.broadcastProjectInfoUpdate(projectGUID, info)
-		return
-	}
-
+func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectGUID string, project *models.Project) {
 	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectInfoUpdate),
+		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectInfoUpdate, project.ID),
 	)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
 
-		s.broadcastProjectInfoUpdate(projectGUID, info)
+		s.broadcastProjectInfoUpdate(ctx, projectGUID, project.ID)
 		return
 	}
 
-	logger.Info("项目信息更新通知已发送",
-		logger.String("id", info.ID),
+	logger.Info("项目信息更新通知异步发送",
+		logger.String("id", project.ID),
 		logger.String("projectGUID", projectGUID),
-		logger.String("name", info.Name),
+		logger.String("name", project.Name),
 		logger.String("type", constants.WebSocketMessageTypeProjectInfoUpdate),
 		logger.String("taskID", taskInfo.ID),
 	)

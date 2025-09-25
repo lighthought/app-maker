@@ -100,7 +100,7 @@ func (s *projectService) notifyProjectStatusChange(ctx context.Context,
 				logger.String("projectID", project.ID),
 			)
 		}
-		s.webSocketService.NotifyProjectMessage(project.GUID, message)
+		s.webSocketService.NotifyProjectMessage(ctx, project.GUID, message)
 	}
 
 	if stageName != "" {
@@ -118,7 +118,7 @@ func (s *projectService) notifyProjectStatusChange(ctx context.Context,
 		project.SetDevStatus(stageName)
 		s.projectRepo.Update(ctx, project)
 
-		s.webSocketService.NotifyProjectStageUpdate(project.GUID, stage)
+		s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, stage)
 	}
 }
 
@@ -199,7 +199,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 				logger.String("projectID", newProject.ID),
 			)
 		}
-		s.webSocketService.NotifyProjectStageUpdate(newProject.GUID, stage)
+		s.webSocketService.NotifyProjectStageUpdate(ctx, newProject.GUID, stage)
 		return nil, fmt.Errorf("创建项目初始化任务失败: %w", err)
 	}
 
@@ -243,7 +243,7 @@ func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) erro
 // 统一由这个函数更新项目阶段
 func (s *projectService) updateStage(ctx context.Context, stage *models.DevStage) {
 	s.projectStageRepo.Update(ctx, stage)
-	s.webSocketService.NotifyProjectStageUpdate(stage.ProjectGuid, stage)
+	s.webSocketService.NotifyProjectStageUpdate(ctx, stage.ProjectGuid, stage)
 }
 
 func (s *projectService) reportTaskAndStageError(ctx context.Context,
@@ -276,7 +276,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 			logger.String("projectID", projectID),
 		)
 	}
-	s.webSocketService.NotifyProjectStageUpdate(stage.ProjectGuid, stage)
+	s.webSocketService.NotifyProjectStageUpdate(ctx, stage.ProjectGuid, stage)
 
 	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
@@ -292,7 +292,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 	project.SetDevStatus(constants.DevStatusSetupEnvironment)
 	s.projectRepo.Update(ctx, project)
 
-	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
+	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
 	// 已经有过环境准备的阶段，取原来的数据
 	projectStages, err := s.projectStageRepo.GetByProjectID(ctx, projectID)
@@ -321,7 +321,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 		)
 		return project, nil
 	}
-	s.webSocketService.NotifyProjectStageUpdate(project.GUID, projectStage)
+	s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, projectStage)
 	return project, projectStage
 }
 
@@ -368,7 +368,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 			logger.String("projectID", project.ID),
 		)
 	}
-	s.webSocketService.NotifyProjectMessage(project.GUID, projectMsg)
+	s.webSocketService.NotifyProjectMessage(ctx, project.GUID, projectMsg)
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "项目简介已生成")
 
 	project.Name = strings.ToLower(summary.Title)
@@ -380,7 +380,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 	)
 
 	s.projectRepo.Update(ctx, project)
-	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
+	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "更新项目信息成功")
 }
 
@@ -515,7 +515,7 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 	project.Status = constants.CommandStatusInProgress
 	project.CurrentTaskID = taskInfo.ID
 	s.projectRepo.Update(ctx, project)
-	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
+	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
 	projectStage.SetStatus(constants.CommandStatusDone)
 	s.updateStage(ctx, projectStage)

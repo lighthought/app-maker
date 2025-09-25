@@ -23,12 +23,6 @@ type ConversationMessage struct {
 	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-// ConversationMessageCache 对话消息缓存模型
-type ConversationMessageCache struct {
-	ProjectGUID string                `json:"project_guid"`
-	Messages    []ConversationMessage `json:"messages"`
-}
-
 // TableName 指定表名
 func (ConversationMessage) TableName() string {
 	return "project_msgs"

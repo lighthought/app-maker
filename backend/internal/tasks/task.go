@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"time"
 
@@ -85,11 +86,21 @@ func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task 
 }
 
 // 创建WebSocket消息广播任务
-func NewWebSocketBroadcastTask(projectGUID string, messageType string) *asynq.Task {
+func NewWebSocketBroadcastTask(projectGUID, messageType, targetID string) *asynq.Task {
 	payload := models.WebSocketTaskPayload{
 		ProjectGUID: projectGUID,
 		MessageType: messageType,
 	}
+
+	switch messageType {
+	case constants.WebSocketMessageTypeProjectMessage:
+		payload.MessageID = targetID
+	case constants.WebSocketMessageTypeProjectStageUpdate:
+		payload.StageID = targetID
+	case constants.WebSocketMessageTypeProjectInfoUpdate:
+		payload.ProjectID = targetID
+	}
+
 	return asynq.NewTask(models.TypeWebSocketBroadcast,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),

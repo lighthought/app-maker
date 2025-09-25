@@ -106,7 +106,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	messageRepository := repositories.NewMessageRepository(db)
 
 	// services
-	webSocketService := services.NewWebSocketService(asyncClient, cacheInstance)
+	webSocketService := services.NewWebSocketService(asyncClient, stageRepository, messageRepository, projectRepository)
 	messageService := services.NewMessageService(messageRepository)
 
 	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)

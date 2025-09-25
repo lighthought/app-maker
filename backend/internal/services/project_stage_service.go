@@ -71,7 +71,7 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		)
 	} else {
 		if stagePendingAgents != nil {
-			s.webSocketService.NotifyProjectStageUpdate(payload.ProjectGuid, stagePendingAgents)
+			s.webSocketService.NotifyProjectStageUpdate(ctx, payload.ProjectGuid, stagePendingAgents)
 		}
 	}
 
@@ -96,7 +96,7 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 				logger.String("projectID", project.ID),
 			)
 		}
-		s.webSocketService.NotifyProjectMessage(project.GUID, message)
+		s.webSocketService.NotifyProjectMessage(ctx, project.GUID, message)
 	}
 
 	if stage != nil {
@@ -111,7 +111,7 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 
 			project.SetDevStatus(stage.Name)
 			s.projectRepo.Update(ctx, project)
-			s.webSocketService.NotifyProjectStageUpdate(project.GUID, stage)
+			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, stage)
 
 			logger.Info("插入项目阶段成功", logger.String("projectID", project.ID), logger.String("stageID", stage.ID))
 		} else {
@@ -126,7 +126,7 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 					logger.String("status", stage.Status),
 				)
 			}
-			s.webSocketService.NotifyProjectStageUpdate(project.GUID, stage)
+			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, stage)
 			logger.Info("更新项目阶段成功", logger.String("projectID", project.ID), logger.String("stageID", stage.ID))
 		}
 	}
@@ -184,7 +184,7 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
 	project.SetDevStatus(constants.DevStatusDone)
 	project.Status = constants.CommandStatusDone
 	s.projectRepo.Update(ctx, project)
-	s.webSocketService.NotifyProjectInfoUpdate(project.GUID, project)
+	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
 	logger.Info("项目开发流程执行完成",
 		logger.String("projectID", project.ID),
