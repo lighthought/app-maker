@@ -368,9 +368,9 @@ const handleSubmit = async () => {
       
       const result = await userStore.register(registerData)
       if (result.success) {
-        message.success('注册成功，正在跳转到仪表板...')
-        // 注册成功后直接跳转到仪表板，不需要再次登录
-        router.push('/dashboard')
+        message.success('注册成功')
+        // 注册成功后直接跳转到创建项目页面，不需要再次登录
+        router.push('/create-project')
       } else {
         message.error(result.message || '注册失败')
       }
