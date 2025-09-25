@@ -18,6 +18,7 @@ type Config struct {
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	AI       AIConfig       `mapstructure:"ai"`
 	Log      LogConfig      `mapstructure:"log"`
+    Agents   AgentsConfig   `mapstructure:"agents"`
 }
 
 type AppConfig struct {
@@ -62,6 +63,11 @@ type CORSConfig struct {
 type LogConfig struct {
 	Level string `mapstructure:"level"`
 	File  string `mapstructure:"file"`
+}
+
+// Agents server配置
+type AgentsConfig struct {
+    URL string `mapstructure:"url"`
 }
 
 // Asynq 异步配置
@@ -165,6 +171,9 @@ func setDefaults() {
 	viper.SetDefault("cors.max_age", 86400)
 
 	viper.SetDefault("asynq.concurrency", 100)
+
+    // Agents Server 默认
+    viper.SetDefault("agents.url", utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001"))
 }
 
 func validateConfig(config *Config) error {

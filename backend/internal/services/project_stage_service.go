@@ -9,6 +9,7 @@ import (
     "net/http"
     "time"
 
+    cfgPkg "autocodeweb-backend/internal/config"
     "autocodeweb-backend/internal/constants"
     "autocodeweb-backend/internal/models"
     "autocodeweb-backend/internal/repositories"
@@ -29,6 +30,7 @@ type projectStageService struct {
 	stageRepo        repositories.StageRepository
 	messageRepo      repositories.MessageRepository
 	webSocketService WebSocketService
+    agentsURL        string
 }
 
 // NewTaskExecutionService 创建任务执行服务
@@ -38,11 +40,17 @@ func NewProjectStageService(
 	messageRepo repositories.MessageRepository,
 	webSocketService WebSocketService,
 ) ProjectStageService {
+    // 读取配置
+    var agentsURL string
+    if cfg, err := cfgPkg.Load(); err == nil {
+        agentsURL = cfg.Agents.URL
+    }
 	return &projectStageService{
 		projectRepo:      projectRepo,
 		stageRepo:        stageRepo,
 		messageRepo:      messageRepo,
 		webSocketService: webSocketService,
+        agentsURL:        agentsURL,
 	}
 }
 
@@ -535,7 +543,10 @@ func (s *projectStageService) packageProject(ctx context.Context, project *model
 // invokeAgentSync 同步调用 agents-server 对应 Agent 执行一步
 func (s *projectStageService) invokeAgentSync(ctx context.Context, project *models.Project, agentType string, stage string, stageInput map[string]any) error {
     // agents-server 地址从环境变量读取，默认本机 3001
-    baseURL := utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001")
+    baseURL := s.agentsURL
+    if baseURL == "" {
+        baseURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001")
+    }
     url := fmt.Sprintf("%s/api/v1/agents/execute-sync", baseURL)
 
     // 组装请求

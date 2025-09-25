@@ -20,17 +20,32 @@ export class GitService {
         const content = [
           'stages:',
           '  - build',
+          '  - test',
           '  - deploy',
           '',
           'build:',
           '  stage: build',
+          '  image: node:18',
           '  script:',
-          '    - echo "Building project..."',
+          '    - echo "Building frontend and backend..."',
+          '    - cd frontend && npm ci && npm run build || true',
+          '    - cd ..',
+          '    - cd backend && go mod download && go build -o server ./cmd/server || true',
+          '',
+          'test:',
+          '  stage: test',
+          '  image: node:18',
+          '  script:',
+          '    - echo "Running tests..."',
+          '    - cd frontend && npm test || true',
+          '    - cd ..',
+          '    - cd backend && go test ./... || true',
           '',
           'deploy:',
           '  stage: deploy',
+          '  image: alpine:latest',
           '  script:',
-          '    - echo "Deploy via runner..."'
+          '    - echo "Triggering GitLab Runner deployment on host..."'
         ].join('\n');
         await this.fileService.writeFile(ciPath, content);
         logger.info('Created .gitlab-ci.yml');
