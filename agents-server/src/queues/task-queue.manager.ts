@@ -1,9 +1,14 @@
 import Queue from 'bull';
 import { AgentTask, AgentType, DevStage } from '../models/project.model';
 import { PMController } from '../controllers/pm.controller';
+import { UXController } from '../controllers/ux.controller';
+import { ArchitectController } from '../controllers/architect.controller';
+import { POController } from '../controllers/po.controller';
+import { DevController } from '../controllers/dev.controller';
 import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
 import { NotificationService } from '../services/notification.service';
+import { GitService } from '../services/git.service';
 import logger from '../utils/logger.util';
 
 export class TaskQueueManager {
@@ -48,12 +53,17 @@ export class TaskQueueManager {
     notificationService: NotificationService
   ): void {
     // 初始化PM控制器
-    const pmController = new PMController(commandService, fileService, notificationService);
+    const gitService = new GitService(commandService, fileService);
+    const pmController = new PMController(commandService, fileService, notificationService, gitService);
     this.controllers.set(AgentType.PM, pmController);
-
-    // TODO: 初始化其他控制器
-    // const uxController = new UXController(...);
-    // this.controllers.set('ux', uxController);
+    const uxController = new UXController(commandService, fileService, notificationService, gitService);
+    this.controllers.set(AgentType.UX, uxController);
+    const archController = new ArchitectController(commandService, fileService, notificationService, gitService);
+    this.controllers.set(AgentType.ARCHITECT, archController);
+    const poController = new POController(commandService, fileService, notificationService, gitService);
+    this.controllers.set(AgentType.PO, poController);
+    const devController = new DevController(commandService, fileService, notificationService, gitService);
+    this.controllers.set(AgentType.DEV, devController);
   }
 
   private setupProcessors(): void {
@@ -143,5 +153,9 @@ export class TaskQueueManager {
     const closePromises = Array.from(this.queues.values()).map(queue => queue.close());
     await Promise.all(closePromises);
     logger.info('All queues closed');
+  }
+
+  getController(agentType: AgentType): any | undefined {
+    return this.controllers.get(agentType);
   }
 }

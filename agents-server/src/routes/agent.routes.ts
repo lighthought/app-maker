@@ -63,6 +63,12 @@ export class AgentRoutes {
       this.executeTask.bind(this)
     );
 
+    // 同步执行一次性任务（不入队，直接执行并返回结果）
+    this.router.post('/execute-sync', 
+      validateRequest(['projectId', 'userId', 'agentType', 'stage', 'context']),
+      this.executeTaskSync.bind(this)
+    );
+
     // 获取任务状态
     this.router.get('/tasks/:taskId', this.getTaskStatus.bind(this));
 
@@ -257,6 +263,38 @@ export class AgentRoutes {
         error: 'Failed to execute agent task',
         message: (error as Error).message
       });
+    }
+  }
+
+  private async executeTaskSync(req: Request, res: Response): Promise<void> {
+    try {
+      const taskRequest: TaskRequest = req.body;
+      if (!taskRequest.context.projectPath) {
+        res.status(400).json({ success: false, error: 'Project path is required' });
+        return;
+      }
+
+      const controller = this.taskQueueManager.getController(taskRequest.agentType as AgentType);
+      if (!controller) {
+        res.status(400).json({ success: false, error: `Unsupported agentType: ${taskRequest.agentType}` });
+        return;
+      }
+
+      const result = await controller.execute({
+        projectId: taskRequest.projectId,
+        userId: taskRequest.userId,
+        projectPath: taskRequest.context.projectPath,
+        projectName: taskRequest.context.projectName || `Project-${taskRequest.projectId}`,
+        currentStage: taskRequest.stage as DevStage,
+        artifacts: taskRequest.context.artifacts || [],
+        stageInput: taskRequest.context.stageInput,
+        previousStageOutput: taskRequest.context.previousStageOutput
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error('Failed to execute agent task sync', error);
+      res.status(500).json({ success: false, error: 'Failed to execute agent task sync', message: (error as Error).message });
     }
   }
 
