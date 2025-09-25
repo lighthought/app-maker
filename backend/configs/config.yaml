@@ -40,3 +40,6 @@ log:
 
 asynq:
   concurrency: 100
+
+agents:
+  url: "http://localhost:3001"

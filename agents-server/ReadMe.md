@@ -123,6 +123,10 @@ REDIS_URL=redis://localhost:6379
 BACKEND_API_URL=http://localhost:8080
 PROJECT_DATA_PATH=F:/app-maker/app_data/projects
 LOG_LEVEL=info
+GITLAB_URL=http://gitlab.local
+GITLAB_TOKEN=xxxxxxxx
+GITLAB_SSH_KEY_PATH=~/.ssh/id_rsa
+AGENTS_SERVER_LOG=./logs/agents-server.log
 ```
 
 ## 故障排除

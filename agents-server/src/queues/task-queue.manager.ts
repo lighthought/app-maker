@@ -14,6 +14,7 @@ import logger from '../utils/logger.util';
 export class TaskQueueManager {
   private queues: Map<AgentType, Queue.Queue<AgentTask>> = new Map();
   private controllers: Map<AgentType, any> = new Map();
+  private notificationService: NotificationService | undefined;
 
   constructor(
     redisUrl: string,
@@ -21,6 +22,7 @@ export class TaskQueueManager {
     fileService: FileSystemService,
     notificationService: NotificationService
   ) {
+    this.notificationService = notificationService;
     this.initializeQueues(redisUrl);
     this.initializeControllers(commandService, fileService, notificationService);
     this.setupProcessors();
@@ -77,15 +79,52 @@ export class TaskQueueManager {
             throw new Error(`No controller found for agent type: ${agentType}`);
           }
 
+          // 初始进度
+          await job.progress(5);
+          if (this.notificationService) {
+            await this.notificationService.broadcastProgress(job.data.projectId, {
+              taskId: job.id as string,
+              projectId: job.data.projectId,
+              progress: 5,
+              message: `Task started: ${agentType}`,
+              stage: job.data.stage as unknown as string
+            });
+          }
+
           const result = await controller.execute(job.data.context);
           
           // 更新任务进度
           await job.progress(100);
+          if (this.notificationService) {
+            await this.notificationService.broadcastProgress(job.data.projectId, {
+              taskId: job.id as string,
+              projectId: job.data.projectId,
+              progress: 100,
+              message: `Task completed: ${agentType}`,
+              stage: job.data.stage as unknown as string
+            });
+            await this.notificationService.broadcastTaskCompleted(job.data.projectId, {
+              taskId: job.id as string,
+              projectId: job.data.projectId,
+              result,
+              artifacts: (result?.artifacts || []).map((a: any) => a.path)
+            });
+          }
           
           logger.info(`${agentType} task done: ${job.id}`);
           return result;
         } catch (error) {
           logger.error(`${agentType} task failed: ${job.id}`, error);
+          if (this.notificationService) {
+            try {
+              await this.notificationService.broadcastTaskFailed((job as any).data?.projectId || 'unknown', {
+                taskId: job.id as string,
+                projectId: (job as any).data?.projectId || 'unknown',
+                error: (error as Error).message,
+                retryable: true
+              });
+            } catch {}
+          }
           throw error;
         }
       });
