@@ -75,36 +75,14 @@
 
       <!-- 代码编辑器 -->
       <div class="code-editor">
-        <div class="editor-header">
-          <div class="file-info">
-            <span class="file-path">{{ selectedFile?.path || '选择文件查看代码' }}</span>
-          </div>
-          <div class="editor-actions">
-            <n-button text size="tiny" @click="copyCode">
-              <template #icon>
-                <n-icon><CopyIcon /></n-icon>
-              </template>
-              复制
-            </n-button>
-          </div>
-        </div>
-        
-        <div class="editor-content">
-          <MonacoEditor
-            v-if="selectedFile?.content"
-            :value="selectedFile.content"
-            :language="getLanguage(selectedFile.path)"
-            :read-only="true"
-            theme="vs"
-            height="100%"
-          />
-          <div v-else class="empty-editor">
-            <n-icon size="48" color="#CBD5E0">
-              <FileIcon />
-            </n-icon>
-            <p>选择一个文件查看代码内容</p>
-          </div>
-        </div>
+        <MonacoEditor
+          :project-guid="project?.guid"
+          :file-path="selectedFile?.path"
+          :language="getLanguage(selectedFile?.path)"
+          :read-only="true"
+          theme="vs"
+          height="100%"
+        />
       </div>
     </div>
 
@@ -272,18 +250,6 @@ const getLanguage = (filePath?: string): string => {
 const selectFile = async (file: FileTreeNode) => {
   if (file.type === 'file') {
     selectedFile.value = file
-    
-    // 如果文件内容未加载，则加载内容
-    if (!file.content && props.project?.guid) {
-      try {
-        const fileContent = await fileStore.getFileContent(props.project.guid, file.path)
-        if (fileContent) {
-          file.content = fileContent.content
-        }
-      } catch (error) {
-        console.error('加载文件内容失败:', error)
-      }
-    }
   } else if (file.type === 'folder') {
     // 展开或收起文件夹
     if (!file.expanded && !file.loaded) {
@@ -308,26 +274,6 @@ const refreshFiles = async () => {
   await loadProjectFiles()
 }
 
-// 复制代码
-const copyCode = async () => {
-  if (selectedFile.value?.content) {
-    try {
-      await navigator.clipboard.writeText(selectedFile.value.content)
-      // 显示复制成功提示
-      messageApi.success('代码复制成功', {
-        duration: 2000,
-        closable: false
-      })
-    } catch (err) {
-      console.error('复制失败:', err)
-      // 显示复制失败提示
-      messageApi.error('复制失败，请重试', {
-        duration: 2000,
-        closable: false
-      })
-    }
-  }
-}
 
 // 在新窗口打开预览
 const openInNewTab = () => {
@@ -504,54 +450,8 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-.editor-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  background: var(--background-color);
-  height: var(--height-md);
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.file-path {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  font-family: 'Courier New', monospace;
-}
-
-.editor-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.editor-content {
-  flex: 1;
-  overflow: hidden;
-  background: #f8f9fa;
-  border-radius: var(--border-radius-md);
-}
-
-.empty-editor {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-secondary);
-}
-
-.empty-editor p {
-  margin: var(--spacing-md) 0 0 0;
-  font-size: 0.9rem;
+  min-width: 0; /* 允许收缩 */
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 /* 预览面板样式 */
@@ -626,24 +526,20 @@ onMounted(async () => {
 }
 
 /* 滚动条样式 */
-.file-tree .tree-content::-webkit-scrollbar,
-.editor-content::-webkit-scrollbar {
+.file-tree .tree-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.file-tree .tree-content::-webkit-scrollbar-track,
-.editor-content::-webkit-scrollbar-track {
+.file-tree .tree-content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.file-tree .tree-content::-webkit-scrollbar-thumb,
-.editor-content::-webkit-scrollbar-thumb {
+.file-tree .tree-content::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
 
-.file-tree .tree-content::-webkit-scrollbar-thumb:hover,
-.editor-content::-webkit-scrollbar-thumb:hover {
+.file-tree .tree-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
