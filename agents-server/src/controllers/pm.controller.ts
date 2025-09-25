@@ -3,21 +3,25 @@ import { ProjectContext, AgentResult, TaskStatus } from '../models/project.model
 import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
 import { NotificationService } from '../services/notification.service';
+import { GitService } from '../services/git.service';
 import logger from '../utils/logger.util';
 
 export class PMController implements PMAgentController {
   private commandService: CommandExecutionService;
   private fileService: FileSystemService;
   private notificationService: NotificationService;
+  private gitService: GitService;
 
   constructor(
     commandService: CommandExecutionService,
     fileService: FileSystemService,
-    notificationService: NotificationService
+    notificationService: NotificationService,
+    gitService: GitService
   ) {
     this.commandService = commandService;
     this.fileService = fileService;
     this.notificationService = notificationService;
+    this.gitService = gitService;
   }
 
   async execute(context: ProjectContext): Promise<AgentResult> {
@@ -28,19 +32,22 @@ export class PMController implements PMAgentController {
       // 基于项目信息生成PRD文档
       const prdContent = await this.generatePRD(projectPath, context.stageInput);
       
-      // 保存PRD文档到项目目录
-      const prdFilePath = `${context.projectPath}/docs/PRD.md`;
+      // 保存PRD文档到项目目录（按官方约定路径）
+      const prdFilePath = `${context.projectPath}/docs/prd.md`;
       await this.fileService.writeFile(prdFilePath, prdContent);
       
       // 更新进度
       await this.updateProgress(context.projectId, 100);
       
+      // 提交并推送到 GitLab
+      await this.gitService.commitAndPush(context.projectPath, 'docs: add/update prd.md by PM agent');
+
       return {
         success: true,
         artifacts: [{
           id: `prd_${context.projectId}`,
           type: 'prd' as any,
-          name: 'PRD.md',
+          name: 'prd.md',
           path: prdFilePath,
           content: prdContent,
           format: 'markdown' as any,
