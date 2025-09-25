@@ -86,6 +86,32 @@ curl -X POST http://localhost:3001/api/v1/agents/execute \
   }'
 ```
 
+### 同步执行（立即返回结果）
+```bash
+curl -X POST http://localhost:3001/api/v1/agents/execute-sync \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "<project-id>",
+    "userId": "<user-id>",
+    "agentType": "pm",              # pm | ux | architect | po | dev
+    "stage": "prd_generating",      # prd_generating | ux_defining | arch_designing | data_modeling | api_defining | epic_planning | story_developing | bug_fixing | testing | packaging
+    "context": {
+      "projectPath": "/abs/path/to/project",
+      "stageInput": { "requirements": "..." }
+    },
+    "parameters": {}
+  }'
+```
+
+### 产物路径约定（每步都会 Git 提交并推送）
+- PRD → `docs/prd.md`
+- UX Spec → `docs/ux-spec.md`
+- Architecture → `docs/architecture.md`
+- Epics → `docs/epics/`
+- Stories → `docs/stories/`
+
+> 首次推送时会自动创建 `.gitlab-ci.yml`，以触发 GitLab Runner。
+
 ### 获取队列状态
 ```bash
 curl http://localhost:3001/api/v1/agents/queues/pm/stats
