@@ -113,7 +113,17 @@ const initEditor = async () => {
       guides: {
         bracketPairs: true,
         indentation: true
-      }
+      },
+      // 禁用需要 Web Worker 的功能
+      quickSuggestions: false,
+      suggestOnTriggerCharacters: false,
+      acceptSuggestionOnEnter: 'off',
+      tabCompletion: 'off',
+      wordBasedSuggestions: 'off',
+      parameterHints: { enabled: false },
+      hover: { enabled: false },
+      formatOnPaste: false,
+      formatOnType: false
     })
 
     // 监听内容变化
