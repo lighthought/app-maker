@@ -266,6 +266,7 @@ onUnmounted(() => {
 .back-button {
   color: #64748b;
   font-size: 14px;
+  height: var(--height-sm);
 }
 
 .back-button:hover {

@@ -532,7 +532,7 @@ const socialLogin = (provider: string) => {
   border-radius: var(--border-radius-md);
   font-weight: 600;
   font-size: 1rem;
-  height: 48px;
+  height: var(--height-md);
   transition: all 0.3s ease;
 }
 
