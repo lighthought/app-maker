@@ -60,7 +60,7 @@
           </div>
           
           <!-- 文件树 -->
-          <FileTreeNode
+          <FileTreeNodeComponent
             v-else
             v-for="file in fileTree"
             :key="file.path"
@@ -77,9 +77,6 @@
       <div class="code-editor">
         <div class="editor-header">
           <div class="file-info">
-            <n-icon size="16" :color="getFileIconColor(selectedFile?.type)">
-              <component :is="getFileIcon(selectedFile?.type)" />
-            </n-icon>
             <span class="file-path">{{ selectedFile?.path || '选择文件查看代码' }}</span>
           </div>
           <div class="editor-actions">
@@ -163,12 +160,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted, watch, defineComponent, type PropType } from 'vue'
+import { ref, computed, h, onMounted, watch } from 'vue'
 import { NIcon, NButton, NButtonGroup, NTag, NSpin, useMessage } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore, type FileTreeNode } from '@/stores/file'
 import type { Project } from '@/types/project'
 import MonacoEditor from './MonacoEditor.vue'
+import FileTreeNodeComponent from './FileTreeNode.vue'
 
 interface Props {
   project?: Project
@@ -231,23 +229,6 @@ const getStatusText = (status?: string) => {
   return statusMap[status || 'pending'] || '草稿'
 }
 
-// 获取文件图标
-const getFileIcon = (type?: string) => {
-  const iconMap = {
-    file: FileIcon,
-    folder: FolderIcon
-  }
-  return iconMap[type as keyof typeof iconMap] || FileIcon
-}
-
-// 获取文件图标颜色
-const getFileIconColor = (type?: string) => {
-  const colorMap = {
-    file: '#666',
-    folder: '#3182CE'
-  }
-  return colorMap[type as keyof typeof colorMap] || '#666'
-}
 
 // 获取语言类型（用于Monaco Editor）
 const getLanguage = (filePath?: string): string => {
@@ -397,14 +378,6 @@ const FileIcon = () => h('svg', {
   h('path', { d: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' })
 ])
 
-const FolderIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z' })
-])
-
 const RefreshIcon = () => h('svg', { 
   viewBox: '0 0 24 24', 
   fill: 'currentColor',
@@ -437,115 +410,6 @@ const ExternalLinkIcon = () => h('svg', {
   h('path', { d: 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z' })
 ])
 
-const ChevronRightIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z' })
-])
-
-const ChevronDownIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z' })
-])
-
-// 文件树节点组件
-const FileTreeNode = defineComponent({
-  name: 'FileTreeNode',
-  props: {
-    node: {
-      type: Object as PropType<FileTreeNode>,
-      required: true
-    },
-    selectedFile: {
-      type: Object as PropType<FileTreeNode | null>,
-      default: null
-    },
-    projectGuid: {
-      type: String,
-      default: ''
-    },
-    level: {
-      type: Number,
-      default: 0
-    }
-  },
-  emits: ['select-file', 'expand-folder'],
-  setup(props, { emit }): () => any {
-    const handleClick = () => {
-      if (props.node.type === 'file') {
-        emit('select-file', props.node)
-      } else {
-        emit('expand-folder', props.node)
-      }
-    }
-
-    return (): any => {
-      const { node, selectedFile, level } = props
-      const isSelected = selectedFile?.path === node.path
-      const indentStyle = { paddingLeft: `${level * 16 + 8}px` }
-
-      return h('div', [
-        // 当前节点
-        h('div', {
-          class: [
-            'tree-item',
-            { 'tree-item--active': isSelected },
-            { 'tree-item--folder': node.type === 'folder' }
-          ],
-          style: indentStyle,
-          onClick: handleClick
-        }, [
-          // 展开/收起图标（文件夹默认显示，但根据内容状态决定显示哪个图标）
-          node.type === 'folder' && h('span', {
-            class: 'expand-icon',
-            style: { 
-              opacity: node.loaded && (!node.children || node.children.length === 0) ? 0 : 1,
-              transition: 'opacity 0.2s ease'
-            }
-          }, [
-            h(NIcon, { 
-              size: 12 
-            }, { 
-              default: node.expanded ? ChevronDownIcon : ChevronRightIcon 
-            })
-          ]),
-          
-          // 文件/文件夹图标
-          h(NIcon, { 
-            size: 16, 
-            color: getFileIconColor(node.type) 
-          }, { 
-            default: getFileIcon(node.type) 
-          }),
-          
-          // 文件名
-          h('span', { class: 'file-name' }, node.name)
-        ]),
-
-        // 子节点（如果文件夹已展开且有子节点）
-        node.type === 'folder' && node.expanded && node.children && node.children.length > 0 && 
-        h('div', { class: 'tree-children' }, 
-          node.children.map((child: FileTreeNode) => 
-            h(FileTreeNode, {
-              key: child.path,
-              node: child,
-              selectedFile: selectedFile,
-              projectGuid: props.projectGuid,
-              level: level + 1,
-              onSelectFile: (file: FileTreeNode) => emit('select-file', file),
-              onExpandFolder: (folder: FileTreeNode) => emit('expand-folder', folder)
-            })
-          )
-        )
-      ])
-    }
-  }
-})
 
 // 监听项目数据变化，当项目加载完成后自动加载文件
 watch(() => props.project, (newProject) => {
@@ -596,6 +460,7 @@ onMounted(async () => {
 .header-left {
   display: flex;
   align-items: center;
+  height: var(--height-sm);
 }
 
 /* 代码面板样式 */
@@ -619,6 +484,7 @@ onMounted(async () => {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
   background: var(--background-color);
+  height: var(--height-md);
 }
 
 .tree-header h4 {
@@ -633,70 +499,6 @@ onMounted(async () => {
   padding: var(--spacing-sm);
 }
 
-.tree-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  position: relative;
-  min-height: 32px;
-}
-
-.tree-item:hover {
-  background: var(--background-color);
-}
-
-.tree-item--active {
-  background: var(--primary-color);
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.tree-item--active:hover {
-  background: var(--primary-color);
-  opacity: 0.9;
-}
-
-.tree-item--folder {
-  font-weight: 500;
-}
-
-/* 修复图标垂直对齐 */
-.tree-item .n-icon {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 1rem;
-}
-
-.expand-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
-  flex-shrink: 0;
-}
-
-.tree-item .file-name {
-  font-size: 1rem;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.2;
-  display: flex;
-  align-items: center;
-}
-
-.tree-children {
-  /* 子节点容器，用于缩进 */
-  position: relative;
-}
 
 .code-editor {
   flex: 1;
@@ -711,6 +513,7 @@ onMounted(async () => {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
   background: var(--background-color);
+  height: var(--height-md);
 }
 
 .file-info {
