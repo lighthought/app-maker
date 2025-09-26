@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { DevStage } from '../models/project.model';
 
 // 验证工具类
 export class Validator {
@@ -31,18 +32,18 @@ export class Validator {
     return this.isString(agentType) && validTypes.includes(agentType);
   }
 
-  static isValidStage(stage: string): boolean {
+  static isValidStage(stage: DevStage): boolean {
     const validStages = [
-      'prd_generating',
-      'ux_defining', 
-      'arch_designing',
-      'data_modeling',
-      'api_defining',
-      'epic_planning',
-      'story_developing',
-      'bug_fixing',
-      'testing',
-      'packaging'
+      DevStage.PRD_GENERATING,
+      DevStage.UX_DEFINING, 
+      DevStage.ARCH_DESIGNING,
+      DevStage.DATA_MODELING,
+      DevStage.API_DEFINING,
+      DevStage.EPIC_PLANNING,
+      DevStage.STORY_DEVELOPING,
+      DevStage.BUG_FIXING,
+      DevStage.TESTING,
+      DevStage.PACKAGING
     ];
     return this.isString(stage) && validStages.includes(stage);
   }

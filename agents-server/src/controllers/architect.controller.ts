@@ -1,4 +1,4 @@
-import { UXAgentController } from './base.controller';
+import { ArchitectAgentController } from './base.controller';
 import { ProjectContext, AgentResult, DevStage } from '../models/project.model';
 import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
@@ -6,7 +6,7 @@ import { NotificationService } from '../services/notification.service';
 import { GitService } from '../services/git.service';
 import logger from '../utils/logger.util';
 
-export class UXController { // implements UXAgentController 
+export class ArchitectController { // implements ArchitectAgentController 
   private commandService: CommandExecutionService;
   private fileService: FileSystemService;
   private notificationService: NotificationService;
@@ -26,18 +26,18 @@ export class UXController { // implements UXAgentController
 
   async execute(context: ProjectContext): Promise<AgentResult> {
     try {
-      const message = '@bmad/ux.mdc 请根据 PRD 生成 UX 规范，输出到 docs/ux-spec.md';
+      const message = '@bmad/architect.mdc 请根据 PRD 生成架构，输出到 docs/architecture.md';
       const content = await this.commandService.executeClaudeCommand(context.projectPath, message);
-      const filePath = `${context.projectPath}/docs/ux-spec.md`;
+      const filePath = `${context.projectPath}/docs/architecture.md`;
       await this.fileService.writeFile(filePath, content);
       await this.gitService.commitAndPush(context.projectPath, 'docs: add/update ux-spec.md by UX agent');
 
       return {
         success: true,
         artifacts: [{
-          id: `ux_${context.projectId}`,
-          type: 'ux_spec' as any,
-          name: 'ux-spec.md',
+          id: `architecture_${context.projectId}`,
+          type: 'architecture' as any,
+          name: 'architecture.md',
           path: filePath,
           content,
           format: 'markdown' as any,
@@ -45,11 +45,11 @@ export class UXController { // implements UXAgentController
           updatedAt: new Date()
         }],
         nextStage: DevStage.ARCH_DESIGNING as any,
-        metadata: { agentType: 'ux', stage: DevStage.UX_DEFINING }
+        metadata: { agentType: 'architect', stage: DevStage.ARCH_DESIGNING }
       };
     } catch (error) {
-      logger.error('UX Agent failed', error);
-      return { success: false, artifacts: [], error: (error as Error).message, metadata: { agentType: 'ux' } };
+      logger.error('Architect Agent failed', error);
+      return { success: false, artifacts: [], error: (error as Error).message, metadata: { agentType: 'architect' } };
     }
   }
 

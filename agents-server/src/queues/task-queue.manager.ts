@@ -64,7 +64,7 @@ export class TaskQueueManager {
     this.controllers.set(AgentType.ARCHITECT, archController);
     const poController = new POController(commandService, fileService, notificationService, gitService);
     this.controllers.set(AgentType.PO, poController);
-    const devController = new DevController(commandService, fileService, notificationService, gitService);
+    const devController = new DevController(commandService, gitService);
     this.controllers.set(AgentType.DEV, devController);
   }
 

@@ -121,6 +121,9 @@
 
 ### 一键启动
 ```bash
+# 0. 启动 ollama 服务
+ollama serve
+
 # 1. 克隆项目
 git clone <repository-url>
 cd app-maker
@@ -138,8 +141,8 @@ pnpm start
 - **前端应用**: http://app-maker.localhost
 - **后端API**: http://api.app-maker.localhost
 - **Agents Server**: http://localhost:3001
-- **Ollama AI**: http://chat.app-maker.localhost:11434
-- **Traefik Dashboard**: http://traefik.app-maker.localhost:8080
+- **Ollama AI**: http://chat.app-maker.localhost
+- **Traefik Dashboard**: http://traefik.app-maker.localhost:8080/dashboard/
 
 ## 📁 项目结构
 
@@ -251,26 +254,13 @@ app-maker/
 4. **Agent框架**: Agents Server基础架构
 5. **AI集成**: Ollama集成和项目总结生成
 6. **部署配置**: Docker + Traefik完整配置
+9. **项目详情接口**: 获取项目完整信息
+10. **文件管理接口**: 文件列表、内容读取、预览
+11. **对话消息接口**: 项目对话历史管理
+12. **WebSocket推送**: 实时状态更新
 
 ### 🚧 待实现功能
-1. **项目详情接口**: 获取项目完整信息
-2. **文件管理接口**: 文件列表、内容读取、预览
-3. **对话消息接口**: 项目对话历史管理
-4. **开发阶段接口**: 实时进度跟踪
-5. **WebSocket推送**: 实时状态更新
-
-## 🎯 商业模式
-
-### 定价策略
-- **免费版**: 基础功能，每月3个项目
-- **专业版**: 完整功能，每月20个项目
-- **企业版**: 定制功能，无限项目数量
-
-### 增值服务
-- 定制化开发服务
-- 技术咨询和培训
-- 企业级支持和维护
-- 高级AI模型使用
+1. **开发阶段接口**: 实时进度跟踪
 
 ## 🔧 开发指南
 
@@ -358,13 +348,6 @@ make cache-info
 - **Vue**: 遵循Vue 3 Composition API最佳实践
 - **Git**: 使用Conventional Commits规范
 
-### 测试策略
-- **单元测试**: 核心业务逻辑测试覆盖率 > 80%
-- **集成测试**: API接口测试
-- **端到端测试**: 关键用户流程测试
-- **性能测试**: 负载测试和压力测试
-
-
 ---
 
-*AutoCodeWeb - 让每个人都能通过简单的需求描述，快速获得完整的应用程序*
+*AutoCodeWeb - 让每个人都能通过简单的需求描述，快速获得完整的应用程序、前后端网站*

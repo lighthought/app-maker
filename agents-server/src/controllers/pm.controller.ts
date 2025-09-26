@@ -4,6 +4,7 @@ import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
 import { NotificationService } from '../services/notification.service';
 import { GitService } from '../services/git.service';
+import { DevStage } from '../models/project.model';
 import logger from '../utils/logger.util';
 
 export class PMController implements PMAgentController {
@@ -54,10 +55,10 @@ export class PMController implements PMAgentController {
           createdAt: new Date(),
           updatedAt: new Date()
         }],
-        nextStage: 'ux_defining' as any,
+        nextStage: DevStage.UX_DEFINING as any,
         metadata: {
           agentType: 'pm',
-          stage: 'prd_generating',
+          stage: DevStage.PRD_GENERATING,
           projectPath: context.projectPath
         }
       };
@@ -69,7 +70,7 @@ export class PMController implements PMAgentController {
         error: (error as Error).message,
         metadata: {
           agentType: 'pm',
-          stage: 'prd_generating'
+          stage: DevStage.PRD_GENERATING
         }
       };
     }
@@ -119,7 +120,7 @@ export class PMController implements PMAgentController {
         projectId: taskId,
         progress,
         message: `PM Agent progress: ${progress}%`,
-        stage: 'prd_generating'
+        stage: DevStage.PRD_GENERATING
       });
     } catch (error) {
       logger.error('Failed to update progress', error);

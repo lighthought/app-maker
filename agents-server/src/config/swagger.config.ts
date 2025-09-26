@@ -1,5 +1,6 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import { SwaggerDefinition } from 'swagger-jsdoc';
+import { DevStage } from '../models/project.model';
 
 const swaggerDefinition: SwaggerDefinition = {
   openapi: '3.0.0',
@@ -43,7 +44,7 @@ const swaggerDefinition: SwaggerDefinition = {
           stage: {
             type: 'string',
             description: '开发阶段',
-            example: 'prd_generating'
+            example: DevStage.PRD_GENERATING
           },
           context: {
             type: 'object',

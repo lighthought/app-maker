@@ -1,12 +1,12 @@
 import { POAgentController } from './base.controller';
-import { ProjectContext, AgentResult } from '../models/project.model';
+import { ProjectContext, AgentResult, DevStage } from '../models/project.model';
 import { CommandExecutionService } from '../services/command-execution.service';
 import { FileSystemService } from '../services/file-system.service';
 import { NotificationService } from '../services/notification.service';
 import { GitService } from '../services/git.service';
 import logger from '../utils/logger.util';
 
-export class POController implements POAgentController {
+export class POController { // implements POAgentController 
   private commandService: CommandExecutionService;
   private fileService: FileSystemService;
   private notificationService: NotificationService;
@@ -47,8 +47,8 @@ export class POController implements POAgentController {
           { id: `epics_${context.projectId}`, type: 'epics' as any, name: 'epics.md', path: epicsFile, content: epicsContent, format: 'markdown' as any, createdAt: new Date(), updatedAt: new Date() },
           { id: `stories_${context.projectId}`, type: 'stories' as any, name: 'stories.md', path: storiesFile, content: storiesContent, format: 'markdown' as any, createdAt: new Date(), updatedAt: new Date() }
         ],
-        nextStage: 'story_developing' as any,
-        metadata: { agentType: 'po', stage: 'epic_planning' }
+        nextStage: DevStage.STORY_DEVELOPING as any,
+        metadata: { agentType: 'po', stage: DevStage.EPIC_PLANNING }
       };
     } catch (error) {
       logger.error('PO Agent failed', error);
