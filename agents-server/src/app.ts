@@ -125,9 +125,13 @@ export class AgentsServer {
 
   async start(): Promise<void> {
     try {
-      // 连接Redis
-      await this.redisConnection.connect();
-      logger.info('Redis connected successfully');
+      // 连接Redis（可选）
+      try {
+        await this.redisConnection.connect();
+        logger.info('Redis connected successfully');
+      } catch (redisError) {
+        logger.warn('Redis not available, proceeding without queues');
+      }
 
       // 启动服务器
       this.server.listen(this.config.app.port, () => {

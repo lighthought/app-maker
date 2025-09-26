@@ -1,3 +1,21 @@
+## Development
+
+This folder contains a TypeScript-based Express server. To run it, ensure you have a `package.json` and TypeScript config. If missing, create them and install dependencies:
+
+```
+pnpm install
+pnpm ts-node src/server.ts
+```
+
+Environment variables:
+
+- `PORT` (default 3001)
+- `REDIS_URL` (optional; if absent, queues run in fallback inline mode)
+- `CLAUDE_CLI_PATH` (default `claude`)
+- `NPM_PATH` (default `npm`)
+- `GIT_PATH` (default `git`)
+- `BACKEND_API_URL` (default `http://localhost:8080`)
+
 # Agents Server - Agent协作服务
 
 ## 服务定位
