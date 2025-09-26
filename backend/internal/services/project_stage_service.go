@@ -587,7 +587,7 @@ func (s *projectStageService) invokeAgentSync(ctx context.Context, project *mode
 		return nil, fmt.Errorf("调用 agents-server 失败: %w", err)
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+    body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("agents-server 返回错误: %s", string(body))
 	}
@@ -605,7 +605,15 @@ func (s *projectStageService) invokeAgentSync(ctx context.Context, project *mode
 			return nil, fmt.Errorf("agents-server 执行失败")
 		}
 	}
-	return nil, nil
+    // 解析 Data 为 AgentResult
+    if len(res.Data) > 0 {
+        var agentResult models.AgentResult
+        if err := json.Unmarshal(res.Data, &agentResult); err == nil {
+            return &agentResult, nil
+        }
+        // Data 不是标准结构时，忽略解析错误但返回成功
+    }
+    return &models.AgentResult{Success: true}, nil
 }
 
 // GetProjectStages 获取项目开发阶段
