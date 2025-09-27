@@ -26,9 +26,9 @@ export class UXController { // implements UXAgentController
 
   async execute(context: ProjectContext): Promise<AgentResult> {
     try {
-      const message = '@bmad/ux.mdc 请根据 PRD 生成 UX 规范，输出到 docs/ux-spec.md';
+      const message = '@bmad/ux-expert.mdc 帮我基于这个 @docs/PRD.md 和参考页面设计(如果需求有提及的话)，输出前端的 UX Spec 到 docs/ux/ux-spec.md。关键web页面的文生网站提示词到 docs/ux/page-prompt.md。';
       const content = await this.commandService.executeClaudeCommand(context.projectPath, message);
-      const filePath = `${context.projectPath}/docs/ux-spec.md`;
+      const filePath = `${context.projectPath}/docs/ux/ux-spec.md`;
       await this.fileService.writeFile(filePath, content);
       await this.gitService.commitAndPush(context.projectPath, 'docs: add/update ux-spec.md by UX agent');
 

@@ -34,7 +34,7 @@ export class PMController implements PMAgentController {
       const prdContent = await this.generatePRD(projectPath, context.stageInput);
       
       // 保存PRD文档到项目目录（按官方约定路径）
-      const prdFilePath = `${context.projectPath}/docs/prd.md`;
+      const prdFilePath = `${context.projectPath}/docs/PRD.md`;
       await this.fileService.writeFile(prdFilePath, prdContent);
       
       // 更新进度
@@ -78,11 +78,10 @@ export class PMController implements PMAgentController {
 
   async generatePRD(projectInfo: any, stageInput: any): Promise<string> {
     try {
-      const message = `@bmad/pm.mdc 请根据以下需求生成PRD 到 docs/PRD.md：${stageInput.requirements} \r\n\r\n技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。`;
-
-      // 使用文档服务生成PRD
+      const requirements = stageInput?.requirements || '';
+      const message = `@bmad/pm.mdc 我希望你根据我的需求帮我输出 PRD 文档到  docs/PRD.md。\n简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。\n我的需求是：${requirements}`;
       const prdContent = await this.commandService.executeClaudeCommand(
-        projectInfo.projectPath || '',
+        projectInfo?.projectPath || '',
         message
       );
 

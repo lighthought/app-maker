@@ -605,7 +605,15 @@ func (s *projectStageService) invokeAgentSync(ctx context.Context, project *mode
 			return nil, fmt.Errorf("agents-server 执行失败")
 		}
 	}
-	return nil, nil
+	// 解析 Data 为 AgentResult
+	if len(res.Data) > 0 {
+		var agentResult models.AgentResult
+		if err := json.Unmarshal(res.Data, &agentResult); err == nil {
+			return &agentResult, nil
+		}
+		// Data 不是标准结构时，忽略解析错误但返回成功
+	}
+	return &models.AgentResult{Success: true}, nil
 }
 
 // GetProjectStages 获取项目开发阶段

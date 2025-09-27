@@ -23,9 +23,13 @@ export class TaskQueueManager {
     notificationService: NotificationService
   ) {
     this.notificationService = notificationService;
-    this.initializeQueues(redisUrl);
     this.initializeControllers(commandService, fileService, notificationService);
-    this.setupProcessors();
+    try {
+      this.initializeQueues(redisUrl);
+      this.setupProcessors();
+    } catch (err) {
+      logger.error('Queue initialization failed; running in no-queue mode', err as any);
+    }
   }
 
   private initializeQueues(redisUrl: string): void {
@@ -147,7 +151,12 @@ export class TaskQueueManager {
   async addTask(task: AgentTask): Promise<void> {
     const queue = this.queues.get(task.agentType);
     if (!queue) {
-      throw new Error(`No queue found for agent type: ${task.agentType}`);
+      // fallback: execute immediately without queue
+      logger.warn(`No queue for ${task.agentType}, executing immediately`);
+      const controller = this.controllers.get(task.agentType);
+      if (!controller) throw new Error(`No controller for agent type: ${task.agentType}`);
+      await controller.execute(task.context);
+      return;
     }
 
     await queue.add(task, {

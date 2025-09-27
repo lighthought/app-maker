@@ -26,8 +26,8 @@ export class POController { // implements POAgentController
 
   async execute(context: ProjectContext): Promise<AgentResult> {
     try {
-      const epicsMsg = '@bmad/po-epics.mdc 请根据 PRD 和架构，生成分片的 Epics，输出到 docs/epics/ 下多个文件';
-      const storiesMsg = '@bmad/po-stories.mdc 请根据 Epics，生成分片的 Stories，输出到 docs/stories/ 下多个文件';
+      const epicsMsg = '@bmad/po.mdc 我希望你基于 @docs/PRD.md 和 @docs/arch/ 目录下的架构设计创建 Epics（史诗）和 Stories（用户故事）。生成分片的 Epics，输出到 docs/epics/ 下多个文件。再根据 Epics 生成分片的 Stories，输出到 docs/stories/ 下多个文件。不要考虑安全、合规。';
+      const storiesMsg = '@bmad/po.mdc 基于上一步的 Epics，继续生成分片的 Stories，输出到 docs/stories/ 下多个文件。';
 
       // 基于工具让 agent 输出内容；此处以执行命令示意
       const epicsContent = await this.commandService.executeClaudeCommand(context.projectPath, epicsMsg);
