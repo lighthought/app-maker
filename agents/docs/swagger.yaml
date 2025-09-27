@@ -1,0 +1,610 @@
+definitions:
+  models.FixBugReq:
+    properties:
+      bug_description:
+        example: bug description
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+    required:
+    - bug_description
+    - project_guid
+    type: object
+  models.GetAPIDefinitionReq:
+    properties:
+      db_folder:
+        example: docs/db
+        type: string
+      prd_path:
+        example: docs/PRD.md
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+      stories_folder:
+        example: docs/stories
+        type: string
+    required:
+    - db_folder
+    - prd_path
+    - project_guid
+    - stories_folder
+    type: object
+  models.GetArchitectureReq:
+    properties:
+      prd_path:
+        example: docs/PRD.md
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+      template_arch_description:
+        example: templates/architecture-template-v2.yaml
+        type: string
+      ux_spec_path:
+        example: docs/ux/ux-spec.md
+        type: string
+    required:
+    - prd_path
+    - project_guid
+    - template_arch_description
+    - ux_spec_path
+    type: object
+  models.GetDatabaseDesignReq:
+    properties:
+      arch_folder:
+        example: docs/arch
+        type: string
+      prd_path:
+        example: docs/PRD.md
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+      stories_folder:
+        example: docs/stories
+        type: string
+    required:
+    - arch_folder
+    - prd_path
+    - project_guid
+    - stories_folder
+    type: object
+  models.GetEpicsAndStoriesReq:
+    properties:
+      arch_folder:
+        example: docs/arch
+        type: string
+      prd_path:
+        example: docs/PRD.md
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+    required:
+    - arch_folder
+    - prd_path
+    - project_guid
+    type: object
+  models.GetPRDReq:
+    properties:
+      project_guid:
+        example: "1234567890"
+        type: string
+      requirements:
+        example: 项目需求描述
+        type: string
+    required:
+    - project_guid
+    - requirements
+    type: object
+  models.GetProjBriefReq:
+    properties:
+      project_guid:
+        example: "1234567890"
+        type: string
+      requirements:
+        example: 项目需求描述
+        type: string
+    required:
+    - project_guid
+    - requirements
+    type: object
+  models.GetUXStandardReq:
+    properties:
+      prd_path:
+        example: docs/PRD.md
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+      requirements:
+        example: 项目需求描述
+        type: string
+    required:
+    - prd_path
+    - project_guid
+    - requirements
+    type: object
+  models.ImplementStoryReq:
+    properties:
+      api_folder:
+        example: docs/api
+        type: string
+      arch_folder:
+        example: docs/arch
+        type: string
+      db_folder:
+        example: docs/db
+        type: string
+      epic_file:
+        example: docs/epics/epic.md
+        type: string
+      prd_path:
+        example: docs/PRD.md
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+      story_file:
+        example: docs/stories/story.md
+        type: string
+      ux_spec_path:
+        example: docs/ux/ux-spec.md
+        type: string
+    required:
+    - api_folder
+    - arch_folder
+    - db_folder
+    - epic_file
+    - prd_path
+    - project_guid
+    - story_file
+    - ux_spec_path
+    type: object
+  models.Response:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data: {}
+      message:
+        example: success
+        type: string
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
+    type: object
+  models.SetupProjEnvReq:
+    properties:
+      bmad_cli_type:
+        example: claude
+        type: string
+      gitlab_repo_url:
+        example: https://gitlab.lighthought.com/app-maker/project-guid.git
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+      project_id:
+        example: "1234567890"
+        type: string
+      setup_bmad_method:
+        example: true
+        type: boolean
+    required:
+    - bmad_cli_type
+    - gitlab_repo_url
+    - project_guid
+    - project_id
+    - setup_bmad_method
+    type: object
+  utils.ErrorResponse:
+    properties:
+      error:
+        example: 错误信息
+        type: string
+      message:
+        example: 操作失败
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  utils.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        example: 操作成功
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/agent/analyse/project-brief:
+    post:
+      consumes:
+      - application/json
+      description: 根据需求生成项目简介和市场研究文档
+      parameters:
+      - description: 项目概览请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetProjBriefReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 生成项目概览
+      tags:
+      - Analyse
+  /api/v1/agent/architect/apidefinition:
+    get:
+      consumes:
+      - application/json
+      description: 基于PRD、数据模型和用户故事生成API接口定义
+      parameters:
+      - description: API定义请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetAPIDefinitionReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 获取API定义
+      tags:
+      - Architect
+  /api/v1/agent/architect/architect:
+    get:
+      consumes:
+      - application/json
+      description: 基于PRD和UX设计生成整体架构、前端架构和后端架构设计文档
+      parameters:
+      - description: 架构设计请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetArchitectureReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 获取架构设计
+      tags:
+      - Architect
+  /api/v1/agent/architect/database:
+    get:
+      consumes:
+      - application/json
+      description: 基于PRD、架构设计和用户故事生成数据模型设计
+      parameters:
+      - description: 数据库设计请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetDatabaseDesignReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 获取数据库设计
+      tags:
+      - Architect
+  /api/v1/agent/dev/deploy:
+    post:
+      consumes:
+      - application/json
+      description: 执行项目的打包部署流程
+      parameters:
+      - description: 部署请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.FixBugReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 部署项目
+      tags:
+      - Dev
+  /api/v1/agent/dev/fixbug:
+    post:
+      consumes:
+      - application/json
+      description: 根据Bug描述修复项目中的问题
+      parameters:
+      - description: 修复Bug请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.FixBugReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 修复Bug
+      tags:
+      - Dev
+  /api/v1/agent/dev/implstory:
+    post:
+      consumes:
+      - application/json
+      description: 基于PRD、架构设计和UX标准实现用户故事
+      parameters:
+      - description: 实现故事请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ImplementStoryReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 实现用户故事
+      tags:
+      - Dev
+  /api/v1/agent/dev/runtest:
+    post:
+      consumes:
+      - application/json
+      description: 执行项目的自动测试流程
+      parameters:
+      - description: 运行测试请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.FixBugReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 运行测试
+      tags:
+      - Dev
+  /api/v1/agent/pm/prd:
+    get:
+      consumes:
+      - application/json
+      description: 根据需求生成PRD文档
+      parameters:
+      - description: PRD请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetPRDReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 获取产品需求文档
+      tags:
+      - PM
+  /api/v1/agent/po/epicsandstories:
+    get:
+      consumes:
+      - application/json
+      description: 基于PRD和架构设计生成Epics和Stories文档
+      parameters:
+      - description: 史诗故事请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetEpicsAndStoriesReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 获取史诗和用户故事
+      tags:
+      - PO
+  /api/v1/agent/ux-expert/ux-standard:
+    get:
+      consumes:
+      - application/json
+      description: 基于PRD生成UX设计规范和页面提示词
+      parameters:
+      - description: UX标准请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GetUXStandardReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: 获取UX设计标准
+      tags:
+      - UX
+  /api/v1/health:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否正常运行
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 健康检查
+      tags:
+      - 健康检查
+  /api/v1/projects/setup:
+    post:
+      consumes:
+      - application/json
+      description: 为项目设置开发环境，包括安装bmad-method等工具
+      parameters:
+      - description: 项目环境准备请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SetupProjEnvReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      summary: 项目环境准备
+      tags:
+      - Project
+swagger: "2.0"
