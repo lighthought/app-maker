@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"shared-models/common"
 	"strconv"
 
 	"autocodeweb-backend/internal/models"
@@ -30,15 +31,15 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 // @Accept json
 // @Produce json
 // @Param request body models.RegisterRequest true "注册请求"
-// @Success 200 {object} models.Response{data=models.LoginResponse}
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 409 {object} models.ErrorResponse
+// @Success 200 {object} common.Response{data=models.LoginResponse}
+// @Failure 400 {object} common.ErrorResponse
+// @Failure 409 {object} common.ErrorResponse
 // @Router /api/v1/auth/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -51,16 +52,16 @@ func (h *UserHandler) Register(c *gin.Context) {
 		if err.Error() == "邮箱已存在" || err.Error() == "用户名已存在" {
 			statusCode = http.StatusConflict
 		}
-		c.JSON(statusCode, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(statusCode, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "注册成功",
 		Data:      response,
 		Timestamp: utils.GetCurrentTime(),
@@ -74,15 +75,15 @@ func (h *UserHandler) Register(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body models.LoginRequest true "登录请求"
-// @Success 200 {object} models.Response{data=models.LoginResponse}
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 401 {object} models.ErrorResponse
+// @Success 200 {object} common.Response{data=models.LoginResponse}
+// @Failure 400 {object} common.ErrorResponse
+// @Failure 401 {object} common.ErrorResponse
 // @Router /api/v1/auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -97,16 +98,16 @@ func (h *UserHandler) Login(c *gin.Context) {
 		} else if err.Error() == "用户账户已被禁用" {
 			statusCode = http.StatusForbidden
 		}
-		c.JSON(statusCode, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(statusCode, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "登录失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "登录成功",
 		Data:      response,
 		Timestamp: utils.GetCurrentTime(),
@@ -120,8 +121,8 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} models.Response
-// @Failure 401 {object} models.ErrorResponse
+// @Success 200 {object} common.Response
+// @Failure 401 {object} common.ErrorResponse
 // @Router /api/v1/users/logout [post]
 func (h *UserHandler) Logout(c *gin.Context) {
 	// 从中间件获取用户ID
@@ -130,16 +131,16 @@ func (h *UserHandler) Logout(c *gin.Context) {
 	// 调用登出服务（对于纯JWT实现，主要是客户端清除token）
 	err := h.userService.Logout(c.Request.Context(), userID, "")
 	if err != nil {
-		c.JSON(http.StatusOK, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(http.StatusOK, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "登出失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "登出成功",
 		Timestamp: utils.GetCurrentTime(),
 	})
@@ -152,9 +153,9 @@ func (h *UserHandler) Logout(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} models.Response{data=models.UserInfo}
-// @Failure 401 {object} models.ErrorResponse
-// @Failure 404 {object} models.ErrorResponse
+// @Success 200 {object} common.Response{data=models.UserInfo}
+// @Failure 401 {object} common.ErrorResponse
+// @Failure 404 {object} common.ErrorResponse
 // @Router /api/v1/users/profile [get]
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	// 从中间件获取用户ID
@@ -166,16 +167,16 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		if err.Error() == "用户不存在" {
 			statusCode = http.StatusNotFound
 		}
-		c.JSON(statusCode, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(statusCode, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "获取用户档案失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "获取用户档案成功",
 		Data:      response,
 		Timestamp: utils.GetCurrentTime(),
@@ -190,16 +191,16 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body models.UpdateProfileRequest true "更新档案请求"
-// @Success 200 {object} models.Response
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 401 {object} models.ErrorResponse
-// @Failure 409 {object} models.ErrorResponse
+// @Success 200 {object} common.Response
+// @Failure 400 {object} common.ErrorResponse
+// @Failure 401 {object} common.ErrorResponse
+// @Failure 409 {object} common.ErrorResponse
 // @Router /api/v1/users/profile [put]
 func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -215,16 +216,16 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		if err.Error() == "用户名已被使用" || err.Error() == "邮箱已被使用" {
 			statusCode = http.StatusConflict
 		}
-		c.JSON(statusCode, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(statusCode, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "更新用户档案失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "更新用户档案成功",
 		Timestamp: utils.GetCurrentTime(),
 	})
@@ -238,15 +239,15 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param request body models.ChangePasswordRequest true "修改密码请求"
-// @Success 200 {object} models.Response
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 401 {object} models.ErrorResponse
+// @Success 200 {object} common.Response
+// @Failure 400 {object} common.ErrorResponse
+// @Failure 401 {object} common.ErrorResponse
 // @Router /api/v1/users/change-password [post]
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	var req models.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "请求参数错误: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -262,16 +263,16 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		if err.Error() == "旧密码错误" {
 			statusCode = http.StatusBadRequest
 		}
-		c.JSON(statusCode, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(statusCode, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "修改密码失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "密码修改成功",
 		Timestamp: utils.GetCurrentTime(),
 	})
@@ -286,17 +287,17 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 // @Security Bearer
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
-// @Success 200 {object} models.Response{data=models.PaginationResponse}
-// @Failure 401 {object} models.ErrorResponse
-// @Failure 403 {object} models.ErrorResponse
+// @Success 200 {object} common.Response{data=models.PaginationResponse}
+// @Failure 401 {object} common.ErrorResponse
+// @Failure 403 {object} common.ErrorResponse
 // @Router /api/v1/users [get]
 func (h *UserHandler) GetUserList(c *gin.Context) {
 	// 从JWT中获取用户ID和角色（这里简化处理，实际应该从JWT中解析）
 	userID := c.GetString("user_id")
 	userRole := c.GetString("user_role")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Code:      models.UNAUTHORIZED,
+		c.JSON(http.StatusUnauthorized, common.Response{
+			Code:      common.UNAUTHORIZED,
 			Message:   "未授权",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -305,8 +306,8 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 
 	// 检查权限
 	if userRole != "admin" {
-		c.JSON(http.StatusForbidden, models.Response{
-			Code:      models.FORBIDDEN,
+		c.JSON(http.StatusForbidden, common.Response{
+			Code:      common.FORBIDDEN,
 			Message:   "权限不足",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -319,16 +320,16 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 
 	response, err := h.userService.GetUserList(c.Request.Context(), page, pageSize)
 	if err != nil {
-		c.JSON(http.StatusOK, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(http.StatusOK, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "获取用户列表失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "获取成功",
 		Data:      response,
 		Timestamp: utils.GetCurrentTime(),
@@ -343,9 +344,9 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param user_id path string true "用户ID"
-// @Success 200 {object} models.Response
-// @Failure 401 {object} models.ErrorResponse
-// @Failure 403 {object} models.ErrorResponse
+// @Success 200 {object} common.Response
+// @Failure 401 {object} common.ErrorResponse
+// @Failure 403 {object} common.ErrorResponse
 // @Router /api/v1/users/{user_id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	// 从中间件获取用户ID和角色
@@ -354,8 +355,8 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	// 检查权限
 	if userRole != "admin" {
-		c.JSON(http.StatusForbidden, models.Response{
-			Code:      models.FORBIDDEN,
+		c.JSON(http.StatusForbidden, common.Response{
+			Code:      common.FORBIDDEN,
 			Message:   "权限不足",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -365,8 +366,8 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	// 获取要删除的用户ID
 	targetUserID := c.Param("user_id")
 	if targetUserID == "" {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "用户ID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -375,8 +376,8 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	// 不能删除自己
 	if targetUserID == currentUserID {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.FORBIDDEN,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.FORBIDDEN,
 			Message:   "不能删除自己的账户",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -385,16 +386,16 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	err := h.userService.DeleteUser(c.Request.Context(), targetUserID)
 	if err != nil {
-		c.JSON(http.StatusOK, models.Response{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.Response{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "删除用户失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "删除成功",
 		Timestamp: utils.GetCurrentTime(),
 	})
@@ -407,15 +408,15 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param refresh_token query string true "刷新令牌"
-// @Success 200 {object} models.Response{data=models.LoginResponse}
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 401 {object} models.ErrorResponse
+// @Success 200 {object} common.Response{data=models.LoginResponse}
+// @Failure 400 {object} common.ErrorResponse
+// @Failure 401 {object} common.ErrorResponse
 // @Router /api/v1/auth/refresh [post]
 func (h *UserHandler) RefreshToken(c *gin.Context) {
 	refreshToken := c.Query("refresh_token")
 	if refreshToken == "" {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.Response{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "刷新令牌不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -430,16 +431,16 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		} else if err.Error() == "用户账户已被禁用" {
 			statusCode = http.StatusForbidden
 		}
-		c.JSON(statusCode, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(statusCode, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   "令牌刷新失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "令牌刷新成功",
 		Data:      response,
 		Timestamp: utils.GetCurrentTime(),

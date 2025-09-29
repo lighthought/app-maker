@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"shared-models/common"
 	"strconv"
 
 	"autocodeweb-backend/internal/models"
@@ -35,10 +36,10 @@ func NewProjectHandler(projectService services.ProjectService, projectStageServi
 // @Produce json
 // @Security Bearer
 // @Param project body models.CreateProjectRequest true "项目创建请求"
-// @Success 200 {object} models.Response{data=models.ProjectInfo} "项目创建成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Success 200 {object} common.Response{data=models.ProjectInfo} "项目创建成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/projects [post]
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	logger.Info("收到创建项目请求",
@@ -52,8 +53,8 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("requestBody", fmt.Sprintf("%v", c.Request.Body)),
 		)
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "请求参数错误, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -74,8 +75,8 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("userID", userID),
 		)
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "创建项目失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -88,8 +89,8 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		logger.String("userID", userID),
 	)
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "项目创建成功",
 		Data:      project,
 		Timestamp: utils.GetCurrentTime(),
@@ -104,17 +105,17 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param guid path string true "项目GUID"
-// @Success 200 {object} models.Response{data=models.ProjectInfo} "获取项目成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 404 {object} models.ErrorResponse "项目不存在"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Success 200 {object} common.Response{data=models.ProjectInfo} "获取项目成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 404 {object} common.ErrorResponse "项目不存在"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/projects/{guid} [get]
 func (h *ProjectHandler) GetProject(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -127,23 +128,23 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	project, err := h.projectService.GetProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      models.FORBIDDEN,
+			c.JSON(http.StatusForbidden, common.ErrorResponse{
+				Code:      common.FORBIDDEN,
 				Message:   "访问被拒绝",
 				Timestamp: utils.GetCurrentTime(),
 			})
 			return
 		}
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取项目失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "获取项目成功",
 		Data:      project,
 		Timestamp: utils.GetCurrentTime(),
@@ -158,17 +159,17 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param guid path string true "项目GUID"
-// @Success 200 {object} models.Response "项目删除成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Success 200 {object} common.Response "项目删除成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 403 {object} common.ErrorResponse "访问被拒绝"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/projects/{guid} [delete]
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -181,23 +182,23 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	err := h.projectService.DeleteProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
-				Code:      models.FORBIDDEN,
+			c.JSON(http.StatusForbidden, common.ErrorResponse{
+				Code:      common.FORBIDDEN,
 				Message:   "访问被拒绝",
 				Timestamp: utils.GetCurrentTime(),
 			})
 			return
 		}
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "删除项目失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "项目删除成功",
 		Data:      nil,
 		Timestamp: utils.GetCurrentTime(),
@@ -215,10 +216,10 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 // @Param page_size query int false "每页数量" default(10)
 // @Param status query string false "项目状态" Enums(draft, in_progress, completed, failed)
 // @Param search query string false "搜索关键词"
-// @Success 200 {object} models.Response{data=models.PaginationResponse{data=[]models.ProjectInfo}} "获取项目列表成功"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Success 200 {object} common.Response{data=models.PaginationResponse{data=[]models.ProjectInfo}} "获取项目列表成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/projects [get]
 func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	var req models.ProjectListRequest
@@ -244,8 +245,8 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 
 	pagination, err := h.projectService.GetUserProjects(c.Request.Context(), userID, &req)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取项目列表失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -270,8 +271,8 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -280,16 +281,16 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 
 	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectGuid)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取开发阶段失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "获取开发阶段成功",
 		Data:      stages,
 		Timestamp: utils.GetCurrentTime(),
@@ -305,16 +306,16 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 // @Security Bearer
 // @Param guid path string true "项目GUID"
 // @Success 200 {file} file "项目文件zip包"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 401 {object} models.ErrorResponse "未授权"
-// @Failure 403 {object} models.ErrorResponse "访问被拒绝"
-// @Failure 404 {object} models.ErrorResponse "项目不存在"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 403 {object} common.ErrorResponse "访问被拒绝"
+// @Failure 404 {object} common.ErrorResponse "项目不存在"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/projects/download/{guid} [get]
 func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
 			Code:      http.StatusBadRequest,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
@@ -329,14 +330,14 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, models.ErrorResponse{
+			c.JSON(http.StatusForbidden, common.ErrorResponse{
 				Code:      http.StatusForbidden,
 				Message:   "访问被拒绝",
 				Timestamp: utils.GetCurrentTime(),
 			})
 			return
 		}
-		c.JSON(http.StatusOK, models.ErrorResponse{
+		c.JSON(http.StatusOK, common.ErrorResponse{
 			Code:      http.StatusInternalServerError,
 			Message:   "获取项目信息失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -351,7 +352,7 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
-		c.JSON(http.StatusOK, models.ErrorResponse{
+		c.JSON(http.StatusOK, common.ErrorResponse{
 			Code:      http.StatusInternalServerError,
 			Message:   "生成项目压缩任务失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
@@ -359,8 +360,8 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "success",
 		Data:      taskID,
 		Timestamp: utils.GetCurrentTime(),

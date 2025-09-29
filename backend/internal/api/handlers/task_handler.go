@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 	"encoding/json"
 	"net/http"
+	"shared-models/common"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -36,9 +36,9 @@ func NewTaskHandler(inspector *asynq.Inspector) *TaskHandler {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "任务ID"
-// @Success 200 {object} models.Response "成功响应"
-// @Failure 404 {object} models.ErrorResponse "任务不存在"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 404 {object} common.ErrorResponse "任务不存在"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/tasks/{id} [get]
 func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	taskID := c.Param("id")
@@ -48,8 +48,8 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	if err != nil {
 		completedTasks, err := s.inspector.ListCompletedTasks("default")
 		if err != nil {
-			c.JSON(http.StatusOK, models.ErrorResponse{
-				Code:      models.INTERNAL_ERROR,
+			c.JSON(http.StatusOK, common.ErrorResponse{
+				Code:      common.INTERNAL_ERROR,
 				Message:   "获取任务状态失败: " + err.Error(),
 				Timestamp: utils.GetCurrentTime(),
 			})
@@ -66,8 +66,8 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	}
 
 	if info == nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Code:      models.NOT_FOUND,
+		c.JSON(http.StatusNotFound, common.ErrorResponse{
+			Code:      common.NOT_FOUND,
 			Message:   "任务不存在, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -76,13 +76,13 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 
 	taskResult := models.TaskResult{
 		TaskID:   taskID,
-		Status:   constants.CommandStatusInProgress,
+		Status:   common.CommandStatusInProgress,
 		Progress: 0,
 		Message:  "任务执行中",
 	}
 	if info.Result == nil {
-		c.JSON(http.StatusOK, models.Response{
-			Code:      models.SUCCESS_CODE,
+		c.JSON(http.StatusOK, common.Response{
+			Code:      common.SUCCESS_CODE,
 			Message:   "获取任务状态成功",
 			Data:      taskResult,
 			Timestamp: utils.GetCurrentTime(),
@@ -91,8 +91,8 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	}
 
 	if len(info.Result) == 0 {
-		c.JSON(http.StatusOK, models.Response{
-			Code:      models.SUCCESS_CODE,
+		c.JSON(http.StatusOK, common.Response{
+			Code:      common.SUCCESS_CODE,
 			Message:   "获取任务状态成功",
 			Data:      taskResult,
 			Timestamp: utils.GetCurrentTime(),
@@ -102,16 +102,16 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 
 	err = json.Unmarshal(info.Result, &taskResult)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "解析任务结果失败: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "获取任务状态成功",
 		Data:      taskResult,
 		Timestamp: utils.GetCurrentTime(),

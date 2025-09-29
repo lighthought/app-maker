@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"shared-models/common"
 	"strings"
 	"time"
 
@@ -53,8 +54,8 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 	// 获取项目 GUID
 	projectGUID := c.Param("guid")
 	if projectGUID == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -66,8 +67,8 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 	// 在升级 WebSocket 之前进行认证验证
 	token := c.Query("token")
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      models.UNAUTHORIZED,
+		c.JSON(http.StatusUnauthorized, common.ErrorResponse{
+			Code:      common.UNAUTHORIZED,
 			Message:   "Token is required",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -78,8 +79,8 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	parts := strings.Split(token, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      models.UNAUTHORIZED,
+		c.JSON(http.StatusUnauthorized, common.ErrorResponse{
+			Code:      common.UNAUTHORIZED,
 			Message:   "Invalid authorization format",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -91,8 +92,8 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	claims, err := h.jwtService.ValidateToken(realToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Code:      models.UNAUTHORIZED,
+		c.JSON(http.StatusUnauthorized, common.ErrorResponse{
+			Code:      common.UNAUTHORIZED,
 			Message:   "Invalid token",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -352,8 +353,8 @@ func (h *WebSocketHandler) sendError(client *models.WebSocketClient, message, de
 func (h *WebSocketHandler) GetWebSocketStats(c *gin.Context) {
 	stats := h.webSocketService.GetStats()
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "获取 WebSocket 统计信息成功",
 		Data:      stats,
 		Timestamp: utils.GetCurrentTime(),
@@ -370,8 +371,8 @@ func (h *WebSocketHandler) HealthCheck(c *gin.Context) {
 		"stats":     stats,
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "WebSocket 服务健康",
 		Data:      health,
 		Timestamp: utils.GetCurrentTime(),
@@ -385,8 +386,8 @@ func (h *WebSocketHandler) HealthCheck(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} models.Response{data=map[string]interface{}}
-// @Failure 401 {object} models.ErrorResponse
+// @Success 200 {object} common.Response{data=map[string]interface{}}
+// @Failure 401 {object} common.ErrorResponse
 // @Router /api/v1/debug/websocket [get]
 func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
 	stats := h.webSocketService.GetStats()
@@ -419,8 +420,8 @@ func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
 		},
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "WebSocket 调试信息获取成功",
 		Data:      debugInfo,
 		Timestamp: utils.GetCurrentTime(),

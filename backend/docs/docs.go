@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.LoginRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginRequest"
                         }
                     }
                 ],
@@ -45,13 +45,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.LoginResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -61,13 +61,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -101,13 +101,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.LoginResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -117,13 +117,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -149,7 +149,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RegisterRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.RegisterRequest"
                         }
                     }
                 ],
@@ -159,13 +159,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.LoginResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -175,13 +175,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -511,7 +511,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
@@ -528,7 +528,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -571,13 +571,13 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -799,7 +799,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
@@ -807,7 +807,7 @@ const docTemplate = `{
                                         "data": {
                                             "allOf": [
                                                 {
-                                                    "$ref": "#/definitions/models.PaginationResponse"
+                                                    "$ref": "#/definitions/autocodeweb-backend_internal_models.PaginationResponse"
                                                 },
                                                 {
                                                     "type": "object",
@@ -815,7 +815,7 @@ const docTemplate = `{
                                                         "data": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/models.ProjectInfo"
+                                                                "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
                                                             }
                                                         }
                                                     }
@@ -830,19 +830,19 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -871,7 +871,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateProjectRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.CreateProjectRequest"
                         }
                     }
                 ],
@@ -881,13 +881,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ProjectInfo"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -897,19 +897,19 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -952,31 +952,31 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "访问被拒绝",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "项目不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1015,13 +1015,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ProjectInfo"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -1031,25 +1031,25 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "项目不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1084,31 +1084,31 @@ const docTemplate = `{
                     "200": {
                         "description": "项目删除成功",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "访问被拒绝",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1201,19 +1201,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "404": {
                         "description": "任务不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1259,13 +1259,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginationResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.PaginationResponse"
                                         }
                                     }
                                 }
@@ -1275,13 +1275,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1312,7 +1312,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ChangePasswordRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -1320,19 +1320,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1360,13 +1360,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1396,13 +1396,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.UserInfo"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
                                         }
                                     }
                                 }
@@ -1412,13 +1412,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1447,7 +1447,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateProfileRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -1455,25 +1455,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1510,19 +1510,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1530,7 +1530,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.ChangePasswordRequest": {
+        "autocodeweb-backend_internal_models.ChangePasswordRequest": {
             "type": "object",
             "required": [
                 "new_password",
@@ -1548,7 +1548,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateProjectRequest": {
+        "autocodeweb-backend_internal_models.CreateProjectRequest": {
             "type": "object",
             "required": [
                 "requirements"
@@ -1560,24 +1560,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 400
-                },
-                "message": {
-                    "type": "string",
-                    "example": "请求参数错误"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
-                }
-            }
-        },
-        "models.LoginRequest": {
+        "autocodeweb-backend_internal_models.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1595,7 +1578,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.LoginResponse": {
+        "autocodeweb-backend_internal_models.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -1609,11 +1592,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/models.UserInfo"
+                    "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
                 }
             }
         },
-        "models.PaginationResponse": {
+        "autocodeweb-backend_internal_models.PaginationResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -1655,7 +1638,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ProjectInfo": {
+        "autocodeweb-backend_internal_models.ProjectInfo": {
             "type": "object",
             "properties": {
                 "backend_port": {
@@ -1697,7 +1680,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/models.UserInfo"
+                    "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
                 },
                 "user_id": {
                     "type": "string",
@@ -1705,7 +1688,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.RegisterRequest": {
+        "autocodeweb-backend_internal_models.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1730,25 +1713,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Response": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 0
-                },
-                "data": {},
-                "message": {
-                    "type": "string",
-                    "example": "success"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
-                }
-            }
-        },
-        "models.UpdateProfileRequest": {
+        "autocodeweb-backend_internal_models.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1763,7 +1728,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UserInfo": {
+        "autocodeweb-backend_internal_models.UserInfo": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1788,6 +1753,41 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "username"
+                }
+            }
+        },
+        "common.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 400
+                },
+                "message": {
+                    "type": "string",
+                    "example": "请求参数错误"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
+                }
+            }
+        },
+        "common.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
                 }
             }
         }

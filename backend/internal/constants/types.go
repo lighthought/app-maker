@@ -1,12 +1,6 @@
 package constants
 
 const (
-	ConversationTypeUser   = "user"
-	ConversationTypeAgent  = "agent"
-	ConversationTypeSystem = "system"
-)
-
-const (
 	WebSocketMessageTypePing                 = "ping"
 	WebSocketMessageTypePong                 = "pong"
 	WebSocketMessageTypeJoinProject          = "join_project"

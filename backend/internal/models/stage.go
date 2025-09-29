@@ -2,6 +2,7 @@ package models
 
 import (
 	"autocodeweb-backend/internal/constants"
+	"shared-models/common"
 	"time"
 
 	"gorm.io/gorm"
@@ -65,17 +66,17 @@ func (DevStage) TableName() string {
 	return "dev_stages"
 }
 
-func NewDevStage(project *Project, stageName string, status string) *DevStage {
+func NewDevStage(project *Project, stageName common.DevStage, status string) *DevStage {
 	if status == "" {
-		status = constants.CommandStatusInProgress
+		status = common.CommandStatusInProgress
 	}
 	return &DevStage{
 		ProjectID:   project.ID,
 		ProjectGuid: project.GUID,
-		Name:        stageName,
+		Name:        string(stageName),
 		Status:      status,
 		Progress:    constants.GetProgressByCommandStatus(status),
-		Description: constants.GetDevStageDescription(stageName),
+		Description: constants.GetDevStageDescription(common.DevStage(stageName)),
 	}
 }
 

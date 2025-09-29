@@ -29,7 +29,7 @@ func (g *projectNameGenerator) GenerateProjectConfig(requirements string, projec
 
 	// 设置项目配置
 	projectConfig.Name = "newproj"
-	projectConfig.Description = requirements
+	projectConfig.Description = "这是一个新的项目"
 	projectConfig.Requirements = requirements
 	projectConfig.ApiBaseUrl = "/api/v1"
 

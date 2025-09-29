@@ -14,6 +14,8 @@ import (
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 
+	"shared-models/common"
+
 	"github.com/hibiken/asynq"
 )
 
@@ -77,21 +79,9 @@ func NewProjectService(
 	}
 }
 
-var (
-	AgentAnalyst    = models.Agent{Name: "Mary", Role: "analyst", ChineseRole: "需求分析师"}
-	AgentDev        = models.Agent{Name: "James", Role: "dev", ChineseRole: "开发工程师"}
-	AgentPM         = models.Agent{Name: "John", Role: "pm", ChineseRole: "产品经理"}
-	AgentPO         = models.Agent{Name: "Sarah", Role: "po", ChineseRole: "产品负责人"}
-	AgentArchitect  = models.Agent{Name: "Winston", Role: "architect", ChineseRole: "架构师"}
-	AgentUXExpert   = models.Agent{Name: "Sally", Role: "ux-expert", ChineseRole: "用户体验专家"}
-	AgentQA         = models.Agent{Name: "Quinn", Role: "qa", ChineseRole: "测试和质量工程师"}
-	AgentSM         = models.Agent{Name: "Bob", Role: "sm", ChineseRole: "敏捷教练"}
-	AgentBMADMaster = models.Agent{Name: "BMad Master", Role: "bmad-master", ChineseRole: "BMAD管理员"}
-)
-
 // 统一由这个函数更新项目状态
 func (s *projectService) notifyProjectStatusChange(ctx context.Context,
-	project *models.Project, message *models.ConversationMessage, stageName string) {
+	project *models.Project, message *models.ConversationMessage, stageName common.DevStage) {
 	if message != nil {
 		// 保存用户消息
 		if err := s.projectMsgRepo.Create(ctx, message); err != nil {
@@ -105,7 +95,7 @@ func (s *projectService) notifyProjectStatusChange(ctx context.Context,
 
 	if stageName != "" {
 		// 插入项目阶段
-		stage := models.NewDevStage(project, stageName, constants.CommandStatusInProgress)
+		stage := models.NewDevStage(project, stageName, common.CommandStatusInProgress)
 
 		if err := s.projectStageRepo.Create(ctx, stage); err != nil {
 			logger.Error("插入项目阶段失败",
@@ -192,7 +182,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	// asynq 异步调用初始化项目流程
 	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectInitTask(newProject.ID, newProject.GUID, newProject.ProjectPath))
 	if err != nil {
-		stage := models.NewDevStage(newProject, constants.DevStatusInitializing, constants.CommandStatusFailed)
+		stage := models.NewDevStage(newProject, common.DevStatusInitializing, common.CommandStatusFailed)
 		if err = s.projectStageRepo.Create(ctx, stage); err != nil {
 			logger.Error("插入项目阶段失败",
 				logger.String("error", err.Error()),
@@ -226,7 +216,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	userMsg := models.NewUserMessage(newProject)
-	s.notifyProjectStatusChange(ctx, newProject, userMsg, constants.DevStatusInitializing)
+	s.notifyProjectStatusChange(ctx, newProject, userMsg, common.DevStatusInitializing)
 	return projectInfo, nil
 }
 
@@ -249,12 +239,12 @@ func (s *projectService) updateStage(ctx context.Context, stage *models.DevStage
 func (s *projectService) reportTaskAndStageError(ctx context.Context,
 	projectID string, errMsg string, resultWriter *asynq.ResultWriter, devStage *models.DevStage) {
 	if resultWriter != nil {
-		utils.UpdateResult(resultWriter, constants.CommandStatusFailed, 100, errMsg)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 100, errMsg)
 	}
 
 	if devStage != nil {
-		devStage.Status = constants.CommandStatusFailed
-		devStage.Progress = constants.GetProgressByCommandStatus(constants.CommandStatusFailed)
+		devStage.Status = common.CommandStatusFailed
+		devStage.Progress = constants.GetProgressByCommandStatus(common.CommandStatusFailed)
 		devStage.TaskID = resultWriter.TaskID()
 		devStage.FailedReason = errMsg
 		s.updateStage(ctx, devStage)
@@ -269,7 +259,7 @@ func (s *projectService) reportTaskAndStageError(ctx context.Context,
 // updateProjectToEnvironmentStage 更新项目阶段
 func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, projectID, taskID string) (*models.Project, *models.DevStage) {
 	// 更新 initializing 的 stage 为 done，表示 API 内部这个 async 调用成功，也获取到了合法的数据
-	stage, err := s.projectStageRepo.UpdateStageToDone(ctx, projectID, constants.DevStatusInitializing)
+	stage, err := s.projectStageRepo.UpdateStageToDone(ctx, projectID, string(common.DevStatusInitializing))
 	if err != nil {
 		logger.Error("更新项目阶段失败",
 			logger.String("error", err.Error()),
@@ -287,9 +277,9 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 		return nil, nil
 	}
 
-	project.Status = constants.CommandStatusInProgress
+	project.Status = common.CommandStatusInProgress
 	project.CurrentTaskID = taskID
-	project.SetDevStatus(constants.DevStatusSetupEnvironment)
+	project.SetDevStatus(common.DevStatusSetupEnvironment)
 	s.projectRepo.Update(ctx, project)
 
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
@@ -303,8 +293,8 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 		)
 	}
 	for _, stage := range projectStages {
-		if stage.Name == constants.DevStatusSetupEnvironment {
-			stage.SetStatus(constants.CommandStatusInProgress)
+		if stage.Name == string(common.DevStatusSetupEnvironment) {
+			stage.SetStatus(common.CommandStatusInProgress)
 			stage.TaskID = taskID
 			s.updateStage(ctx, stage)
 			return project, stage
@@ -312,7 +302,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 	}
 
 	// 没有，才插入环境准备的阶段
-	projectStage := models.NewDevStage(project, constants.DevStatusSetupEnvironment, constants.CommandStatusInProgress)
+	projectStage := models.NewDevStage(project, common.DevStatusSetupEnvironment, common.CommandStatusInProgress)
 	projectStage.TaskID = taskID
 	if err := s.projectStageRepo.Create(ctx, projectStage); err != nil {
 		logger.Error("插入项目阶段失败",
@@ -335,7 +325,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 
 	// 已经生成过，跳过
 	if project.Name != "" && project.Name != "newproj" && project.Description != "" {
-		utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "项目名和描述已存在")
+		utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 40, "项目名和描述已存在")
 		logger.Info("项目名和描述已存在，跳过生成")
 		return
 	}
@@ -350,16 +340,16 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 		return
 	}
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 20, "生成项目名和描述成功")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 20, "生成项目名和描述成功")
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeSystem,
-		AgentRole:       AgentAnalyst.Role,
-		AgentName:       AgentAnalyst.Name,
+		Type:            common.ConversationTypeSystem,
+		AgentRole:       common.AgentAnalyst.Role,
+		AgentName:       common.AgentAnalyst.Name,
 		Content:         "项目简介已生成",
 		IsMarkdown:      true,
 		MarkdownContent: "* 项目名称：" + summary.Title + ",\n* 项目简介：" + summary.Content,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
@@ -369,7 +359,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 		)
 	}
 	s.webSocketService.NotifyProjectMessage(ctx, project.GUID, projectMsg)
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "项目简介已生成")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 30, "项目简介已生成")
 
 	project.Name = strings.ToLower(summary.Title)
 	project.Description = summary.Content
@@ -381,7 +371,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 
 	s.projectRepo.Update(ctx, project)
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "更新项目信息成功")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 40, "更新项目信息成功")
 }
 
 func (s *projectService) initProjectTemplate(ctx context.Context, project *models.Project,
@@ -393,7 +383,7 @@ func (s *projectService) initProjectTemplate(ctx context.Context, project *model
 
 	// 已经初始化过，跳过
 	if project.ProjectPath != "" && utils.IsDirectoryExists(project.ProjectPath) {
-		utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目模板已初始化")
+		utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 60, "项目模板已初始化")
 		logger.Info("项目模板已初始化，跳过初始化")
 		return
 	}
@@ -409,17 +399,17 @@ func (s *projectService) initProjectTemplate(ctx context.Context, project *model
 		return
 	}
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目模板初始化成功")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 60, "项目模板初始化成功")
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeSystem,
-		AgentRole:       AgentDev.Role,
-		AgentName:       AgentDev.Name,
+		Type:            common.ConversationTypeSystem,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
 		Content:         "项目模板初始化成功",
 		IsMarkdown:      true,
 		MarkdownContent: "* 项目GUID：" + project.GUID + ",\n* 项目名称：" + project.Name + ",\n* 项目路径：" + project.ProjectPath,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
@@ -436,7 +426,7 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 
 	// 已经提交过，跳过
 	if project.GitlabRepoURL != "" {
-		utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 70, "项目代码已提交到GitLab")
+		utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 70, "项目代码已提交到GitLab")
 		logger.Info("项目代码已提交到GitLab，跳过提交")
 		return nil
 	}
@@ -451,16 +441,16 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 		return fmt.Errorf("提交代码到GitLab失败: %w", err)
 	}
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 70, "提交代码到GitLab成功")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 70, "提交代码到GitLab成功")
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeSystem,
-		AgentRole:       AgentDev.Role,
-		AgentName:       AgentDev.Name,
+		Type:            common.ConversationTypeSystem,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
 		Content:         "项目代码已成功提交到GitLab",
 		IsMarkdown:      true,
 		MarkdownContent: "* 项目GUID：" + project.GUID + ", \n* 项目名称：" + project.Name + ",\n* GitLab仓库路径：" + project.GitlabRepoURL,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	if err := s.projectMsgRepo.Create(ctx, projectMsg); err != nil {
@@ -481,7 +471,7 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 // callAgentServer 调用AgentServer
 func (s *projectService) callAgentServer(ctx context.Context, project *models.Project,
 	resultWriter *asynq.ResultWriter, projectStage *models.DevStage) error {
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 80, "项目创建完成，开发流程已启动")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 80, "项目创建完成，开发流程已启动")
 
 	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectDevelopmentTask(project.ID, project.GUID, project.GitlabRepoURL))
 	if err != nil {
@@ -495,9 +485,9 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid: project.GUID,
-		Type:        constants.ConversationTypeSystem,
-		AgentRole:   AgentPM.Role,
-		AgentName:   AgentPM.Name,
+		Type:        common.ConversationTypeSystem,
+		AgentRole:   common.AgentPM.Role,
+		AgentName:   common.AgentPM.Name,
 		Content:     "项目创建完成，开发流程已启动",
 		IsMarkdown:  true,
 		MarkdownContent: "```json\n{\n\"id\": \"" + project.ID +
@@ -505,19 +495,19 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 			"\",\n\"name\": \"" + project.Name +
 			"\",\n\"path\":\"" + project.ProjectPath +
 			"\",\n \"taskID\": \"" + taskInfo.ID + "\"\n}\n```",
-		IsExpanded: false,
+		IsExpanded: true,
 	}
 
-	s.notifyProjectStatusChange(ctx, project, projectMsg, constants.DevStatusPendingAgents)
+	s.notifyProjectStatusChange(ctx, project, projectMsg, common.DevStatusPendingAgents)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusDone, 100, "项目初始化任务完成")
+	utils.UpdateResult(resultWriter, common.CommandStatusDone, 100, "项目初始化任务完成")
 
-	project.Status = constants.CommandStatusInProgress
+	project.Status = common.CommandStatusInProgress
 	project.CurrentTaskID = taskInfo.ID
 	s.projectRepo.Update(ctx, project)
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
-	projectStage.SetStatus(constants.CommandStatusDone)
+	projectStage.SetStatus(common.CommandStatusDone)
 	s.updateStage(ctx, projectStage)
 	return nil
 }
@@ -525,7 +515,7 @@ func (s *projectService) callAgentServer(ctx context.Context, project *models.Pr
 // HandleProjectInitTask 处理项目初始化任务
 func (s *projectService) HandleProjectInitTask(ctx context.Context, t *asynq.Task) error {
 	resultWriter := t.ResultWriter()
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 10, "项目初始化任务执行中")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 10, "项目初始化任务执行中")
 
 	var payload models.ProjectTaskPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
@@ -620,7 +610,7 @@ func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectLi
 	// 构建分页响应
 	totalPages := (int(total) + req.PageSize - 1) / req.PageSize
 	pagination := &models.PaginationResponse{
-		Code:        models.SUCCESS_CODE,
+		Code:        common.SUCCESS_CODE,
 		Message:     "success",
 		Total:       int(total),
 		Page:        req.Page,
@@ -660,7 +650,7 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 	// 构建分页响应
 	totalPages := (int(total) + req.PageSize - 1) / req.PageSize
 	pagination := &models.PaginationResponse{
-		Code:        models.SUCCESS_CODE,
+		Code:        common.SUCCESS_CODE,
 		Message:     "success",
 		Total:       int(total),
 		Page:        req.Page,
@@ -752,7 +742,7 @@ func (s *projectService) commitProjectToGit(ctx context.Context, project *models
 		return fmt.Errorf("提交代码到GitLab失败: %w", err)
 	}
 
-	project.Status = constants.CommandStatusInProgress
+	project.Status = common.CommandStatusInProgress
 	s.projectRepo.Update(ctx, project)
 
 	logger.Info("项目代码已成功提交到GitLab",

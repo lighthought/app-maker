@@ -165,7 +165,7 @@ external-services:
 # 生成Swagger文档
 swagger:
 	@echo "Generating Swagger documentation..."
-	cd backend && swag init -g cmd/server/main.go -o docs
+	cd backend && swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
 
 # 构建开发环境镜像
 build-dev: docker-ensure network-create swagger docker-image-pull
@@ -202,7 +202,7 @@ print-ssh-pub:
 	@echo "=========================================="
 	@echo "Checking GitLab SSH Connection..."
 	@echo "=========================================="
-	@docker-compose exec -T backend ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -T git@gitlab.lighthought.com >nul 2>&1 && ( \
+	@docker-compose exec -T backend ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -T git@gitlab >nul 2>&1 && ( \
 		echo "[OK] SSH key is already configured for GitLab!" && \
 		echo "GitLab connection is working properly." \
 	) || ( \

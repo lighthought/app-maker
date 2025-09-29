@@ -8,18 +8,21 @@ WORKDIR /app
 # 安装必要的系统依赖
 RUN apk add --no-cache git ca-certificates tzdata
 
-# 复制 go mod 文件
-COPY go.mod go.sum ./
+# 复制 shared-models 目录
+COPY shared-models/ ../shared-models/
+
+# 复制 backend 的 go mod 文件
+COPY backend/go.mod backend/go.sum ./
 
 # 下载依赖
 RUN go mod download
 
-# 复制源代码
-COPY . .
+# 复制 backend 源代码
+COPY backend/ .
 
 # 安装 swag 工具并生成 API 文档
 RUN go install github.com/swaggo/swag/cmd/swag@latest && \
-    swag init -g cmd/server/main.go -o docs
+    swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
 
 # 构建应用
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go

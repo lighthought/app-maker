@@ -3,9 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/cache"
+
+	"shared-models/common"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,16 +36,16 @@ func NewCacheHandler(cache cache.Cache, monitor *cache.Monitor) *CacheHandler {
 // @Router /api/v1/cache/health [get]
 func (h *CacheHandler) HealthCheck(c *gin.Context) {
 	if err := h.cache.Ping(); err != nil {
-		c.JSON(http.StatusServiceUnavailable, models.ErrorResponse{
-			Code:      models.SERVICE_UNAVAILABLE,
+		c.JSON(http.StatusServiceUnavailable, common.ErrorResponse{
+			Code:      common.SERVICE_UNAVAILABLE,
 			Message:   "缓存服务不可用",
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "缓存服务正常",
 		Timestamp: utils.GetCurrentTime(),
 	})
@@ -62,16 +63,16 @@ func (h *CacheHandler) HealthCheck(c *gin.Context) {
 func (h *CacheHandler) GetStats(c *gin.Context) {
 	stats, err := h.monitor.GetFullStats()
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取统计信息失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "成功获取统计信息",
 		Data:      stats,
 		Timestamp: utils.GetCurrentTime(),
@@ -90,16 +91,16 @@ func (h *CacheHandler) GetStats(c *gin.Context) {
 func (h *CacheHandler) GetMemoryUsage(c *gin.Context) {
 	memory, err := h.monitor.GetMemoryUsage()
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取内存使用情况失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "成功获取内存使用情况",
 		Data:      memory,
 		Timestamp: utils.GetCurrentTime(),
@@ -118,16 +119,16 @@ func (h *CacheHandler) GetMemoryUsage(c *gin.Context) {
 func (h *CacheHandler) GetKeyspaceStats(c *gin.Context) {
 	stats, err := h.monitor.GetKeyspaceStats()
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取键空间统计失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "成功获取键空间统计",
 		Data:      stats,
 		Timestamp: utils.GetCurrentTime(),
@@ -146,16 +147,16 @@ func (h *CacheHandler) GetKeyspaceStats(c *gin.Context) {
 func (h *CacheHandler) GetPerformanceMetrics(c *gin.Context) {
 	metrics, err := h.monitor.GetPerformanceMetrics()
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取性能指标失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "成功获取性能指标",
 		Data:      metrics,
 		Timestamp: utils.GetCurrentTime(),

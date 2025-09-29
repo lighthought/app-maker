@@ -2,9 +2,9 @@ package middleware
 
 import (
 	"net/http"
+	"shared-models/common"
 	"strings"
 
-	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/auth"
 
@@ -17,8 +17,8 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-				Code:      models.UNAUTHORIZED,
+			c.JSON(http.StatusUnauthorized, common.ErrorResponse{
+				Code:      common.UNAUTHORIZED,
 				Message:   "Authorization header required",
 				Timestamp: utils.GetCurrentTime(),
 			})
@@ -29,8 +29,8 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 解析Bearer token
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-				Code:      models.UNAUTHORIZED,
+			c.JSON(http.StatusUnauthorized, common.ErrorResponse{
+				Code:      common.UNAUTHORIZED,
 				Message:   "Invalid authorization format",
 				Timestamp: utils.GetCurrentTime(),
 			})
@@ -43,8 +43,8 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 验证JWT token
 		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-				Code:      models.UNAUTHORIZED,
+			c.JSON(http.StatusUnauthorized, common.ErrorResponse{
+				Code:      common.UNAUTHORIZED,
 				Message:   "Invalid token",
 				Timestamp: utils.GetCurrentTime(),
 			})

@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
 	"net/http"
 	"os"
+	"shared-models/common"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,14 +34,14 @@ func NewFileHandler(fileService services.FileService, projectService services.Pr
 // @Security Bearer
 // @Param filePath query string true "文件路径"
 // @Success 200 {file} file "文件"
-// @Failure 400 {object} models.ErrorResponse "请求参数错误"
-// @Failure 500 {object} models.ErrorResponse "服务器内部错误"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
 // @Router /api/v1/files/download [get]
 func (h *FileHandler) DownloadFile(c *gin.Context) {
 	filePath := c.Query("filePath")
 	if filePath == "" {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusNotFound, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "文件路径不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -55,8 +55,8 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusNotFound, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "文件路径不合法: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -65,8 +65,8 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 
 	file, err := os.Open(fullPath)
 	if err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{
-			Code:      models.NOT_FOUND,
+		c.JSON(http.StatusNotFound, common.ErrorResponse{
+			Code:      common.NOT_FOUND,
 			Message:   "文件不存在: " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -95,8 +95,8 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -108,16 +108,16 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 
 	files, err := h.fileService.GetProjectFiles(c.Request.Context(), userID, projectGuid, path)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取文件列表失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "success",
 		Data:      files,
 		Timestamp: utils.GetCurrentTime(),
@@ -140,8 +140,8 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 func (h *FileHandler) GetFileContent(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -150,8 +150,8 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 
 	filePath := c.Query("filePath")
 	if filePath == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "文件路径不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -162,16 +162,16 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 
 	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectGuid, filePath)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取文件内容失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "success",
 		Data:      content,
 		Timestamp: utils.GetCurrentTime(),

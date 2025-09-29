@@ -1,7 +1,7 @@
 package models
 
 import (
-	"autocodeweb-backend/internal/constants"
+	"shared-models/common"
 	"time"
 
 	"gorm.io/gorm"
@@ -48,9 +48,9 @@ func (c *ConversationMessage) Copy(other *ConversationMessage) {
 func NewUserMessage(project *Project) *ConversationMessage {
 	return &ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeUser,
-		AgentRole:       "user",
-		AgentName:       "user",
+		Type:            common.ConversationTypeUser,
+		AgentRole:       common.AgentTypeUser,
+		AgentName:       common.AgentTypeUser,
 		Content:         project.Requirements,
 		IsMarkdown:      false,
 		MarkdownContent: project.Requirements,

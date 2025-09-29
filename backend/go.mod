@@ -19,9 +19,13 @@ require (
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.40.0
-	golang.org/x/sync v0.16.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
+)
+
+require (
+	golang.org/x/sync v0.16.0 // indirect
+	shared-models v0.0.0 // indirect
 )
 
 require (
@@ -45,7 +49,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/gorilla/websocket v1.5.3
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
@@ -63,7 +67,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/ollama/ollama v0.11.11 // indirect
+	github.com/ollama/ollama v0.11.11
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
@@ -87,3 +91,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace shared-models => ../shared-models

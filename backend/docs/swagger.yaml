@@ -1,5 +1,5 @@
 definitions:
-  models.ChangePasswordRequest:
+  autocodeweb-backend_internal_models.ChangePasswordRequest:
     properties:
       new_password:
         example: newpassword123
@@ -12,7 +12,7 @@ definitions:
     - new_password
     - old_password
     type: object
-  models.CreateProjectRequest:
+  autocodeweb-backend_internal_models.CreateProjectRequest:
     properties:
       requirements:
         example: 项目需求描述
@@ -20,19 +20,7 @@ definitions:
     required:
     - requirements
     type: object
-  models.ErrorResponse:
-    properties:
-      code:
-        example: 400
-        type: integer
-      message:
-        example: 请求参数错误
-        type: string
-      timestamp:
-        example: "2025-08-29T10:00:00Z"
-        type: string
-    type: object
-  models.LoginRequest:
+  autocodeweb-backend_internal_models.LoginRequest:
     properties:
       email:
         example: user@example.com
@@ -45,7 +33,7 @@ definitions:
     - email
     - password
     type: object
-  models.LoginResponse:
+  autocodeweb-backend_internal_models.LoginResponse:
     properties:
       access_token:
         type: string
@@ -55,9 +43,9 @@ definitions:
       refresh_token:
         type: string
       user:
-        $ref: '#/definitions/models.UserInfo'
+        $ref: '#/definitions/autocodeweb-backend_internal_models.UserInfo'
     type: object
-  models.PaginationResponse:
+  autocodeweb-backend_internal_models.PaginationResponse:
     properties:
       code:
         example: 0
@@ -88,7 +76,7 @@ definitions:
         example: 10
         type: integer
     type: object
-  models.ProjectInfo:
+  autocodeweb-backend_internal_models.ProjectInfo:
     properties:
       backend_port:
         example: 8080
@@ -119,12 +107,12 @@ definitions:
       updated_at:
         type: string
       user:
-        $ref: '#/definitions/models.UserInfo'
+        $ref: '#/definitions/autocodeweb-backend_internal_models.UserInfo'
       user_id:
         example: USER_00000000001
         type: string
     type: object
-  models.RegisterRequest:
+  autocodeweb-backend_internal_models.RegisterRequest:
     properties:
       email:
         example: user@example.com
@@ -143,20 +131,7 @@ definitions:
     - password
     - username
     type: object
-  models.Response:
-    properties:
-      code:
-        example: 0
-        type: integer
-      data: {}
-      message:
-        example: success
-        type: string
-      timestamp:
-        example: "2025-08-29T10:00:00Z"
-        type: string
-    type: object
-  models.UpdateProfileRequest:
+  autocodeweb-backend_internal_models.UpdateProfileRequest:
     properties:
       email:
         example: newemail@example.com
@@ -167,7 +142,7 @@ definitions:
         minLength: 3
         type: string
     type: object
-  models.UserInfo:
+  autocodeweb-backend_internal_models.UserInfo:
     properties:
       created_at:
         type: string
@@ -187,6 +162,31 @@ definitions:
         example: username
         type: string
     type: object
+  common.ErrorResponse:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: 请求参数错误
+        type: string
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
+    type: object
+  common.Response:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data: {}
+      message:
+        example: success
+        type: string
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
+    type: object
 info:
   contact: {}
 paths:
@@ -201,7 +201,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.LoginRequest'
+          $ref: '#/definitions/autocodeweb-backend_internal_models.LoginRequest'
       produces:
       - application/json
       responses:
@@ -209,19 +209,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.LoginResponse'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.LoginResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 用户登录
       tags:
       - 用户管理
@@ -243,19 +243,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.LoginResponse'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.LoginResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 刷新令牌
       tags:
       - 用户管理
@@ -270,7 +270,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.RegisterRequest'
+          $ref: '#/definitions/autocodeweb-backend_internal_models.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -278,19 +278,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.LoginResponse'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.LoginResponse'
               type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 用户注册
       tags:
       - 用户管理
@@ -504,7 +504,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
                   additionalProperties: true
@@ -513,7 +513,7 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 获取 WebSocket 调试信息
@@ -540,11 +540,11 @@ paths:
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 下载文件
@@ -689,30 +689,30 @@ paths:
           description: 获取项目列表成功
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
                   allOf:
-                  - $ref: '#/definitions/models.PaginationResponse'
+                  - $ref: '#/definitions/autocodeweb-backend_internal_models.PaginationResponse'
                   - properties:
                       data:
                         items:
-                          $ref: '#/definitions/models.ProjectInfo'
+                          $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
                         type: array
                     type: object
               type: object
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 获取项目列表
@@ -728,7 +728,7 @@ paths:
         name: project
         required: true
         schema:
-          $ref: '#/definitions/models.CreateProjectRequest'
+          $ref: '#/definitions/autocodeweb-backend_internal_models.CreateProjectRequest'
       produces:
       - application/json
       responses:
@@ -736,23 +736,23 @@ paths:
           description: 项目创建成功
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.ProjectInfo'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
               type: object
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 创建项目
@@ -775,23 +775,23 @@ paths:
         "200":
           description: 项目删除成功
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "403":
           description: 访问被拒绝
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 删除项目
@@ -814,27 +814,27 @@ paths:
           description: 获取项目成功
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.ProjectInfo'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
               type: object
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "404":
           description: 项目不存在
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 获取项目信息
@@ -897,23 +897,23 @@ paths:
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "403":
           description: 访问被拒绝
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "404":
           description: 项目不存在
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 下载项目文件
@@ -936,15 +936,15 @@ paths:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "404":
           description: 任务不存在
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器内部错误
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 获取任务状态
@@ -973,19 +973,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.PaginationResponse'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.PaginationResponse'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 获取用户列表
@@ -1008,15 +1008,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 删除用户
@@ -1033,22 +1033,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ChangePasswordRequest'
+          $ref: '#/definitions/autocodeweb-backend_internal_models.ChangePasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 修改密码
@@ -1065,11 +1065,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 用户登出
@@ -1087,19 +1087,19 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/models.Response'
+            - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.UserInfo'
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.UserInfo'
               type: object
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 获取用户档案
@@ -1115,26 +1115,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateProfileRequest'
+          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateProfileRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       security:
       - Bearer: []
       summary: 更新用户档案

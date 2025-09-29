@@ -1,20 +1,20 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	cfgPkg "autocodeweb-backend/internal/config"
-	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/utils"
 	"autocodeweb-backend/pkg/logger"
+
+	"shared-models/agent"
+	"shared-models/client"
+	"shared-models/common"
 
 	"github.com/hibiken/asynq"
 )
@@ -54,6 +54,11 @@ func NewProjectStageService(
 	}
 }
 
+// GetProjectStages 获取项目开发阶段
+func (s *projectStageService) GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error) {
+	return s.stageRepo.GetByProjectGUID(ctx, projectGuid)
+}
+
 // ProcessTask 处理项目任务
 func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
@@ -75,7 +80,7 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 	logger.Info("处理项目开发任务", logger.String("taskID", resultWriter.TaskID()))
 
 	// 更新 pending agents 的 stage 为 done，表示 API 内部这个 async 调用成功，也获取到了合法的数据
-	if stagePendingAgents, err := s.stageRepo.UpdateStageToDone(ctx, payload.ProjectID, constants.DevStatusPendingAgents); err != nil {
+	if stagePendingAgents, err := s.stageRepo.UpdateStageToDone(ctx, payload.ProjectID, string(common.DevStatusPendingAgents)); err != nil {
 		logger.Error("更新项目阶段失败",
 			logger.String("error", err.Error()),
 			logger.String("projectID", payload.ProjectID),
@@ -93,7 +98,7 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 	}
 
 	s.executeProjectDevelopment(ctx, project, resultWriter)
-	utils.UpdateResult(resultWriter, constants.CommandStatusDone, 100, "项目开发任务完成")
+	utils.UpdateResult(resultWriter, common.CommandStatusDone, 100, "项目开发任务完成")
 	return nil
 }
 
@@ -121,7 +126,7 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 				)
 			}
 
-			project.SetDevStatus(stage.Name)
+			project.SetDevStatus(common.DevStage(stage.Name))
 			s.projectRepo.Update(ctx, project)
 			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, stage)
 
@@ -151,23 +156,28 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
 		logger.String("projectID", project.ID),
 	)
 
+	if s.agentsURL != "" {
+		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
+	}
+	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Second)
+
 	// 2. 执行开发阶段
 	stages := []struct {
-		status      string
+		status      common.DevStage
 		description string
-		executor    func(context.Context, *models.Project, *asynq.ResultWriter) error
+		executor    func(context.Context, *models.Project, *asynq.ResultWriter, *client.AgentClient) error
 	}{
-		{constants.DevStatusCheckRequirement, "检查需求", s.checkRequirement},
-		{constants.DevStatusGeneratePRD, "生成PRD文档", s.generatePRD},
-		{constants.DevStatusDefineUXStandard, "定义UX标准", s.defineUXStandards},
-		{constants.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
-		{constants.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
-		{constants.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
-		{constants.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
-		{constants.DevStatusDevelopStory, "开发Story功能", s.developStories},
-		{constants.DevStatusFixBug, "修复开发问题", s.fixBugs},
-		{constants.DevStatusRunTest, "执行自动测试", s.runTests},
-		{constants.DevStatusDeploy, "打包项目", s.packageProject},
+		{common.DevStatusCheckRequirement, "检查需求", s.checkRequirement},
+		{common.DevStatusGeneratePRD, "生成PRD文档", s.generatePRD},
+		{common.DevStatusDefineUXStandard, "定义UX标准", s.defineUXStandards},
+		{common.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
+		{common.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
+		{common.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
+		{common.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
+		{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
+		{common.DevStatusFixBug, "修复开发问题", s.fixBugs},
+		{common.DevStatusRunTest, "执行自动测试", s.runTests},
+		{common.DevStatusDeploy, "打包项目", s.packageProject},
 	}
 
 	for _, stage := range stages {
@@ -176,15 +186,15 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
 		s.projectRepo.Update(ctx, project)
 
 		// 执行阶段
-		if err := stage.executor(ctx, project, resultWriter); err != nil {
+		if err := stage.executor(ctx, project, resultWriter, agentClient); err != nil {
 			logger.Error("开发阶段执行失败",
 				logger.String("projectID", project.ID),
-				logger.String("stage", stage.status),
+				logger.String("stage", string(stage.status)),
 				logger.String("error", err.Error()),
 			)
 
 			// 更新项目状态为失败
-			project.SetDevStatus(constants.DevStatusFailed)
+			project.SetDevStatus(common.DevStatusFailed)
 			s.projectRepo.Update(ctx, project)
 
 			return
@@ -193,8 +203,8 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
 	}
 
 	// 开发完成
-	project.SetDevStatus(constants.DevStatusDone)
-	project.Status = constants.CommandStatusDone
+	project.SetDevStatus(common.DevStatusDone)
+	project.Status = common.CommandStatusDone
 	s.projectRepo.Update(ctx, project)
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
@@ -204,419 +214,396 @@ func (s *projectStageService) executeProjectDevelopment(ctx context.Context,
 }
 
 // checkRequirement 检查需求
-func (s *projectStageService) checkRequirement(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusCheckRequirement, constants.CommandStatusInProgress)
+func (s *projectStageService) checkRequirement(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusCheckRequirement, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
-	// TODO: 调用AgentServer检查需求
-
-	projectMsg := &models.ConversationMessage{
-		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentAnalyst.Role,
-		AgentName:       AgentAnalyst.Name,
-		Content:         "项目需求已检查完成",
-		IsMarkdown:      false,
-		MarkdownContent: "项目需求已检查完成",
-		IsExpanded:      false,
+	req := &agent.GetProjBriefReq{
+		ProjectGuid:  project.GUID,
+		Requirements: project.Requirements,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
-	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
-
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 10, "项目需求已检查完成")
-	return nil
-}
-
-// generatePRD 生成PRD文档
-func (s *projectStageService) generatePRD(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusGeneratePRD, constants.CommandStatusInProgress)
-	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
-	// 调用 agents-server 生成 PRD 文档，并提交到 GitLab
-	response, err := s.invokeAgentSync(ctx, project, "pm", constants.DevStatusGeneratePRD, map[string]any{
-		"requirements": project.Requirements,
-	})
+	response, err := agentClient.AnalyseProjectBrief(ctx, req)
 	if err != nil {
-		logger.Error("调用 PM Agent 生成 PRD 失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Analyst Agent 检查需求失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentPM.Role,
-		AgentName:       AgentPM.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentAnalyst.Role,
+		AgentName:       common.AgentAnalyst.Name,
+		Content:         "项目需求已检查完成",
+		IsMarkdown:      false,
+		MarkdownContent: response.MarkdownContent,
+		IsExpanded:      false,
+	}
+
+	devProjectStage.SetStatus(common.CommandStatusDone)
+	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 10, "项目需求已检查完成")
+	return nil
+}
+
+// generatePRD 生成PRD文档
+func (s *projectStageService) generatePRD(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusGeneratePRD, common.CommandStatusInProgress)
+	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+	generatePrdReq := &agent.GetPRDReq{
+		ProjectGuid:  project.GUID,
+		Requirements: project.Requirements,
+	}
+	// 调用 agents-server 生成 PRD 文档，并提交到 GitLab
+	response, err := agentClient.GetPRD(ctx, generatePrdReq)
+	if err != nil {
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 PM Agent 生成 PRD 文档失败: "+err.Error())
+		return err
+	}
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentPM.Role,
+		AgentName:       common.AgentPM.Name,
 		Content:         "项目PRD文档已生成",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 20, "项目PRD文档已生成")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 20, "项目PRD文档已生成")
 	return nil
 }
 
 // defineUXStandards 定义UX标准
-func (s *projectStageService) defineUXStandards(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusDefineUXStandard, constants.CommandStatusInProgress)
+func (s *projectStageService) defineUXStandards(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusDefineUXStandard, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.GetUXStandardReq{
+		ProjectGuid:  project.GUID,
+		Requirements: project.Requirements,
+		PrdPath:      "docs/PRD.md",
+	}
 	// 调用 agents-server 定义 UX 标准
-	response, err := s.invokeAgentSync(ctx, project, "ux", constants.DevStatusDefineUXStandard, map[string]any{})
+	response, err := agentClient.GetUXStandard(ctx, req)
 	if err != nil {
-		logger.Error("调用 UX Agent 失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 UX Agent 失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentUXExpert.Role,
-		AgentName:       AgentUXExpert.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentUXExpert.Role,
+		AgentName:       common.AgentUXExpert.Name,
 		Content:         "项目UX标准已定义",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 30, "项目UX标准已定义")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 30, "项目UX标准已定义")
 	return nil
 }
 
 // designArchitecture 设计系统架构
-func (s *projectStageService) designArchitecture(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusDesignArchitecture, constants.CommandStatusInProgress)
+func (s *projectStageService) designArchitecture(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusDesignArchitecture, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.GetArchitectureReq{
+		ProjectGuid:             project.GUID,
+		PrdPath:                 "docs/PRD.md",
+		UxSpecPath:              "docs/ux/ux-spec.md",
+		TemplateArchDescription: "Vue.js + Vite 前端，Go + Gin 后端，PostgreSQL 数据库，Redis 缓存，Docker 部署",
+	}
 	// 调用 agents-server 设计系统架构
-	response, err := s.invokeAgentSync(ctx, project, "architect", constants.DevStatusDesignArchitecture, map[string]any{})
+	response, err := agentClient.GetArchitecture(ctx, req)
 	if err != nil {
-		logger.Error("调用 Architect Agent 失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Architect Agent 失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentArchitect.Role,
-		AgentName:       AgentArchitect.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentArchitect.Role,
+		AgentName:       common.AgentArchitect.Name,
 		Content:         "项目系统架构已设计",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 40, "项目系统架构已设计")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 40, "项目系统架构已设计")
 	return nil
 }
 
 // defineDataModel 定义数据模型
-func (s *projectStageService) defineDataModel(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusDefineDataModel, constants.CommandStatusInProgress)
+func (s *projectStageService) defineDataModel(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusDefineDataModel, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.GetDatabaseDesignReq{
+		ProjectGuid:   project.GUID,
+		PrdPath:       "docs/PRD.md",
+		ArchFolder:    "docs/arch",
+		StoriesFolder: "docs/stories",
+	}
 	// 调用 agents-server 定义数据模型
-	response, err := s.invokeAgentSync(ctx, project, "architect", constants.DevStatusDefineDataModel, map[string]any{})
+	response, err := agentClient.GetDatabaseDesign(ctx, req)
 	if err != nil {
-		logger.Error("调用 Architect Agent(数据模型) 失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Architect Agent 失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentArchitect.Role,
-		AgentName:       AgentArchitect.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentArchitect.Role,
+		AgentName:       common.AgentArchitect.Name,
 		Content:         "项目数据模型已定义",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 45, "项目数据模型已定义")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 45, "项目数据模型已定义")
 	return nil
 }
 
 // defineAPIs 定义API接口
-func (s *projectStageService) defineAPIs(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusDefineAPI, constants.CommandStatusInProgress)
+func (s *projectStageService) defineAPIs(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusDefineAPI, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.GetAPIDefinitionReq{
+		ProjectGuid:   project.GUID,
+		PrdPath:       "docs/PRD.md",
+		DbFolder:      "docs/db",
+		StoriesFolder: "docs/stories",
+	}
 	// 调用 agents-server 定义 API 接口
-	response, err := s.invokeAgentSync(ctx, project, "architect", constants.DevStatusDefineAPI, map[string]any{})
+	response, err := agentClient.GetAPIDefinition(ctx, req)
 	if err != nil {
-		logger.Error("调用 Architect Agent(API) 失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Architect Agent 失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentArchitect.Role,
-		AgentName:       AgentArchitect.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentArchitect.Role,
+		AgentName:       common.AgentArchitect.Name,
 		Content:         "项目API接口已定义",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 50, "项目API接口已定义")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 50, "项目API接口已定义")
 	return nil
 }
 
 // planEpicsAndStories 划分Epic和Story
-func (s *projectStageService) planEpicsAndStories(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusPlanEpicAndStory, constants.CommandStatusInProgress)
+func (s *projectStageService) planEpicsAndStories(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusPlanEpicAndStory, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.GetEpicsAndStoriesReq{
+		ProjectGuid: project.GUID,
+		PrdPath:     "docs/PRD.md",
+		ArchFolder:  "docs/arch",
+	}
 	// 调用 agents-server 划分 Epics 和 Stories
-	response, err := s.invokeAgentSync(ctx, project, "po", constants.DevStatusPlanEpicAndStory, map[string]any{})
+	response, err := agentClient.GetEpicsAndStories(ctx, req)
 	if err != nil {
-		logger.Error("调用 PO Agent 失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 PO Agent 失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentPO.Role,
-		AgentName:       AgentPO.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentPO.Role,
+		AgentName:       common.AgentPO.Name,
 		Content:         "项目Epic和Story已划分",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 55, "项目Epic和Story已划分")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 55, "项目Epic和Story已划分")
 	return nil
 }
 
 // developStories 开发Story功能
-func (s *projectStageService) developStories(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusDevelopStory, constants.CommandStatusInProgress)
+func (s *projectStageService) developStories(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusDevelopStory, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.ImplementStoryReq{
+		ProjectGuid: project.GUID,
+		PrdPath:     "docs/PRD.md",
+		ArchFolder:  "docs/arch",
+		DbFolder:    "docs/db",
+		ApiFolder:   "docs/api",
+	}
 	// 调用 agents-server 开发 Story 功能
-	response, err := s.invokeAgentSync(ctx, project, "dev", constants.DevStatusDevelopStory, map[string]any{})
+	response, err := agentClient.ImplementStory(ctx, req)
 	if err != nil {
-		logger.Error("调用 Dev Agent 开发失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentDev.Role,
-		AgentName:       AgentDev.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
 		Content:         "项目Story功能已开发",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 60, "项目Story功能已开发")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 60, "项目Story功能已开发")
 	return nil
 }
 
 // fixBugs 修复开发问题
-func (s *projectStageService) fixBugs(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusFixBug, constants.CommandStatusInProgress)
+func (s *projectStageService) fixBugs(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusFixBug, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.FixBugReq{
+		ProjectGuid:    project.GUID,
+		BugDescription: "修复开发问题",
+	}
 	// 调用 agents-server 修复问题
-	response, err := s.invokeAgentSync(ctx, project, "dev", constants.DevStatusFixBug, map[string]any{})
+	response, err := agentClient.FixBug(ctx, req)
 	if err != nil {
-		logger.Error("调用 Dev Agent 修复问题失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Dev Agent 修复问题失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentDev.Role,
-		AgentName:       AgentDev.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
 		Content:         "项目开发问题已修复",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 65, "项目开发问题已修复")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 65, "项目开发问题已修复")
 	return nil
 }
 
 // runTests 执行自动测试
-func (s *projectStageService) runTests(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusRunTest, constants.CommandStatusInProgress)
+func (s *projectStageService) runTests(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusRunTest, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.RunTestReq{
+		ProjectGuid: project.GUID,
+	}
 	// 调用 agents-server 执行自动测试
-	response, err := s.invokeAgentSync(ctx, project, "dev", constants.DevStatusRunTest, map[string]any{})
+	response, err := agentClient.RunTest(ctx, req)
 	if err != nil {
-		logger.Error("调用 Dev Agent 测试失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Dev Agent 测试失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentDev.Role,
-		AgentName:       AgentDev.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
 		Content:         "项目自动测试已执行",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 75, "项目自动测试已执行")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 75, "项目自动测试已执行")
 	return nil
 }
 
 // packageProject 打包项目
-func (s *projectStageService) packageProject(ctx context.Context, project *models.Project, resultWriter *asynq.ResultWriter) error {
-	devProjectStage := models.NewDevStage(project, constants.DevStatusDeploy, constants.CommandStatusInProgress)
+func (s *projectStageService) packageProject(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	devProjectStage := models.NewDevStage(project, common.DevStatusDeploy, common.CommandStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	req := &agent.DeployReq{
+		ProjectGuid:   project.GUID,
+		Environment:   "dev",
+		DeployOptions: map[string]interface{}{},
+	}
 	// 调用 agents-server 打包部署项目（提交 .gitlab-ci.yml 即可触发 runner）
-	response, err := s.invokeAgentSync(ctx, project, "dev", constants.DevStatusDeploy, map[string]any{})
+	response, err := agentClient.Deploy(ctx, req)
 	if err != nil {
-		logger.Error("调用 Dev Agent 打包失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "调用 Dev Agent 打包失败: "+err.Error())
 		return err
 	}
 
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
-		Type:            constants.ConversationTypeAgent,
-		AgentRole:       AgentDev.Role,
-		AgentName:       AgentDev.Name,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
 		Content:         "项目项目已打包部署",
 		IsMarkdown:      true,
 		MarkdownContent: response.GetMarkdownContent(),
 		IsExpanded:      false,
 	}
 
-	devProjectStage.SetStatus(constants.CommandStatusDone)
+	devProjectStage.SetStatus(common.CommandStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	utils.UpdateResult(resultWriter, constants.CommandStatusInProgress, 80, "项目项目已打包部署")
+	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 80, "项目项目已打包部署")
 	return nil
-}
-
-// invokeAgentSync 同步调用 agents-server 对应 Agent 执行一步
-func (s *projectStageService) invokeAgentSync(ctx context.Context, project *models.Project,
-	agentType string, stage string, stageInput map[string]any) (*models.AgentResult, error) {
-	// agents-server 地址从环境变量读取，默认本机 3001
-	baseURL := s.agentsURL
-	if baseURL == "" {
-		baseURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001")
-	}
-	url := fmt.Sprintf("%s/api/v1/agents/execute-sync", baseURL)
-
-	// 组装请求
-	reqBody := map[string]any{
-		"projectId": project.ID,
-		"userId":    project.UserID,
-		"agentType": agentType,
-		"stage":     stage,
-		"context": map[string]any{
-			"projectPath": project.ProjectPath,
-			"projectName": project.Name,
-			"stageInput":  stageInput,
-		},
-		"parameters": map[string]any{},
-	}
-
-	buf, _ := json.Marshal(reqBody)
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(buf))
-	if err != nil {
-		return nil, fmt.Errorf("创建 agents-server 请求失败: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 5 * time.Minute}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("调用 agents-server 失败: %w", err)
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("agents-server 返回错误: %s", string(body))
-	}
-	// 可选：解析返回确保 success
-	var res struct {
-		Success bool            `json:"success"`
-		Data    json.RawMessage `json:"data"`
-		Error   string          `json:"error"`
-	}
-	if err := json.Unmarshal(body, &res); err == nil {
-		if !res.Success {
-			if res.Error != "" {
-				return nil, fmt.Errorf("agents-server 执行失败: %s", res.Error)
-			}
-			return nil, fmt.Errorf("agents-server 执行失败")
-		}
-	}
-	// 解析 Data 为 AgentResult
-	if len(res.Data) > 0 {
-		var agentResult models.AgentResult
-		if err := json.Unmarshal(res.Data, &agentResult); err == nil {
-			return &agentResult, nil
-		}
-		// Data 不是标准结构时，忽略解析错误但返回成功
-	}
-	return &models.AgentResult{Success: true}, nil
-}
-
-// GetProjectStages 获取项目开发阶段
-func (s *projectStageService) GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error) {
-	return s.stageRepo.GetByProjectGUID(ctx, projectGuid)
 }

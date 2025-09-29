@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"shared-models/common"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -69,7 +71,7 @@ func GetDefaultProject(userID, requirements string) *Project {
 		GUID:         guid,
 		Requirements: requirements,
 		UserID:       userID,
-		Status:       constants.CommandStatusPending,
+		Status:       common.CommandStatusPending,
 		ProjectPath:  filePath,
 		BackendPort:  9501,
 		FrontendPort: 3501,
@@ -90,9 +92,9 @@ func (p *Project) GetUpdateInfo() *ProjectInfoUpdate {
 	}
 }
 
-func (p *Project) SetDevStatus(status string) {
-	p.DevStatus = status
-	p.DevProgress = constants.GetDevStageProgress(status)
+func (p *Project) SetDevStatus(stage common.DevStage) {
+	p.DevStatus = string(stage)
+	p.DevProgress = constants.GetDevStageProgress(stage)
 }
 
 // 转换为 []byte

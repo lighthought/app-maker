@@ -1,81 +1,56 @@
 package constants
 
-const (
-	CommandStatusPending    = "pending"
-	CommandStatusInProgress = "in_progress"
-	CommandStatusDone       = "done"
-	CommandStatusFailed     = "failed"
-)
+import "shared-models/common"
 
 func GetProgressByCommandStatus(commandStatus string) int {
 	switch commandStatus {
-	case CommandStatusPending:
+	case common.CommandStatusPending:
 		return 0
-	case CommandStatusInProgress:
+	case common.CommandStatusInProgress:
 		return 50
-	case CommandStatusDone:
+	case common.CommandStatusDone:
 		return 100
-	case CommandStatusFailed:
+	case common.CommandStatusFailed:
 		return 0
 	default:
 		return 0
 	}
 }
 
-// 开发子状态常量
-const (
-	DevStatusInitializing       = "initializing"        // 等待开始
-	DevStatusSetupEnvironment   = "setup_environment"   // 环境处理
-	DevStatusPendingAgents      = "pending_agents"      // 等待Agents处理
-	DevStatusCheckRequirement   = "check_requirement"   // 需求检查
-	DevStatusGeneratePRD        = "generate_prd"        // 生成PRD
-	DevStatusDefineUXStandard   = "define_ux_standard"  // UX标准定义中
-	DevStatusDesignArchitecture = "design_architecture" // 架构设计中
-	DevStatusDefineDataModel    = "define_data_model"   // 数据模型定义中
-	DevStatusDefineAPI          = "define_api"          // API接口定义中
-	DevStatusPlanEpicAndStory   = "plan_epic_and_story" // Epic和Story划分中
-	DevStatusDevelopStory       = "develop_story"       // Story开发中
-	DevStatusFixBug             = "fix_bug"             // 问题修复中
-	DevStatusRunTest            = "run_test"            // 自动测试中
-	DevStatusDeploy             = "deploy"              // 部署中
-	DevStatusDone               = "done"                // 完成
-	DevStatusFailed             = "failed"              // 失败
-)
-
 // 获取开发阶段描述
-func GetDevStageDescription(devStatus string) string {
-	switch devStatus {
-	case DevStatusInitializing:
+func GetDevStageDescription(devStage common.DevStage) string {
+	switch devStage {
+	case common.DevStatusInitializing:
 		return "等待开始开发"
-	case DevStatusSetupEnvironment:
+	case common.DevStatusSetupEnvironment:
 		return "正在初始化开发环境"
-	case DevStatusPendingAgents:
+	case common.DevStatusPendingAgents:
 		return "等待Agents处理"
-	case DevStatusCheckRequirement:
+	case common.DevStatusCheckRequirement:
 		return "正在检查需求"
-	case DevStatusGeneratePRD:
+	case common.DevStatusGeneratePRD:
 		return "正在生成PRD文档"
-	case DevStatusDefineUXStandard:
+	case common.DevStatusDefineUXStandard:
 		return "正在定义UX标准"
-	case DevStatusDesignArchitecture:
+	case common.DevStatusDesignArchitecture:
 		return "正在设计系统架构"
-	case DevStatusDefineDataModel:
+	case common.DevStatusDefineDataModel:
 		return "正在定义数据模型"
-	case DevStatusDefineAPI:
+	case common.DevStatusDefineAPI:
 		return "正在定义API接口"
-	case DevStatusPlanEpicAndStory:
+	case common.DevStatusPlanEpicAndStory:
 		return "正在划分Epic和Story"
-	case DevStatusDevelopStory:
+	case common.DevStatusDevelopStory:
 		return "正在开发Story功能"
-	case DevStatusFixBug:
+	case common.DevStatusFixBug:
 		return "正在修复开发问题"
-	case DevStatusRunTest:
+	case common.DevStatusRunTest:
 		return "正在执行自动测试"
-	case DevStatusDeploy:
+	case common.DevStatusDeploy:
 		return "正在部署项目"
-	case DevStatusDone:
+	case common.DevStatusDone:
 		return "项目开发完成"
-	case DevStatusFailed:
+	case common.DevStatusFailed:
 		return "项目开发失败"
 	default:
 		return "未知状态"
@@ -83,39 +58,39 @@ func GetDevStageDescription(devStatus string) string {
 }
 
 // 获取开发阶段进度
-func GetDevStageProgress(devStatus string) int {
-	switch devStatus {
-	case DevStatusInitializing:
+func GetDevStageProgress(devStage common.DevStage) int {
+	switch devStage {
+	case common.DevStatusInitializing:
 		return 0
-	case DevStatusSetupEnvironment:
+	case common.DevStatusSetupEnvironment:
 		return 5
-	case DevStatusPendingAgents:
+	case common.DevStatusPendingAgents:
 		return 10
-	case DevStatusCheckRequirement:
+	case common.DevStatusCheckRequirement:
 		return 15
-	case DevStatusGeneratePRD:
+	case common.DevStatusGeneratePRD:
 		return 20
-	case DevStatusDefineUXStandard:
+	case common.DevStatusDefineUXStandard:
 		return 25
-	case DevStatusDesignArchitecture:
+	case common.DevStatusDesignArchitecture:
 		return 30
-	case DevStatusDefineDataModel:
+	case common.DevStatusDefineDataModel:
 		return 35
-	case DevStatusDefineAPI:
+	case common.DevStatusDefineAPI:
 		return 40
-	case DevStatusPlanEpicAndStory:
+	case common.DevStatusPlanEpicAndStory:
 		return 45
-	case DevStatusDevelopStory:
+	case common.DevStatusDevelopStory:
 		return 60
-	case DevStatusFixBug:
+	case common.DevStatusFixBug:
 		return 75
-	case DevStatusRunTest:
+	case common.DevStatusRunTest:
 		return 90
-	case DevStatusDeploy:
+	case common.DevStatusDeploy:
 		return 95
-	case DevStatusDone:
+	case common.DevStatusDone:
 		return 100
-	case DevStatusFailed:
+	case common.DevStatusFailed:
 		return 0
 	default:
 		return 0

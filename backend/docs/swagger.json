@@ -24,7 +24,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.LoginRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginRequest"
                         }
                     }
                 ],
@@ -34,13 +34,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.LoginResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -50,13 +50,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -90,13 +90,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.LoginResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -106,13 +106,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -138,7 +138,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RegisterRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.RegisterRequest"
                         }
                     }
                 ],
@@ -148,13 +148,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.LoginResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -164,13 +164,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -500,7 +500,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
@@ -517,7 +517,7 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -560,13 +560,13 @@
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -788,7 +788,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
@@ -796,7 +796,7 @@
                                         "data": {
                                             "allOf": [
                                                 {
-                                                    "$ref": "#/definitions/models.PaginationResponse"
+                                                    "$ref": "#/definitions/autocodeweb-backend_internal_models.PaginationResponse"
                                                 },
                                                 {
                                                     "type": "object",
@@ -804,7 +804,7 @@
                                                         "data": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/models.ProjectInfo"
+                                                                "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
                                                             }
                                                         }
                                                     }
@@ -819,19 +819,19 @@
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -860,7 +860,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateProjectRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.CreateProjectRequest"
                         }
                     }
                 ],
@@ -870,13 +870,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ProjectInfo"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -886,19 +886,19 @@
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -941,31 +941,31 @@
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "访问被拒绝",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "项目不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1004,13 +1004,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.ProjectInfo"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -1020,25 +1020,25 @@
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "项目不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1073,31 +1073,31 @@
                     "200": {
                         "description": "项目删除成功",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "访问被拒绝",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1190,19 +1190,19 @@
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "404": {
                         "description": "任务不存在",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1248,13 +1248,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.PaginationResponse"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.PaginationResponse"
                                         }
                                     }
                                 }
@@ -1264,13 +1264,13 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1301,7 +1301,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ChangePasswordRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -1309,19 +1309,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1349,13 +1349,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1385,13 +1385,13 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/models.Response"
+                                    "$ref": "#/definitions/common.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.UserInfo"
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
                                         }
                                     }
                                 }
@@ -1401,13 +1401,13 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1436,7 +1436,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateProfileRequest"
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -1444,25 +1444,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1499,19 +1499,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/models.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -1519,7 +1519,7 @@
         }
     },
     "definitions": {
-        "models.ChangePasswordRequest": {
+        "autocodeweb-backend_internal_models.ChangePasswordRequest": {
             "type": "object",
             "required": [
                 "new_password",
@@ -1537,7 +1537,7 @@
                 }
             }
         },
-        "models.CreateProjectRequest": {
+        "autocodeweb-backend_internal_models.CreateProjectRequest": {
             "type": "object",
             "required": [
                 "requirements"
@@ -1549,24 +1549,7 @@
                 }
             }
         },
-        "models.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 400
-                },
-                "message": {
-                    "type": "string",
-                    "example": "请求参数错误"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
-                }
-            }
-        },
-        "models.LoginRequest": {
+        "autocodeweb-backend_internal_models.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1584,7 +1567,7 @@
                 }
             }
         },
-        "models.LoginResponse": {
+        "autocodeweb-backend_internal_models.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -1598,11 +1581,11 @@
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/models.UserInfo"
+                    "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
                 }
             }
         },
-        "models.PaginationResponse": {
+        "autocodeweb-backend_internal_models.PaginationResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -1644,7 +1627,7 @@
                 }
             }
         },
-        "models.ProjectInfo": {
+        "autocodeweb-backend_internal_models.ProjectInfo": {
             "type": "object",
             "properties": {
                 "backend_port": {
@@ -1686,7 +1669,7 @@
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/models.UserInfo"
+                    "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
                 },
                 "user_id": {
                     "type": "string",
@@ -1694,7 +1677,7 @@
                 }
             }
         },
-        "models.RegisterRequest": {
+        "autocodeweb-backend_internal_models.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -1719,25 +1702,7 @@
                 }
             }
         },
-        "models.Response": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 0
-                },
-                "data": {},
-                "message": {
-                    "type": "string",
-                    "example": "success"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
-                }
-            }
-        },
-        "models.UpdateProfileRequest": {
+        "autocodeweb-backend_internal_models.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1752,7 +1717,7 @@
                 }
             }
         },
-        "models.UserInfo": {
+        "autocodeweb-backend_internal_models.UserInfo": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1777,6 +1742,41 @@
                 "username": {
                     "type": "string",
                     "example": "username"
+                }
+            }
+        },
+        "common.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 400
+                },
+                "message": {
+                    "type": "string",
+                    "example": "请求参数错误"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
+                }
+            }
+        },
+        "common.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
                 }
             }
         }

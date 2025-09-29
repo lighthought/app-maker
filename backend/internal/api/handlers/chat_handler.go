@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"shared-models/common"
 	"strconv"
 
 	"autocodeweb-backend/internal/models"
@@ -46,8 +47,8 @@ func NewChatHandler(
 func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -74,8 +75,8 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	// 获取对话消息
 	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectGuid, pageSize, offset)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "获取对话历史失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -88,7 +89,7 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	hasPrevious := page > 1
 
 	c.JSON(http.StatusOK, models.PaginationResponse{
-		Code:        models.SUCCESS_CODE,
+		Code:        common.SUCCESS_CODE,
 		Message:     "success",
 		Total:       total,
 		Page:        page,
@@ -117,8 +118,8 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "项目GUID不能为空",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -136,8 +137,8 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Code:      models.VALIDATION_ERROR,
+		c.JSON(http.StatusBadRequest, common.ErrorResponse{
+			Code:      common.VALIDATION_ERROR,
 			Message:   "请求参数错误",
 			Timestamp: utils.GetCurrentTime(),
 		})
@@ -168,16 +169,16 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 
 	result, err := h.messageService.AddConversationMessage(c.Request.Context(), message)
 	if err != nil {
-		c.JSON(http.StatusOK, models.ErrorResponse{
-			Code:      models.INTERNAL_ERROR,
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.INTERNAL_ERROR,
 			Message:   "添加对话消息失败, " + err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "success",
 		Data:      result,
 		Timestamp: utils.GetCurrentTime(),
