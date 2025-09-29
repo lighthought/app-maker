@@ -3,23 +3,24 @@ package controllers
 import (
 	"bufio"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
 
 	"app-maker-agents/internal/models"
+	"app-maker-agents/internal/utils"
 	"app-maker-agents/pkg/logger"
 )
 
 // SessionManager 维护项目级命令执行会话
 type SessionManager struct {
-	sessions sync.Map // map[string]*session
+	workspacePath string
+	sessions      sync.Map // map[string]*session
 }
 
 // NewSessionManager 创建 SessionManager
-func NewSessionManager() *SessionManager {
-	return &SessionManager{}
+func NewSessionManager(workspacePath string) *SessionManager {
+	return &SessionManager{workspacePath: workspacePath}
 }
 
 // Execute 在指定项目会话中执行命令
@@ -58,7 +59,11 @@ func (m *SessionManager) getOrCreateSession(projectPath string) (*Session, error
 		return sess, nil
 	}
 
-	cmd, err := createShell(projectPath)
+	if !utils.IsDirectoryExists(m.workspacePath) {
+		utils.EnsureDirectoryExists(m.workspacePath)
+	}
+
+	cmd, err := createShell(m.workspacePath)
 	if err != nil {
 		createErr = err
 		if createErr != nil {
@@ -111,21 +116,21 @@ func (m *SessionManager) getOrCreateSession(projectPath string) (*Session, error
 }
 
 // createShell 根据系统创建适当的 shell
-func createShell(projectPath string) (*exec.Cmd, error) {
+func createShell(workspacePath string) (*exec.Cmd, error) {
 	shell := ""
 	args := []string{}
 
 	switch runtime.GOOS {
 	case "windows":
 		shell = "cmd"
-		args = []string{"/C", "cd /d " + filepath.Clean(projectPath) + " && cmd"}
+		args = []string{"/C"}
 	default:
 		shell = "bash"
-		args = []string{"-lc", "cd " + filepath.Clean(projectPath) + " && bash"}
+		args = []string{"-i"}
 	}
 
 	cmd := exec.Command(shell, args...)
-	cmd.Dir = projectPath
+	cmd.Dir = workspacePath
 	cmd.Env = append([]string{}, exec.Command(shell).Env...)
 
 	return cmd, nil

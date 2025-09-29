@@ -23,7 +23,7 @@ type Container struct {
 }
 
 func NewContainer(cfg *config.Config) *Container {
-	commandSvc := services.NewCommandService(cfg.Command)
+	commandSvc := services.NewCommandService(cfg.Command, cfg.App.WorkspacePath)
 	gitSvc := services.NewGitService()
 	projectSvc := services.NewProjectService(commandSvc, cfg.App.WorkspacePath)
 
