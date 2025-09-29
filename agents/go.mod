@@ -13,7 +13,7 @@ require (
 	go.uber.org/zap v1.27.0
 )
 
-require shared-models v0.0.0 // indirect
+require shared-models v0.0.0
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect

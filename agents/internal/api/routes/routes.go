@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"app-maker-agents/internal/api/handlers"
 	"app-maker-agents/internal/container"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ func Register(
 ) {
 	routers := engine.Group("/api/v1")
 	{
+		routers.GET("/health", handlers.HealthCheck)
 		// 项目环境准备
 		projectHandler := container.ProjectHandler
 		project := routers.Group("/project")

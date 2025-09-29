@@ -33,7 +33,11 @@ func NewArchitectHandler(commandService *services.CommandService) *ArchitectHand
 func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 	var req agent.GetArchitectureReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -82,7 +86,11 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
 	var req agent.GetDatabaseDesignReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -123,7 +131,11 @@ func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
 func (s *ArchitectHandler) GetAPIDefinition(c *gin.Context) {
 	var req agent.GetAPIDefinitionReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 

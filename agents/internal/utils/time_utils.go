@@ -4,7 +4,7 @@ import "time"
 
 // 获取当前时间-字符串
 func GetCurrentTime() string {
-	return time.Now().Format(time.RFC3339)
+	return time.Now().UTC().Format(time.RFC3339)
 }
 
 // 获取当前时间

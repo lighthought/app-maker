@@ -35,7 +35,11 @@ func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
 func (h *ProjectHandler) SetupProjectEnvironment(c *gin.Context) {
 	var req = agent.SetupProjEnvReq{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 

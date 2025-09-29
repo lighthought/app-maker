@@ -5,6 +5,7 @@ import (
 	"app-maker-agents/internal/utils"
 	"net/http"
 	"shared-models/agent"
+	"shared-models/common"
 
 	"time"
 
@@ -33,7 +34,11 @@ func NewPoHandler(commandService *services.CommandService) *PoHandler {
 func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 	var req agent.GetEpicsAndStoriesReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -44,10 +49,24 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 
 	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "获取史诗和用户故事任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	utils.Success(c, result.Output)
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
+	}
+
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "获取史诗和用户故事成功",
+		Data:      agentResult,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }

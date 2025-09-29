@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"shared-models/agent"
+	"shared-models/common"
 	"time"
 
 	"app-maker-agents/internal/services"
@@ -35,7 +36,11 @@ func NewPmHandler(commandService *services.CommandService) *PmHandler {
 func (s *PmHandler) GetPRD(c *gin.Context) {
 	var req agent.GetPRDReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -46,10 +51,23 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 
 	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "PRD 生成失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
+	}
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
 	}
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	utils.Success(c, result.Output)
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "PRD 生成成功",
+		Data:      agentResult,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }

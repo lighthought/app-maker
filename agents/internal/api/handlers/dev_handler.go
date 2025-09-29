@@ -5,6 +5,7 @@ import (
 	"app-maker-agents/internal/utils"
 	"net/http"
 	"shared-models/agent"
+	"shared-models/common"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +33,11 @@ func NewDevHandler(commandService *services.CommandService) *DevHandler {
 func (h *DevHandler) ImplementStory(c *gin.Context) {
 	var req agent.ImplementStoryReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -49,12 +54,26 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 
 	result := h.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 1*time.Hour)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "实现用户故事任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
+	}
+
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	utils.Success(c, result.Output)
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "实现用户故事成功",
+		Data:      agentResult,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }
 
 // FixBug godoc
@@ -71,7 +90,11 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 func (h *DevHandler) FixBug(c *gin.Context) {
 	var req agent.FixBugReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -85,12 +108,26 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 
 	result := h.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 1*time.Hour)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "修复Bug任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	utils.Success(c, result.Output)
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
+	}
+
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "修复Bug成功",
+		Data:      agentResult,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }
 
 // RunTest godoc
@@ -107,7 +144,11 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 func (h *DevHandler) RunTest(c *gin.Context) {
 	var req agent.FixBugReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -117,12 +158,26 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 
 	result := h.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 1*time.Hour)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "运行测试任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	utils.Success(c, result.Output)
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
+	}
+
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "运行测试成功",
+		Data:      agentResult,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }
 
 // Deploy godoc
@@ -139,7 +194,11 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 func (h *DevHandler) Deploy(c *gin.Context) {
 	var req agent.FixBugReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
@@ -149,10 +208,24 @@ func (h *DevHandler) Deploy(c *gin.Context) {
 
 	result := h.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 1*time.Hour)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "部署项目任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	utils.Success(c, result.Output)
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
+	}
+
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "部署项目成功",
+		Data:      agentResult,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }

@@ -37,12 +37,15 @@ func NewAnalyseHandler(commandService *services.CommandService) *AnalyseHandler 
 func (s *AnalyseHandler) ProjectBrief(c *gin.Context) {
 	var req agent.GetProjBriefReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "参数校验失败: " + err.Error(),
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 
 	message := "@bmad/analyst.mdc 请你为我生成项目简介，再执行市场研究。输出对应的文档到 docs/analyse/ 目录下。我的需求是：\n" + req.Requirements
-
 	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
 	if !result.Success {
 		c.JSON(http.StatusOK, common.ErrorResponse{
@@ -53,11 +56,15 @@ func (s *AnalyseHandler) ProjectBrief(c *gin.Context) {
 		return
 	}
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
+	agentResult := common.AgentResult{
+		Output: result.Output,
+		Error:  result.Error,
+	}
 
 	c.JSON(http.StatusOK, common.Response{
 		Code:      common.SUCCESS_CODE,
 		Message:   "分析任务成功",
-		Data:      result.Output,
+		Data:      agentResult,
 		Timestamp: utils.GetCurrentTime(),
 	})
 }
