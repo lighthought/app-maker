@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -26,6 +27,60 @@ func (c *AgentClient) SetHeader(key, value string) {
 	c.httpClient.SetHeader(key, value)
 }
 
+// parseResponseData 安全地解析响应数据到目标结构体
+func parseResponseData(resp *common.Response, target interface{}) error {
+	// 将 Data 转换为 JSON 字节
+	dataBytes, err := json.Marshal(resp.Data)
+	if err != nil {
+		return fmt.Errorf("序列化响应数据失败: %w", err)
+	}
+
+	// 将 JSON 字节解析到目标结构体
+	if err := json.Unmarshal(dataBytes, target); err != nil {
+		return fmt.Errorf("解析响应数据失败: %w", err)
+	}
+
+	return nil
+}
+
+// HealthCheck 健康检查
+func (c *AgentClient) HealthCheck(ctx context.Context) (*agent.AgentHealthResp, error) {
+	resp, err := c.httpClient.Get(ctx, "/api/v1/health")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 健康检查失败: %s", resp.Message)
+	}
+
+	result := &agent.AgentHealthResp{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// SetupProjectEnvironment 项目环境准备
+func (c *AgentClient) SetupProjectEnvironment(ctx context.Context, req *agent.SetupProjEnvReq) (*agent.SetupProjEnvResp, error) {
+	resp, err := c.httpClient.Post(ctx, "/api/v1/project/setup", req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 项目环境准备失败: %s", resp.Message)
+	}
+
+	result := &agent.SetupProjEnvResp{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // AnalyseProjectBrief 分析项目简介
 func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetProjBriefReq) (*common.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/analyse/project-brief", req)
@@ -33,14 +88,16 @@ func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetPro
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // GetPRD 获取 PRD
@@ -50,14 +107,16 @@ func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*common
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // GetUXStandard 获取 UX 标准
@@ -67,14 +126,16 @@ func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandar
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // GetArchitecture 获取架构设计
@@ -84,14 +145,16 @@ func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchite
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // GetDatabaseDesign 获取数据库设计
@@ -101,14 +164,16 @@ func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatab
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // GetAPIDefinition 获取 API 定义
@@ -118,14 +183,16 @@ func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDef
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // GetEpicsAndStories 获取史诗和故事
@@ -135,14 +202,16 @@ func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpic
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ImplementStory 实现用户故事
@@ -152,14 +221,16 @@ func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementSt
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // FixBug 修复 Bug
@@ -169,14 +240,16 @@ func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*common
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // RunTest 运行测试
@@ -192,14 +265,16 @@ func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*comm
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // Deploy 部署项目
@@ -215,12 +290,14 @@ func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*common
 		return nil, err
 	}
 
-	if !resp.Success {
-		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Error)
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	return &common.AgentResult{
-		Success: true,
-		Output:  fmt.Sprintf("%v", resp.Data),
-	}, nil
+	result := &common.AgentResult{}
+	if err := parseResponseData(resp, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

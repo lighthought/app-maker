@@ -36,17 +36,17 @@ func (c *HTTPClient) SetHeader(key, value string) {
 }
 
 // Post 发送 POST 请求
-func (c *HTTPClient) Post(ctx context.Context, endpoint string, body interface{}) (*common.BaseResponse, error) {
+func (c *HTTPClient) Post(ctx context.Context, endpoint string, body interface{}) (*common.Response, error) {
 	return c.request(ctx, http.MethodPost, endpoint, body)
 }
 
 // Get 发送 GET 请求
-func (c *HTTPClient) Get(ctx context.Context, endpoint string) (*common.BaseResponse, error) {
+func (c *HTTPClient) Get(ctx context.Context, endpoint string) (*common.Response, error) {
 	return c.request(ctx, http.MethodGet, endpoint, nil)
 }
 
 // request 统一请求方法
-func (c *HTTPClient) request(ctx context.Context, method, endpoint string, body interface{}) (*common.BaseResponse, error) {
+func (c *HTTPClient) request(ctx context.Context, method, endpoint string, body interface{}) (*common.Response, error) {
 	url := c.baseURL + endpoint
 
 	var reqBody io.Reader
@@ -86,7 +86,7 @@ func (c *HTTPClient) request(ctx context.Context, method, endpoint string, body 
 		return nil, fmt.Errorf("HTTP 错误 %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	var response common.BaseResponse
+	var response common.Response
 	if err := json.Unmarshal(respBody, &response); err != nil {
 		return nil, fmt.Errorf("解析响应失败: %w", err)
 	}

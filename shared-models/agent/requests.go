@@ -2,7 +2,6 @@ package agent
 
 // 项目环境准备请求
 type SetupProjEnvReq struct {
-	ProjectID       string `json:"project_id" binding:"required" example:"1234567890"`
 	ProjectGuid     string `json:"project_guid" binding:"required" example:"1234567890"`
 	GitlabRepoUrl   string `json:"gitlab_repo_url" binding:"required" example:"https://gitlab.lighthought.com/app-maker/project-guid.git"`
 	SetupBmadMethod bool   `json:"setup_bmad_method" binding:"required" example:"true"`
