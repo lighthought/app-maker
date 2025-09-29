@@ -22,12 +22,12 @@ const (
 	INSUFFICIENT_QUOTA    = 2429 // 配额不足
 )
 
-// 命令状态
+// 通用状态
 const (
-	CommandStatusPending    = "pending"
-	CommandStatusInProgress = "in_progress"
-	CommandStatusDone       = "done"
-	CommandStatusFailed     = "failed"
+	CommonStatusPending    = "pending"
+	CommonStatusInProgress = "in_progress"
+	CommonStatusDone       = "done"
+	CommonStatusFailed     = "failed"
 )
 
 type DevStage string

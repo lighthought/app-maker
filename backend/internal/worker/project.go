@@ -45,18 +45,18 @@ func (s *ProjectTaskHandler) HandleProjectBackupTask(ctx context.Context, t *asy
 
 	resultPath, projectPath, err := s.zipProjectPath(t)
 	if err != nil {
-		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "打包项目文件失败: "+err.Error())
 		return fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, resultWriter.TaskID())
 	}
-	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 60, "项目已打包到缓存")
+	utils.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "项目已打包到缓存")
 
 	// 删除项目目录
-	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 80, "正在删除项目目录")
+	utils.UpdateResult(resultWriter, common.CommonStatusInProgress, 80, "正在删除项目目录")
 	if err := os.RemoveAll(projectPath); err != nil {
-		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "删除项目目录失败: "+err.Error())
+		utils.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "删除项目目录失败: "+err.Error())
 		return fmt.Errorf("删除项目目录失败: %w, projectPath: %s", err, projectPath)
 	}
-	utils.UpdateResult(resultWriter, common.CommandStatusDone, 100, resultPath)
+	utils.UpdateResult(resultWriter, common.CommonStatusDone, 100, resultPath)
 	return nil
 }
 
@@ -67,9 +67,9 @@ func (s *ProjectTaskHandler) HandleProjectDownloadTask(ctx context.Context, t *a
 
 	resultPath, _, err := s.zipProjectPath(t)
 	if err != nil {
-		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "打包项目文件失败: "+err.Error())
 	}
-	utils.UpdateResult(resultWriter, common.CommandStatusDone, 100, resultPath)
+	utils.UpdateResult(resultWriter, common.CommonStatusDone, 100, resultPath)
 	return nil
 }
 
@@ -89,11 +89,11 @@ func (s *ProjectTaskHandler) zipProjectPath(t *asynq.Task) (string, string, erro
 	// 生成缓存文件名
 	cacheFileName := fmt.Sprintf("%s_%s", projectGuid, time.Now().Format("20060102_150405"))
 
-	utils.UpdateResult(resultWriter, common.CommandStatusInProgress, 30, "正在打包项目文件...")
+	utils.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "正在打包项目文件...")
 	// 使用 utils 压缩到缓存
 	resultPath, err := utils.CompressDirectoryToDir(context.Background(), projectPath, cacheDir, cacheFileName)
 	if err != nil {
-		utils.UpdateResult(resultWriter, common.CommandStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		utils.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "打包项目文件失败: "+err.Error())
 		return "", projectPath, fmt.Errorf("打包项目文件失败: %w, projectID: %s, projectGuid: %s", err, projectID, projectGuid)
 	}
 	return resultPath, projectPath, nil

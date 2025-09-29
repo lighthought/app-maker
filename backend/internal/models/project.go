@@ -71,7 +71,7 @@ func GetDefaultProject(userID, requirements string) *Project {
 		GUID:         guid,
 		Requirements: requirements,
 		UserID:       userID,
-		Status:       common.CommandStatusPending,
+		Status:       common.CommonStatusPending,
 		ProjectPath:  filePath,
 		BackendPort:  9501,
 		FrontendPort: 3501,

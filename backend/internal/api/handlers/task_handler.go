@@ -76,7 +76,7 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 
 	taskResult := models.TaskResult{
 		TaskID:   taskID,
-		Status:   common.CommandStatusInProgress,
+		Status:   common.CommonStatusInProgress,
 		Progress: 0,
 		Message:  "任务执行中",
 	}

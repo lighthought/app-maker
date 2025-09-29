@@ -4,13 +4,13 @@ import "shared-models/common"
 
 func GetProgressByCommandStatus(commandStatus string) int {
 	switch commandStatus {
-	case common.CommandStatusPending:
+	case common.CommonStatusPending:
 		return 0
-	case common.CommandStatusInProgress:
+	case common.CommonStatusInProgress:
 		return 50
-	case common.CommandStatusDone:
+	case common.CommonStatusDone:
 		return 100
-	case common.CommandStatusFailed:
+	case common.CommonStatusFailed:
 		return 0
 	default:
 		return 0

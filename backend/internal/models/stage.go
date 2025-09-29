@@ -68,7 +68,7 @@ func (DevStage) TableName() string {
 
 func NewDevStage(project *Project, stageName common.DevStage, status string) *DevStage {
 	if status == "" {
-		status = common.CommandStatusInProgress
+		status = common.CommonStatusInProgress
 	}
 	return &DevStage{
 		ProjectID:   project.ID,

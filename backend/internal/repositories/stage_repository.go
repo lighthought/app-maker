@@ -77,7 +77,7 @@ func (r *stageRepository) UpdateStageToDone(ctx context.Context, projectID, name
 		Model(&models.DevStage{}).
 		Where("project_id = ?", projectID).
 		Where("name = ?", name).
-		Update("status", common.CommandStatusDone).First(&stage).Error
+		Update("status", common.CommonStatusDone).First(&stage).Error
 	return &stage, err
 }
 
