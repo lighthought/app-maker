@@ -7,8 +7,9 @@ import (
 )
 
 type AppConfig struct {
-	Port        string `mapstructure:"PORT"`
-	Environment string `mapstructure:"ENV"`
+	Port          string `mapstructure:"PORT"`
+	Environment   string `mapstructure:"ENV"`
+	WorkspacePath string `mapstructure:"WORKSPACE_PATH"`
 }
 
 type LogConfig struct {
@@ -32,8 +33,9 @@ func Load() (*Config, error) {
 	v.SetEnvPrefix("AGENTS")
 	v.AutomaticEnv()
 
-	v.SetDefault("PORT", "9090")
+	v.SetDefault("PORT", "8088")
 	v.SetDefault("ENV", "development")
+	v.SetDefault("WORKSPACE_PATH", "F:/app-maker/app_data")
 	v.SetDefault("LOG.LEVEL", "info")
 	v.SetDefault("COMMAND.TIMEOUT", "5m")
 	v.SetDefault("COMMAND.CLAUDE_BIN", "claude")

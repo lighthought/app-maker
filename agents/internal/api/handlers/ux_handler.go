@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
 	"net/http"
+	"shared-models/agent"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,13 +24,13 @@ func NewUxHandler(commandService *services.CommandService) *UxHandler {
 // @Tags UX
 // @Accept json
 // @Produce json
-// @Param request body models.GetUXStandardReq true "UX标准请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.GetUXStandardReq true "UX标准请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/ux-expert/ux-standard [get]
 func (s *UxHandler) GetUXStandard(c *gin.Context) {
-	var req models.GetUXStandardReq
+	var req agent.GetUXStandardReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return

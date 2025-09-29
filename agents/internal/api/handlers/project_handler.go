@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"shared-models/agent"
+	"shared-models/common"
 
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
 
@@ -26,13 +27,13 @@ func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
 // @Tags Project
 // @Accept json
 // @Produce json
-// @Param request body models.SetupProjEnvReq true "项目环境准备请求"
-// @Success 200 {object} models.Response "成功响应"
-// @Failure 400 {object} models.Response "参数错误"
-// @Failure 500 {object} models.Response "服务器错误"
+// @Param request body agent.SetupProjEnvReq true "项目环境准备请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.Response "参数错误"
+// @Failure 500 {object} common.Response "服务器错误"
 // @Router /api/v1/projects/setup [post]
 func (h *ProjectHandler) SetupProjectEnvironment(c *gin.Context) {
-	var req = models.SetupProjEnvReq{}
+	var req = agent.SetupProjEnvReq{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -40,16 +41,16 @@ func (h *ProjectHandler) SetupProjectEnvironment(c *gin.Context) {
 
 	response, err := h.projectService.SetupProjectEnvironment(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusOK, models.Response{
-			Code:      models.ERROR_CODE,
+		c.JSON(http.StatusOK, common.Response{
+			Code:      common.ERROR_CODE,
 			Message:   err.Error(),
 			Timestamp: utils.GetCurrentTime(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "项目环境准备成功",
 		Data:      response,
 		Timestamp: utils.GetCurrentTime(),

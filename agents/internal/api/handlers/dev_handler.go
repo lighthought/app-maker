@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
 	"net/http"
+	"shared-models/agent"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,13 +24,13 @@ func NewDevHandler(commandService *services.CommandService) *DevHandler {
 // @Tags Dev
 // @Accept json
 // @Produce json
-// @Param request body models.ImplementStoryReq true "实现故事请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.ImplementStoryReq true "实现故事请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/dev/implstory [post]
 func (h *DevHandler) ImplementStory(c *gin.Context) {
-	var req models.ImplementStoryReq
+	var req agent.ImplementStoryReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -63,13 +63,13 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 // @Tags Dev
 // @Accept json
 // @Produce json
-// @Param request body models.FixBugReq true "修复Bug请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.FixBugReq true "修复Bug请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/dev/fixbug [post]
 func (h *DevHandler) FixBug(c *gin.Context) {
-	var req models.FixBugReq
+	var req agent.FixBugReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -99,13 +99,13 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 // @Tags Dev
 // @Accept json
 // @Produce json
-// @Param request body models.FixBugReq true "运行测试请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.FixBugReq true "运行测试请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/dev/runtest [post]
 func (h *DevHandler) RunTest(c *gin.Context) {
-	var req models.FixBugReq
+	var req agent.FixBugReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -131,13 +131,13 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 // @Tags Dev
 // @Accept json
 // @Produce json
-// @Param request body models.FixBugReq true "部署请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.FixBugReq true "部署请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/dev/deploy [post]
 func (h *DevHandler) Deploy(c *gin.Context) {
-	var req models.FixBugReq
+	var req agent.FixBugReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return

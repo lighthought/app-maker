@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-type AgentType string
-type DevStage string
-type TaskStatus string
-
-// TODO: 公共模型
 // GitConfig Git配置
 type GitConfig struct {
 	UserID        string

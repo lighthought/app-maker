@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
 	"net/http"
+	"shared-models/agent"
 
 	"time"
 
@@ -25,13 +25,13 @@ func NewPoHandler(commandService *services.CommandService) *PoHandler {
 // @Tags PO
 // @Accept json
 // @Produce json
-// @Param request body models.GetEpicsAndStoriesReq true "史诗故事请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.GetEpicsAndStoriesReq true "史诗故事请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/po/epicsandstories [get]
 func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
-	var req models.GetEpicsAndStoriesReq
+	var req agent.GetEpicsAndStoriesReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return

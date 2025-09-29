@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"shared-models/agent"
 	"time"
 
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
 
@@ -27,13 +27,13 @@ func NewPmHandler(commandService *services.CommandService) *PmHandler {
 // @Tags PM
 // @Accept json
 // @Produce json
-// @Param request body models.GetPRDReq true "PRD请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.GetPRDReq true "PRD请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/pm/prd [get]
 func (s *PmHandler) GetPRD(c *gin.Context) {
-	var req models.GetPRDReq
+	var req agent.GetPRDReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return

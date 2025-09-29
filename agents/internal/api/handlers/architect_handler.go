@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
 	"net/http"
+	"shared-models/agent"
+	"shared-models/common"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,13 +25,13 @@ func NewArchitectHandler(commandService *services.CommandService) *ArchitectHand
 // @Tags Architect
 // @Accept json
 // @Produce json
-// @Param request body models.GetArchitectureReq true "架构设计请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.GetArchitectureReq true "架构设计请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/architect/architect [get]
 func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
-	var req models.GetArchitectureReq
+	var req agent.GetArchitectureReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -50,12 +51,21 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 
 	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "设计架构任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	utils.Success(c, result.Output)
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "设计架构任务成功",
+		Data:      result.Output,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }
 
 // GetDatabaseDesign godoc
@@ -64,13 +74,13 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 // @Tags Architect
 // @Accept json
 // @Produce json
-// @Param request body models.GetDatabaseDesignReq true "数据库设计请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.GetDatabaseDesignReq true "数据库设计请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/architect/database [get]
 func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
-	var req models.GetDatabaseDesignReq
+	var req agent.GetDatabaseDesignReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -82,12 +92,21 @@ func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
 
 	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "设计数据库任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	utils.Success(c, result.Output)
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "设计数据库任务成功",
+		Data:      result.Output,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }
 
 // GetAPIDefinition godoc
@@ -96,13 +115,13 @@ func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
 // @Tags Architect
 // @Accept json
 // @Produce json
-// @Param request body models.GetAPIDefinitionReq true "API定义请求"
-// @Success 200 {object} utils.SuccessResponse "成功响应"
-// @Failure 400 {object} utils.ErrorResponse "参数错误"
-// @Failure 500 {object} utils.ErrorResponse "服务器错误"
+// @Param request body agent.GetAPIDefinitionReq true "API定义请求"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 400 {object} common.ErrorResponse "参数错误"
+// @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/architect/apidefinition [get]
 func (s *ArchitectHandler) GetAPIDefinition(c *gin.Context) {
-	var req models.GetAPIDefinitionReq
+	var req agent.GetAPIDefinitionReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.Error(c, http.StatusBadRequest, "参数校验失败: "+err.Error())
 		return
@@ -114,10 +133,19 @@ func (s *ArchitectHandler) GetAPIDefinition(c *gin.Context) {
 
 	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
 	if !result.Success {
-		utils.Error(c, http.StatusInternalServerError, "分析任务失败: "+result.Error)
+		c.JSON(http.StatusOK, common.ErrorResponse{
+			Code:      common.ERROR_CODE,
+			Message:   "设计 API 接口定义任务失败: " + result.Error,
+			Timestamp: utils.GetCurrentTime(),
+		})
 		return
 	}
 	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	utils.Success(c, result.Output)
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
+		Message:   "设计 API 接口定义任务成功",
+		Data:      result.Output,
+		Timestamp: utils.GetCurrentTime(),
+	})
 }

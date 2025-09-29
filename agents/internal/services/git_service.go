@@ -30,8 +30,8 @@ type gitService struct {
 // NewGitService 创建Git服务
 func NewGitService() GitService {
 	return &gitService{
-		gitlabURL:      utils.GetEnvOrDefault("GITLAB_URL", "git@gitlab.lighthought.com"),
-		gitlabUsername: utils.GetEnvOrDefault("GITLAB_USERNAME", "John"),
+		gitlabURL:      utils.GetEnvOrDefault("GITLAB_URL", "git@gitlab.app-maker.localhost:8083"),
+		gitlabUsername: utils.GetEnvOrDefault("GITLAB_USERNAME", "john"),
 		gitlabEmail:    utils.GetEnvOrDefault("GITLAB_EMAIL", "qqjack2012@gmail.com"),
 		sshKeyPath:     utils.GetEnvOrDefault("SSH_KEY_PATH", "/home/appuser/.ssh/id_rsa"),
 		sshKnownHosts:  utils.GetEnvOrDefault("SSH_KNOWN_HOSTS", "/home/appuser/.ssh/known_hosts"),

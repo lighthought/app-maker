@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"app-maker-agents/internal/models"
 	"app-maker-agents/internal/utils"
 	"net/http"
+	"shared-models/common"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,8 +18,8 @@ import (
 // @Failure 500 {object} map[string]string "服务器内部错误"
 // @Router /api/v1/health [get]
 func HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, models.Response{
-		Code:      models.SUCCESS_CODE,
+	c.JSON(http.StatusOK, common.Response{
+		Code:      common.SUCCESS_CODE,
 		Message:   "App Maker Agents is running",
 		Data:      "1.0.0",
 		Timestamp: utils.GetCurrentTime(),

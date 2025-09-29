@@ -1,5 +1,5 @@
 definitions:
-  models.FixBugReq:
+  agent.FixBugReq:
     properties:
       bug_description:
         example: bug description
@@ -11,7 +11,7 @@ definitions:
     - bug_description
     - project_guid
     type: object
-  models.GetAPIDefinitionReq:
+  agent.GetAPIDefinitionReq:
     properties:
       db_folder:
         example: docs/db
@@ -31,7 +31,7 @@ definitions:
     - project_guid
     - stories_folder
     type: object
-  models.GetArchitectureReq:
+  agent.GetArchitectureReq:
     properties:
       prd_path:
         example: docs/PRD.md
@@ -51,7 +51,7 @@ definitions:
     - template_arch_description
     - ux_spec_path
     type: object
-  models.GetDatabaseDesignReq:
+  agent.GetDatabaseDesignReq:
     properties:
       arch_folder:
         example: docs/arch
@@ -71,7 +71,7 @@ definitions:
     - project_guid
     - stories_folder
     type: object
-  models.GetEpicsAndStoriesReq:
+  agent.GetEpicsAndStoriesReq:
     properties:
       arch_folder:
         example: docs/arch
@@ -87,7 +87,7 @@ definitions:
     - prd_path
     - project_guid
     type: object
-  models.GetPRDReq:
+  agent.GetPRDReq:
     properties:
       project_guid:
         example: "1234567890"
@@ -99,7 +99,7 @@ definitions:
     - project_guid
     - requirements
     type: object
-  models.GetProjBriefReq:
+  agent.GetProjBriefReq:
     properties:
       project_guid:
         example: "1234567890"
@@ -111,7 +111,7 @@ definitions:
     - project_guid
     - requirements
     type: object
-  models.GetUXStandardReq:
+  agent.GetUXStandardReq:
     properties:
       prd_path:
         example: docs/PRD.md
@@ -127,7 +127,7 @@ definitions:
     - project_guid
     - requirements
     type: object
-  models.ImplementStoryReq:
+  agent.ImplementStoryReq:
     properties:
       api_folder:
         example: docs/api
@@ -163,20 +163,7 @@ definitions:
     - story_file
     - ux_spec_path
     type: object
-  models.Response:
-    properties:
-      code:
-        example: 0
-        type: integer
-      data: {}
-      message:
-        example: success
-        type: string
-      timestamp:
-        example: "2025-08-29T10:00:00Z"
-        type: string
-    type: object
-  models.SetupProjEnvReq:
+  agent.SetupProjEnvReq:
     properties:
       bmad_cli_type:
         example: claude
@@ -200,27 +187,30 @@ definitions:
     - project_id
     - setup_bmad_method
     type: object
-  utils.ErrorResponse:
+  common.ErrorResponse:
     properties:
-      error:
-        example: 错误信息
-        type: string
+      code:
+        example: 400
+        type: integer
       message:
-        example: 操作失败
+        example: 请求参数错误
         type: string
-      success:
-        example: false
-        type: boolean
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
     type: object
-  utils.SuccessResponse:
+  common.Response:
     properties:
+      code:
+        example: 0
+        type: integer
       data: {}
       message:
-        example: 操作成功
+        example: success
         type: string
-      success:
-        example: true
-        type: boolean
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
     type: object
 info:
   contact: {}
@@ -236,22 +226,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetProjBriefReq'
+          $ref: '#/definitions/agent.GetProjBriefReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 生成项目概览
       tags:
       - Analyse
@@ -266,22 +256,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetAPIDefinitionReq'
+          $ref: '#/definitions/agent.GetAPIDefinitionReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 获取API定义
       tags:
       - Architect
@@ -296,22 +286,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetArchitectureReq'
+          $ref: '#/definitions/agent.GetArchitectureReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 获取架构设计
       tags:
       - Architect
@@ -326,22 +316,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetDatabaseDesignReq'
+          $ref: '#/definitions/agent.GetDatabaseDesignReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 获取数据库设计
       tags:
       - Architect
@@ -356,22 +346,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.FixBugReq'
+          $ref: '#/definitions/agent.FixBugReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 部署项目
       tags:
       - Dev
@@ -386,22 +376,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.FixBugReq'
+          $ref: '#/definitions/agent.FixBugReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 修复Bug
       tags:
       - Dev
@@ -416,22 +406,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ImplementStoryReq'
+          $ref: '#/definitions/agent.ImplementStoryReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 实现用户故事
       tags:
       - Dev
@@ -446,22 +436,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.FixBugReq'
+          $ref: '#/definitions/agent.FixBugReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 运行测试
       tags:
       - Dev
@@ -476,22 +466,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetPRDReq'
+          $ref: '#/definitions/agent.GetPRDReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 获取产品需求文档
       tags:
       - PM
@@ -506,22 +496,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetEpicsAndStoriesReq'
+          $ref: '#/definitions/agent.GetEpicsAndStoriesReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 获取史诗和用户故事
       tags:
       - PO
@@ -536,22 +526,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.GetUXStandardReq'
+          $ref: '#/definitions/agent.GetUXStandardReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/utils.SuccessResponse'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/utils.ErrorResponse'
+            $ref: '#/definitions/common.ErrorResponse'
       summary: 获取UX设计标准
       tags:
       - UX
@@ -588,22 +578,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.SetupProjEnvReq'
+          $ref: '#/definitions/agent.SetupProjEnvReq'
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "400":
           description: 参数错误
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
         "500":
           description: 服务器错误
           schema:
-            $ref: '#/definitions/models.Response'
+            $ref: '#/definitions/common.Response'
       summary: 项目环境准备
       tags:
       - Project

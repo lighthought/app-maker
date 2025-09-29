@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetProjBriefReq"
+                            "$ref": "#/definitions/agent.GetProjBriefReq"
                         }
                     }
                 ],
@@ -43,19 +43,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -81,7 +81,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetAPIDefinitionReq"
+                            "$ref": "#/definitions/agent.GetAPIDefinitionReq"
                         }
                     }
                 ],
@@ -89,19 +89,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -127,7 +127,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetArchitectureReq"
+                            "$ref": "#/definitions/agent.GetArchitectureReq"
                         }
                     }
                 ],
@@ -135,19 +135,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -173,7 +173,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetDatabaseDesignReq"
+                            "$ref": "#/definitions/agent.GetDatabaseDesignReq"
                         }
                     }
                 ],
@@ -181,19 +181,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -219,7 +219,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.FixBugReq"
+                            "$ref": "#/definitions/agent.FixBugReq"
                         }
                     }
                 ],
@@ -227,19 +227,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -265,7 +265,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.FixBugReq"
+                            "$ref": "#/definitions/agent.FixBugReq"
                         }
                     }
                 ],
@@ -273,19 +273,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -311,7 +311,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ImplementStoryReq"
+                            "$ref": "#/definitions/agent.ImplementStoryReq"
                         }
                     }
                 ],
@@ -319,19 +319,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -357,7 +357,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.FixBugReq"
+                            "$ref": "#/definitions/agent.FixBugReq"
                         }
                     }
                 ],
@@ -365,19 +365,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -403,7 +403,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetPRDReq"
+                            "$ref": "#/definitions/agent.GetPRDReq"
                         }
                     }
                 ],
@@ -411,19 +411,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -449,7 +449,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetEpicsAndStoriesReq"
+                            "$ref": "#/definitions/agent.GetEpicsAndStoriesReq"
                         }
                     }
                 ],
@@ -457,19 +457,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -495,7 +495,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GetUXStandardReq"
+                            "$ref": "#/definitions/agent.GetUXStandardReq"
                         }
                     }
                 ],
@@ -503,19 +503,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/utils.SuccessResponse"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -574,7 +574,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SetupProjEnvReq"
+                            "$ref": "#/definitions/agent.SetupProjEnvReq"
                         }
                     }
                 ],
@@ -582,19 +582,19 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "400": {
                         "description": "参数错误",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "500": {
                         "description": "服务器错误",
                         "schema": {
-                            "$ref": "#/definitions/models.Response"
+                            "$ref": "#/definitions/common.Response"
                         }
                     }
                 }
@@ -602,7 +602,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.FixBugReq": {
+        "agent.FixBugReq": {
             "type": "object",
             "required": [
                 "bug_description",
@@ -619,7 +619,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetAPIDefinitionReq": {
+        "agent.GetAPIDefinitionReq": {
             "type": "object",
             "required": [
                 "db_folder",
@@ -646,7 +646,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetArchitectureReq": {
+        "agent.GetArchitectureReq": {
             "type": "object",
             "required": [
                 "prd_path",
@@ -673,7 +673,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetDatabaseDesignReq": {
+        "agent.GetDatabaseDesignReq": {
             "type": "object",
             "required": [
                 "arch_folder",
@@ -700,7 +700,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetEpicsAndStoriesReq": {
+        "agent.GetEpicsAndStoriesReq": {
             "type": "object",
             "required": [
                 "arch_folder",
@@ -722,7 +722,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetPRDReq": {
+        "agent.GetPRDReq": {
             "type": "object",
             "required": [
                 "project_guid",
@@ -739,7 +739,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetProjBriefReq": {
+        "agent.GetProjBriefReq": {
             "type": "object",
             "required": [
                 "project_guid",
@@ -756,7 +756,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GetUXStandardReq": {
+        "agent.GetUXStandardReq": {
             "type": "object",
             "required": [
                 "prd_path",
@@ -778,7 +778,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ImplementStoryReq": {
+        "agent.ImplementStoryReq": {
             "type": "object",
             "required": [
                 "api_folder",
@@ -825,25 +825,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Response": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 0
-                },
-                "data": {},
-                "message": {
-                    "type": "string",
-                    "example": "success"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
-                }
-            }
-        },
-        "models.SetupProjEnvReq": {
+        "agent.SetupProjEnvReq": {
             "type": "object",
             "required": [
                 "bmad_cli_type",
@@ -875,34 +857,38 @@ const docTemplate = `{
                 }
             }
         },
-        "utils.ErrorResponse": {
+        "common.ErrorResponse": {
             "type": "object",
             "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "错误信息"
+                "code": {
+                    "type": "integer",
+                    "example": 400
                 },
                 "message": {
                     "type": "string",
-                    "example": "操作失败"
+                    "example": "请求参数错误"
                 },
-                "success": {
-                    "type": "boolean",
-                    "example": false
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
                 }
             }
         },
-        "utils.SuccessResponse": {
+        "common.Response": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "data": {},
                 "message": {
                     "type": "string",
-                    "example": "操作成功"
+                    "example": "success"
                 },
-                "success": {
-                    "type": "boolean",
-                    "example": true
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
                 }
             }
         }
