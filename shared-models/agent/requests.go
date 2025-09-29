@@ -1,6 +1,4 @@
-package models
-
-// TODO: 请求模型
+package agent
 
 // 项目环境准备请求
 type SetupProjEnvReq struct {
@@ -77,4 +75,16 @@ type ImplementStoryReq struct {
 type FixBugReq struct {
 	ProjectGuid    string `json:"project_guid" binding:"required" example:"1234567890"`
 	BugDescription string `json:"bug_description" binding:"required" example:"bug description"`
+}
+
+// 运行测试请求
+type RunTestReq struct {
+	ProjectGuid string `json:"project_guid" validate:"required" example:"1234567890"`
+}
+
+// 部署请求
+type DeployReq struct {
+	ProjectGuid   string                 `json:"project_guid" validate:"required" example:"1234567890"`
+	Environment   string                 `json:"environment,omitempty" example:"dev"` // dev, staging, prod
+	DeployOptions map[string]interface{} `json:"deploy_options,omitempty"`
 }
