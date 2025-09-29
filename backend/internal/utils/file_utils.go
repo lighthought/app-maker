@@ -55,7 +55,7 @@ func IsFileExists(filePath string) bool {
 	if os.IsNotExist(err) {
 		return false
 	}
-	return info.IsDir() == false
+	return !info.IsDir()
 }
 
 // 检查目录是否存在
@@ -64,7 +64,7 @@ func IsDirectoryExists(filePath string) bool {
 	if os.IsNotExist(err) {
 		return false
 	}
-	return info.IsDir() == true
+	return info.IsDir()
 }
 
 // 获取文件信息
@@ -73,7 +73,7 @@ func GetFileInfo(filePath string) (os.FileInfo, error) {
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("文件不存在或路径不正确")
 	}
-	if info.IsDir() == true {
+	if info.IsDir() {
 		return nil, fmt.Errorf("路径是目录，不是文件")
 	}
 	return info, nil
@@ -204,7 +204,7 @@ func GetSafeFilePath(filePath string) (string, error) {
 	)
 
 	// 4. 检查文件是否存在
-	if IsFileExists(full_path) == false {
+	if !IsFileExists(full_path) {
 		return "", fmt.Errorf("文件不存在")
 	}
 

@@ -56,7 +56,7 @@ func IsOllamaRunning() bool {
 	client := http.Client{
 		Timeout: 2 * time.Second,
 	}
-	baseURL := GetEnvOrDefault("OLLAMA_URL", "http://chat.app-maker.localhost:11434")
+	baseURL := GetEnvOrDefault("OLLAMA_URL", "http://host.docker.internal:11434")
 	resp, err := client.Get(baseURL + "/api/tags")
 	if err != nil {
 		return false

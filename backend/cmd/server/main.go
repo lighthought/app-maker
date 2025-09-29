@@ -96,7 +96,6 @@ func main() {
 
 	// 注册中间件
 	engine.Use(gin.Logger())
-	engine.Use(gin.Recovery())
 	engine.Use(middleware.CORS(cfg.CORS))
 	engine.Use(middleware.RequestID())
 	engine.Use(gin.Recovery())

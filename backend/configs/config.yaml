@@ -29,7 +29,7 @@ bmad:
 
 ai:
   ollama:
-    base_url: "http://10.0.0.6:11434"
+    base_url: "http://host.docker.internal:11434"
     model: "deepseek-r1:14b"
     timeout: 30
 
@@ -42,4 +42,4 @@ asynq:
   concurrency: 100
 
 agents:
-  url: "http://localhost:3001"
+  url: "http://host.docker.internal:8088"
