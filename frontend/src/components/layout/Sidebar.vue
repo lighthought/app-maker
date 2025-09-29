@@ -1,8 +1,8 @@
 <template>
   <div class="sidebar">
     <div class="sidebar-header" @click="goToHome">
-      <img src="@/assets/logo.svg" alt="AutoCode Logo" class="sidebar-logo" />
-      <h2 v-if="!collapsed">AutoCode</h2>
+      <img src="@/assets/logo.svg" alt="App-Maker" class="sidebar-logo" />
+      <h2 v-if="!collapsed">App-Maker</h2>
       <h2 v-else>AC</h2>
     </div>
     <div class="sidebar-content">

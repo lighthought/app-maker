@@ -195,8 +195,8 @@
     <n-modal v-model:show="showTermsModal" preset="card" title="用户协议" style="width: 600px">
       <div class="terms-content">
         <h3>用户协议</h3>
-        <p>欢迎使用 AutoCode！</p>
-        <p>本协议是您与 AutoCode 平台之间的法律协议，请您仔细阅读。</p>
+        <p>欢迎使用 App-Maker！</p>
+        <p>本协议是您与 App-Maker 平台之间的法律协议，请您仔细阅读。</p>
         <!-- 更多协议内容 -->
       </div>
     </n-modal>

@@ -7,7 +7,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'Home',
     component: () => import('@/pages/Home.vue'),
-    meta: { title: 'AutoCode', requiresAuth: false }
+    meta: { title: 'App-Maker', requiresAuth: false }
   },
   {
     path: '/dashboard',
@@ -51,7 +51,7 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title}` : 'AutoCode'
+  document.title = to.meta.title ? `${to.meta.title}` : 'App-Maker'
   
   console.log('路由守卫检查:', {
     to: to.path,
