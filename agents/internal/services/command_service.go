@@ -69,6 +69,11 @@ func (s *CommandService) Execute(ctx context.Context, projectPath, command strin
 	}()}
 }
 
+// 启动 CLI - claude、codex、qwen 等
+func (s *CommandService) StartCli(ctx context.Context, projectPath, cliType string) CommandResult {
+	return s.Execute(ctx, projectPath, cliType, s.timeout)
+}
+
 // SimpleExecute 直接执行命令，不使用 session 管理
 func (s *CommandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult {
 

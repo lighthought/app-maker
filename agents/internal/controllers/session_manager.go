@@ -2,9 +2,12 @@ package controllers
 
 import (
 	"bufio"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"sync"
+	"syscall"
 	"time"
 
 	"app-maker-agents/internal/models"
@@ -27,6 +30,7 @@ func NewSessionManager(workspacePath string) *SessionManager {
 func (m *SessionManager) Execute(projectPath, command string, timeout time.Duration) models.ExecResult {
 	sess, err := m.getOrCreateSession(projectPath)
 	if err != nil {
+		logger.Error("创建项目会话失败", logger.String("projectPath", projectPath), logger.ErrorField(err))
 		return models.ExecResult{Success: false, Err: err}
 	}
 
@@ -42,6 +46,7 @@ func (m *SessionManager) Execute(projectPath, command string, timeout time.Durat
 
 func (m *SessionManager) getOrCreateSession(projectPath string) (*Session, error) {
 	if val, ok := m.sessions.Load(projectPath); ok {
+		logger.Info("获取项目会话成功, 直接返回", logger.String("projectPath", projectPath))
 		return val.(*Session), nil
 	}
 
@@ -63,7 +68,7 @@ func (m *SessionManager) getOrCreateSession(projectPath string) (*Session, error
 		utils.EnsureDirectoryExists(m.workspacePath)
 	}
 
-	cmd, err := createShell(m.workspacePath)
+	cmd, err := m.createShell(projectPath)
 	if err != nil {
 		createErr = err
 		if createErr != nil {
@@ -110,28 +115,31 @@ func (m *SessionManager) getOrCreateSession(projectPath string) (*Session, error
 	sess.Closing = make(chan struct{})
 	sess.ProjectPath = projectPath
 
+	logger.Info("创建项目会话成功", logger.String("projectPath", projectPath))
+
 	go sess.Loop()
 
 	return sess, nil
 }
 
 // createShell 根据系统创建适当的 shell
-func createShell(workspacePath string) (*exec.Cmd, error) {
+func (m *SessionManager) createShell(projectPath string) (*exec.Cmd, error) {
 	shell := ""
-	args := []string{}
+	var args []string
 
 	switch runtime.GOOS {
 	case "windows":
 		shell = "cmd"
-		args = []string{"/C"}
+		args = []string{"/C", "cd", "/d", filepath.Join(m.workspacePath, projectPath), "&&", "claude", "--dangerously-skip-permissions"}
 	default:
 		shell = "bash"
-		args = []string{"-i"}
+		args = []string{"-i", "cd", filepath.Join(m.workspacePath, projectPath), "&&", "claude", "--dangerously-skip-permissions"}
 	}
 
 	cmd := exec.Command(shell, args...)
-	cmd.Dir = workspacePath
-	cmd.Env = append([]string{}, exec.Command(shell).Env...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+	cmd.Dir = filepath.Join(m.workspacePath, projectPath)
+	cmd.Env = os.Environ()
 
 	return cmd, nil
 }

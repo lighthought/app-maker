@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"shared-models/agent"
 	"shared-models/common"
-	"time"
 
 	"app-maker-agents/internal/services"
 	"app-maker-agents/internal/utils"
@@ -49,7 +48,7 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 		"技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。\n" +
 		"我的需求是：" + req.Requirements
 
-	result := s.commandService.Execute(c.Request.Context(), req.ProjectGuid, message, 5*time.Minute)
+	result := s.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, "claude", "--dangerously-skip-permissions", "-p", message)
 	if !result.Success {
 		c.JSON(http.StatusOK, common.ErrorResponse{
 			Code:      common.ERROR_CODE,

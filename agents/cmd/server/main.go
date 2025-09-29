@@ -32,6 +32,7 @@ import (
 	"app-maker-agents/internal/api/routes"
 	"app-maker-agents/internal/config"
 	"app-maker-agents/internal/container"
+	"app-maker-agents/pkg/logger"
 
 	_ "app-maker-agents/docs"
 
@@ -44,6 +45,12 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("加载配置失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 初始化日志
+	if err := logger.Init(cfg.Log.Level, cfg.Log.File); err != nil {
+		fmt.Printf("初始化日志失败: %v\n", err)
 		os.Exit(1)
 	}
 

@@ -36,7 +36,8 @@ func Load() (*Config, error) {
 	v.SetDefault("PORT", "8088")
 	v.SetDefault("ENV", "development")
 	v.SetDefault("WORKSPACE_PATH", "F:/app-maker/app_data")
-	v.SetDefault("LOG.LEVEL", "info")
+	v.SetDefault("LOG.LEVEL", "debug")
+	v.SetDefault("LOG.FILE", "./logs/app-maker-agents.log")
 	v.SetDefault("COMMAND.TIMEOUT", "5m")
 	v.SetDefault("COMMAND.CLAUDE_BIN", "claude")
 
