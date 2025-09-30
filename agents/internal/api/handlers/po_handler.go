@@ -38,7 +38,7 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 
 	message := "@bmad/po.mdc 我希望你基于PRD文档 @" + req.PrdPath + " 和 @" + req.ArchFolder +
 		" 目录下的架构设计，创建 Epics（史诗）和 Stories（用户故事）。\n" +
-		"生成分片的 Epics，输出到 docs/epics/ 下多个文件。再根据 Epics 生成分片的 Stories，输出到 docs/stories/ 下多个文件。" +
+		"生成不分片的 Epics，输出到 docs/ 目录下单个文件 epics.md。再根据 Epics 生成分片的 Stories，输出到 docs/stories/ 下多个文件。" +
 		"注意：stories 中要包含验收标准。不要考虑安全、合规。"
 
 	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePO, message)
