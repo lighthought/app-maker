@@ -165,7 +165,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	bGerated := s.nameGenerator.GenerateProjectConfig(req.Requirements, newProject)
 	if !bGerated {
 		logger.Error("自动生成项目配置信息失败", logger.String("requirements", req.Requirements))
-		return nil, fmt.Errorf("failed to generate project config: %w", errors.New("failed to generate project config"))
+		return nil, fmt.Errorf("failed to generate project config")
 	}
 
 	// 更新项目网络设置
@@ -557,7 +557,7 @@ func (s *projectService) GetProject(ctx context.Context, projectGuid, userID str
 		return nil, err
 	}
 	if project == nil {
-		return nil, errors.New("access denied")
+		return nil, errors.New(common.MESSAGE_ACCESS_DENIED)
 	}
 	return models.ConvertToProjectInfo(project), nil
 }
@@ -570,7 +570,7 @@ func (s *projectService) DeleteProject(ctx context.Context, projectGuid, userID 
 		return err
 	}
 	if project == nil {
-		return errors.New("access denied")
+		return errors.New(common.MESSAGE_ACCESS_DENIED)
 	}
 
 	// 如果项目路径存在，异步打包缓存
@@ -675,7 +675,7 @@ func (s *projectService) CheckProjectAccess(ctx context.Context, projectGuid, us
 		return nil, err
 	}
 	if !isOwner {
-		return nil, errors.New("access denied")
+		return nil, errors.New(common.MESSAGE_ACCESS_DENIED)
 	}
 	return project, nil
 }

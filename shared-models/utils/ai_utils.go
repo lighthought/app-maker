@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"shared-models/common"
 	"shared-models/logger"
 
 	deepseek "github.com/cohesion-org/deepseek-go"
@@ -249,7 +250,7 @@ func CreateOllamaChatCompletion(req *deepseek.ChatCompletionRequest) (deepseek.C
 // GenerateProjectSummary 生成项目总结
 func GenerateProjectSummary(requirements string) (*ProjectSummaryResponse, error) {
 	if !IsOllamaRunning() {
-		return nil, errors.New("Ollama server is not running")
+		return nil, errors.New(common.MESSAGE_OLLAMA_NOT_RUNNING)
 	}
 
 	// 构建系统提示词
@@ -304,7 +305,7 @@ func GenerateProjectSummary(requirements string) (*ProjectSummaryResponse, error
 			logger.String("title", summary.Title),
 			logger.String("content", summary.Content),
 		)
-		return nil, errors.New("AI 响应格式不正确")
+		return nil, errors.New(common.MESSAGE_AI_RESPONSE_FORMAT_ERROR)
 	}
 
 	logger.Info("AI 项目总结生成成功",

@@ -110,7 +110,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 
 	project, err := h.projectService.GetProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
-		if err.Error() == "access denied" {
+		if err.Error() == common.MESSAGE_ACCESS_DENIED {
 			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
 			return
 		}
@@ -147,7 +147,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 
 	err := h.projectService.DeleteProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
-		if err.Error() == "access denied" {
+		if err.Error() == common.MESSAGE_ACCESS_DENIED {
 			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
 			return
 		}
@@ -261,7 +261,7 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	// 获取项目信息
 	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
 	if err != nil {
-		if err.Error() == "access denied" {
+		if err.Error() == common.MESSAGE_ACCESS_DENIED {
 			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
 			return
 		}

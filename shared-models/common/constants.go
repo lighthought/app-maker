@@ -24,6 +24,34 @@ const (
 	INSUFFICIENT_QUOTA    = 2429 // 配额不足
 )
 
+// 异常信息常量
+const (
+	MESSAGE_ACCESS_DENIED             = "access denied"
+	MESSAGE_UNEXPECTED_SIGNING_METHOD = "unexpected signing method"
+	MESSAGE_INVALID_TOKEN             = "invalid token"
+	MESSAGE_INVALID_REFRESH_TOKEN     = "invalid refresh token"
+	MESSAGE_OLLAMA_NOT_RUNNING        = "ollama server is not running"
+	MESSAGE_EMAIL_ALREADY_EXISTS      = "邮箱已存在"
+	MESSAGE_USERNAME_ALREADY_EXISTS   = "用户名已存在"
+	MESSAGE_USER_NOT_FOUND            = "用户不存在"
+	MESSAGE_USER_DISABLED             = "用户账户已被禁用"
+	MESSAGE_USER_OR_PASSWORD_ERROR    = "用户不存在或密码错误"
+	MESSAGE_OLD_PASSWORD_ERROR        = "旧密码错误"
+	MESSAGE_AI_RESPONSE_FORMAT_ERROR  = "AI response format error"
+)
+
+// 用户状态
+const (
+	UserStatusActive    = "active"
+	UserStatusDisabled  = "inactive"
+	UserStatusSuspended = "suspended"
+)
+
+const (
+	UserRoleAdmin = "admin"
+	UserRoleUser  = "user"
+)
+
 // 通用状态
 const (
 	CommonStatusPending    = "pending"

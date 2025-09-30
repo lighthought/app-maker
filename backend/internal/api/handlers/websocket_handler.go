@@ -216,7 +216,7 @@ func (h *WebSocketHandler) handleMessage(client *models.WebSocketClient, message
 // handlePing 处理心跳
 func (h *WebSocketHandler) handlePing(client *models.WebSocketClient) {
 	response := models.WebSocketMessage{
-		Type:      "pong",
+		Type:      common.WebSocketMessageTypePong,
 		Timestamp: utils.GetCurrentTime(),
 		ID:        utils.GenerateUUID(),
 	}
@@ -283,7 +283,7 @@ func (h *WebSocketHandler) handleUserFeedback(client *models.WebSocketClient, me
 	// 这里可以转发给 agents-server 或保存到数据库
 
 	response := models.WebSocketMessage{
-		Type:        "user_feedback_response",
+		Type:        common.WebSocketMessageTypeUserFeedbackResponse,
 		ProjectGUID: message.ProjectGUID,
 		Data: map[string]string{
 			"message": "反馈已收到",

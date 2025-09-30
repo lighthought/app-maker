@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"shared-models/common"
 
 	"autocodeweb-backend/internal/models"
 
@@ -25,7 +26,7 @@ func Seed(db *gorm.DB) error {
 func createDefaultAdmin(db *gorm.DB) error {
 	// 检查是否已存在管理员用户
 	var adminCount int64
-	if err := db.Model(&models.User{}).Where("role = ?", "admin").Count(&adminCount).Error; err != nil {
+	if err := db.Model(&models.User{}).Where("role = ?", common.UserRoleAdmin).Count(&adminCount).Error; err != nil {
 		return err
 	}
 
@@ -34,9 +35,9 @@ func createDefaultAdmin(db *gorm.DB) error {
 		adminUser := models.User{
 			Email:    "admin@autocodeweb.com",
 			Password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-			Username: "系统管理员",
-			Role:     "admin",
-			Status:   "active",
+			Username: "admin",
+			Role:     common.UserRoleAdmin,
+			Status:   common.UserStatusActive,
 		}
 
 		if err := db.Create(&adminUser).Error; err != nil {

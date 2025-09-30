@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"shared-models/common"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -80,7 +81,7 @@ func (j *JWTService) GenerateTokens(userID, email, username string) (string, str
 func (j *JWTService) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, errors.New(common.MESSAGE_UNEXPECTED_SIGNING_METHOD)
 		}
 		return []byte(j.secretKey), nil
 	})
@@ -93,14 +94,14 @@ func (j *JWTService) ValidateToken(tokenString string) (*Claims, error) {
 		return claims, nil
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, errors.New(common.MESSAGE_INVALID_TOKEN)
 }
 
 // ValidateRefreshToken 验证刷新令牌
 func (j *JWTService) ValidateRefreshToken(tokenString string) (string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, errors.New(common.MESSAGE_UNEXPECTED_SIGNING_METHOD)
 		}
 		return []byte(j.secretKey), nil
 	})
@@ -113,5 +114,5 @@ func (j *JWTService) ValidateRefreshToken(tokenString string) (string, error) {
 		return claims.Subject, nil
 	}
 
-	return "", errors.New("invalid refresh token")
+	return "", errors.New(common.MESSAGE_INVALID_REFRESH_TOKEN)
 }

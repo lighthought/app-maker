@@ -45,7 +45,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 	response, err := h.userService.Register(c.Request.Context(), &req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "邮箱已存在" || err.Error() == "用户名已存在" {
+		if err.Error() == common.MESSAGE_EMAIL_ALREADY_EXISTS || err.Error() == common.MESSAGE_USERNAME_ALREADY_EXISTS {
 			statusCode = http.StatusConflict
 		}
 		c.JSON(statusCode, utils.GetErrorResponse(common.ERROR_CODE, err.Error()))
@@ -76,9 +76,9 @@ func (h *UserHandler) Login(c *gin.Context) {
 	response, err := h.userService.Login(c.Request.Context(), &req)
 	if err != nil {
 		statusCode := http.StatusUnauthorized
-		if err.Error() == "用户不存在或密码错误" {
+		if err.Error() == common.MESSAGE_USER_OR_PASSWORD_ERROR {
 			statusCode = http.StatusUnauthorized
-		} else if err.Error() == "用户账户已被禁用" {
+		} else if err.Error() == common.MESSAGE_USER_DISABLED {
 			statusCode = http.StatusForbidden
 		}
 		c.JSON(statusCode, utils.GetErrorResponse(common.ERROR_CODE, "登录失败, "+err.Error()))
@@ -130,7 +130,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	response, err := h.userService.GetUserProfile(c.Request.Context(), userID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "用户不存在" {
+		if err.Error() == common.MESSAGE_USER_NOT_FOUND {
 			statusCode = http.StatusNotFound
 		}
 		c.JSON(statusCode, utils.GetErrorResponse(common.ERROR_CODE, "获取用户档案失败, "+err.Error()))
@@ -166,7 +166,7 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 	err := h.userService.UpdateUserProfile(c.Request.Context(), userID, &req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "用户名已被使用" || err.Error() == "邮箱已被使用" {
+		if err.Error() == common.MESSAGE_USERNAME_ALREADY_EXISTS || err.Error() == common.MESSAGE_EMAIL_ALREADY_EXISTS {
 			statusCode = http.StatusConflict
 		}
 		c.JSON(statusCode, utils.GetErrorResponse(common.ERROR_CODE, "更新用户档案失败, "+err.Error()))
@@ -201,7 +201,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	err := h.userService.ChangePassword(c.Request.Context(), userID, &req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if err.Error() == "旧密码错误" {
+		if err.Error() == common.MESSAGE_OLD_PASSWORD_ERROR {
 			statusCode = http.StatusBadRequest
 		}
 		c.JSON(statusCode, utils.GetErrorResponse(common.ERROR_CODE, "修改密码失败, "+err.Error()))
@@ -234,7 +234,7 @@ func (h *UserHandler) GetUserList(c *gin.Context) {
 	}
 
 	// 检查权限
-	if userRole != "admin" {
+	if userRole != common.UserRoleAdmin {
 		c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "权限不足"))
 		return
 	}
@@ -270,7 +270,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	userRole := c.GetString("user_role")
 
 	// 检查权限
-	if userRole != "admin" {
+	if userRole != common.UserRoleAdmin {
 		c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "权限不足"))
 		return
 	}
@@ -318,9 +318,9 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 	response, err := h.userService.RefreshToken(c.Request.Context(), refreshToken)
 	if err != nil {
 		statusCode := http.StatusUnauthorized
-		if err.Error() == "无效的刷新令牌" {
+		if err.Error() == common.MESSAGE_INVALID_REFRESH_TOKEN {
 			statusCode = http.StatusUnauthorized
-		} else if err.Error() == "用户账户已被禁用" {
+		} else if err.Error() == common.MESSAGE_USER_DISABLED {
 			statusCode = http.StatusForbidden
 		}
 		c.JSON(statusCode, utils.GetErrorResponse(common.ERROR_CODE, "令牌刷新失败, "+err.Error()))

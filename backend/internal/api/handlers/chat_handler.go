@@ -130,10 +130,10 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	}
 
 	if req.Type == "" {
-		req.Type = "user"
+		req.Type = common.ConversationTypeUser
 	}
 	if req.AgentRole == "" {
-		req.AgentRole = "user"
+		req.AgentRole = common.AgentTypeUser
 	}
 	if req.AgentName == "" {
 		req.AgentName = "user"

@@ -7,6 +7,7 @@ import (
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"shared-models/auth"
+	"shared-models/common"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -48,7 +49,7 @@ func (s *userService) Register(ctx context.Context, req *models.RegisterRequest)
 		return nil, err
 	}
 	if exists {
-		return nil, errors.New("邮箱已存在")
+		return nil, errors.New(common.MESSAGE_EMAIL_ALREADY_EXISTS)
 	}
 
 	// 检查用户名是否已存在
@@ -57,7 +58,7 @@ func (s *userService) Register(ctx context.Context, req *models.RegisterRequest)
 		return nil, err
 	}
 	if exists {
-		return nil, errors.New("用户名已存在")
+		return nil, errors.New(common.MESSAGE_USERNAME_ALREADY_EXISTS)
 	}
 
 	// 加密密码
@@ -71,8 +72,8 @@ func (s *userService) Register(ctx context.Context, req *models.RegisterRequest)
 		Email:    req.Email,
 		Username: req.Username,
 		Password: string(hashedPassword),
-		Role:     "user",
-		Status:   "active",
+		Role:     common.UserRoleUser,
+		Status:   common.UserStatusActive,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -105,17 +106,17 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 	// 根据邮箱获取用户
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, errors.New("用户不存在或密码错误")
+		return nil, errors.New(common.MESSAGE_USER_OR_PASSWORD_ERROR)
 	}
 
 	// 验证密码
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, errors.New("用户不存在或密码错误")
+		return nil, errors.New(common.MESSAGE_USER_OR_PASSWORD_ERROR)
 	}
 
 	// 检查用户状态
-	if user.Status != "active" {
-		return nil, errors.New("用户账户已被禁用")
+	if user.Status != common.UserStatusActive {
+		return nil, errors.New(common.MESSAGE_USER_DISABLED)
 	}
 
 	// 生成JWT令牌
@@ -150,7 +151,7 @@ func (s *userService) Logout(ctx context.Context, userID, token string) error {
 func (s *userService) GetUserProfile(ctx context.Context, userID string) (*models.UserInfo, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("用户不存在")
+		return nil, errors.New(common.MESSAGE_USER_NOT_FOUND)
 	}
 
 	return &models.UserInfo{
@@ -167,7 +168,7 @@ func (s *userService) GetUserProfile(ctx context.Context, userID string) (*model
 func (s *userService) UpdateUserProfile(ctx context.Context, userID string, req *models.UpdateProfileRequest) error {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return errors.New("用户不存在")
+		return errors.New(common.MESSAGE_USER_NOT_FOUND)
 	}
 
 	// 更新字段
@@ -179,7 +180,7 @@ func (s *userService) UpdateUserProfile(ctx context.Context, userID string, req 
 				return err
 			}
 			if exists {
-				return errors.New("用户名已被使用")
+				return errors.New(common.MESSAGE_USERNAME_ALREADY_EXISTS)
 			}
 			user.Username = req.Username
 		}
@@ -193,7 +194,7 @@ func (s *userService) UpdateUserProfile(ctx context.Context, userID string, req 
 				return err
 			}
 			if exists {
-				return errors.New("邮箱已被使用")
+				return errors.New(common.MESSAGE_EMAIL_ALREADY_EXISTS)
 			}
 			user.Email = req.Email
 		}
@@ -206,12 +207,12 @@ func (s *userService) UpdateUserProfile(ctx context.Context, userID string, req 
 func (s *userService) ChangePassword(ctx context.Context, userID string, req *models.ChangePasswordRequest) error {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return errors.New("用户不存在")
+		return errors.New(common.MESSAGE_USER_NOT_FOUND)
 	}
 
 	// 验证旧密码
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)); err != nil {
-		return errors.New("旧密码错误")
+		return errors.New(common.MESSAGE_OLD_PASSWORD_ERROR)
 	}
 
 	// 加密新密码
@@ -270,18 +271,18 @@ func (s *userService) RefreshToken(ctx context.Context, refreshToken string) (*m
 	// 验证刷新令牌
 	userID, err := s.authJWTService.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return nil, errors.New("无效的刷新令牌")
+		return nil, errors.New(common.MESSAGE_INVALID_REFRESH_TOKEN)
 	}
 
 	// 获取用户信息
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("用户不存在")
+		return nil, errors.New(common.MESSAGE_USER_NOT_FOUND)
 	}
 
 	// 检查用户状态
-	if user.Status != "active" {
-		return nil, errors.New("用户账户已被禁用")
+	if user.Status != common.UserStatusActive {
+		return nil, errors.New(common.MESSAGE_USER_DISABLED)
 	}
 
 	// 生成新的令牌
