@@ -1,8 +1,8 @@
 package config
 
 import (
-	"autocodeweb-backend/internal/utils"
 	"fmt"
+	"shared-models/utils"
 	"strconv"
 	"strings"
 
@@ -18,7 +18,7 @@ type Config struct {
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	AI       AIConfig       `mapstructure:"ai"`
 	Log      LogConfig      `mapstructure:"log"`
-    Agents   AgentsConfig   `mapstructure:"agents"`
+	Agents   AgentsConfig   `mapstructure:"agents"`
 }
 
 type AppConfig struct {
@@ -67,7 +67,7 @@ type LogConfig struct {
 
 // Agents server配置
 type AgentsConfig struct {
-    URL string `mapstructure:"url"`
+	URL string `mapstructure:"url"`
 }
 
 // Asynq 异步配置
@@ -172,8 +172,8 @@ func setDefaults() {
 
 	viper.SetDefault("asynq.concurrency", 100)
 
-    // Agents Server 默认
-    viper.SetDefault("agents.url", utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001"))
+	// Agents Server 默认
+	viper.SetDefault("agents.url", utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001"))
 }
 
 func validateConfig(config *Config) error {

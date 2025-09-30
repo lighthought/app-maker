@@ -2,10 +2,9 @@ package services
 
 import (
 	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/utils"
 	"fmt"
-
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
+	"shared-models/utils"
 )
 
 // ProjectNameGenerator 项目名生成器接口

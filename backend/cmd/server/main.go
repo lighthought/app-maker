@@ -35,7 +35,7 @@ import (
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/container"
 	"autocodeweb-backend/internal/database"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
 
 	_ "autocodeweb-backend/docs"
 

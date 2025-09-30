@@ -1,12 +1,11 @@
 package handlers
 
 import (
+	"app-maker-agents/internal/services"
 	"net/http"
 	"shared-models/agent"
 	"shared-models/common"
-
-	"app-maker-agents/internal/services"
-	"app-maker-agents/internal/utils"
+	"shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,28 +34,15 @@ func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
 func (h *ProjectHandler) SetupProjectEnvironment(c *gin.Context) {
 	var req = agent.SetupProjEnvReq{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.ERROR_CODE,
-			Message:   "参数校验失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "参数校验失败: "+err.Error()))
 		return
 	}
 
 	response, err := h.projectService.SetupProjectEnvironment(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusOK, common.Response{
-			Code:      common.ERROR_CODE,
-			Message:   err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "项目环境准备成功",
-		Data:      response,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目环境准备成功", response))
 }

@@ -1,13 +1,13 @@
 package services
 
 import (
-	"app-maker-agents/internal/utils"
-	"app-maker-agents/pkg/logger"
 	"context"
 	"fmt"
 	"path/filepath"
 	"shared-models/agent"
 	"shared-models/common"
+	"shared-models/logger"
+	"shared-models/utils"
 )
 
 type ProjectService interface {

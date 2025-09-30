@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"shared-models/common"
 	"time"
 
-	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
-	"autocodeweb-backend/internal/tasks"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
+	"shared-models/tasks"
+	"shared-models/utils"
 
 	"github.com/hibiken/asynq"
 )
@@ -64,11 +64,11 @@ func NewWebSocketService(asyncClient *asynq.Client,
 
 // ProcessTask 处理任务
 func (s *webSocketService) ProcessTask(ctx context.Context, task *asynq.Task) error {
-	if task.Type() != models.TypeWebSocketBroadcast {
+	if task.Type() != common.TypeWebSocketBroadcast {
 		return fmt.Errorf("不支持的任务类型: %s", task.Type())
 	}
 
-	payload := &models.WebSocketTaskPayload{}
+	payload := &tasks.WebSocketTaskPayload{}
 	err := json.Unmarshal(task.Payload(), payload)
 	if err != nil {
 		logger.Error("解析WebSocket消息广播任务失败", logger.String("error", err.Error()))
@@ -79,17 +79,17 @@ func (s *webSocketService) ProcessTask(ctx context.Context, task *asynq.Task) er
 	messageType := payload.MessageType
 
 	switch messageType {
-	case constants.WebSocketMessageTypeProjectStageUpdate:
+	case common.WebSocketMessageTypeProjectStageUpdate:
 		if payload.StageID != "" {
 			return s.broadcastProjectStage(ctx, projectGUID, payload.StageID)
 		}
 		return nil
-	case constants.WebSocketMessageTypeProjectMessage:
+	case common.WebSocketMessageTypeProjectMessage:
 		if payload.MessageID != "" {
 			return s.broadcastProjectMessage(ctx, projectGUID, payload.MessageID)
 		}
 		return nil
-	case constants.WebSocketMessageTypeProjectInfoUpdate:
+	case common.WebSocketMessageTypeProjectInfoUpdate:
 		if payload.ProjectID != "" {
 			return s.broadcastProjectInfoUpdate(ctx, projectGUID, payload.ProjectID)
 		}
@@ -194,7 +194,7 @@ func (s *webSocketService) broadcastProjectStage(ctx context.Context, projectGUI
 	var stageInfo = models.DevStageInfo{}
 	stageInfo.CopyFromDevStage(stage)
 	message := &models.WebSocketMessage{
-		Type:        constants.WebSocketMessageTypeProjectStageUpdate,
+		Type:        common.WebSocketMessageTypeProjectStageUpdate,
 		ProjectGUID: projectGUID,
 		Data:        stageInfo,
 		Timestamp:   utils.GetCurrentTime(),
@@ -217,7 +217,7 @@ func (s *webSocketService) broadcastProjectMessage(ctx context.Context, projectG
 		return fmt.Errorf("获取项目消息失败: %w", err)
 	}
 	wsMessage := &models.WebSocketMessage{
-		Type:        constants.WebSocketMessageTypeProjectMessage,
+		Type:        common.WebSocketMessageTypeProjectMessage,
 		ProjectGUID: projectGUID,
 		Data:        message,
 		Timestamp:   utils.GetCurrentTime(),
@@ -243,7 +243,7 @@ func (s *webSocketService) broadcastProjectInfoUpdate(ctx context.Context, proje
 	projectInfo := project.GetUpdateInfo()
 
 	message := &models.WebSocketMessage{
-		Type:        constants.WebSocketMessageTypeProjectInfoUpdate,
+		Type:        common.WebSocketMessageTypeProjectInfoUpdate,
 		ProjectGUID: projectGUID,
 		Data:        projectInfo,
 		Timestamp:   utils.GetCurrentTime(),
@@ -256,7 +256,7 @@ func (s *webSocketService) broadcastProjectInfoUpdate(ctx context.Context, proje
 // NotifyProjectStageUpdate 通知项目阶段更新
 func (s *webSocketService) NotifyProjectStageUpdate(ctx context.Context, projectGUID string, stage *models.DevStage) {
 	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectStageUpdate, stage.ID),
+		tasks.NewWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectStageUpdate, stage.ID),
 	)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
@@ -278,7 +278,7 @@ func (s *webSocketService) NotifyProjectStageUpdate(ctx context.Context, project
 // NotifyProjectMessage 通知项目新消息
 func (s *webSocketService) NotifyProjectMessage(ctx context.Context, projectGUID string, message *models.ConversationMessage) {
 	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectMessage, message.ID),
+		tasks.NewWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectMessage, message.ID),
 	)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
@@ -299,7 +299,7 @@ func (s *webSocketService) NotifyProjectMessage(ctx context.Context, projectGUID
 // NotifyProjectInfoUpdate 通知项目信息更新
 func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectGUID string, project *models.Project) {
 	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, constants.WebSocketMessageTypeProjectInfoUpdate, project.ID),
+		tasks.NewWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectInfoUpdate, project.ID),
 	)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
@@ -312,7 +312,7 @@ func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectG
 		logger.String("id", project.ID),
 		logger.String("projectGUID", projectGUID),
 		logger.String("name", project.Name),
-		logger.String("type", constants.WebSocketMessageTypeProjectInfoUpdate),
+		logger.String("type", common.WebSocketMessageTypeProjectInfoUpdate),
 		logger.String("taskID", taskInfo.ID),
 	)
 }

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"autocodeweb-backend/internal/constants"
 	"shared-models/common"
 	"time"
 
@@ -66,7 +65,7 @@ func (DevStage) TableName() string {
 	return "dev_stages"
 }
 
-func NewDevStage(project *Project, stageName common.DevStage, status string) *DevStage {
+func NewDevStage(project *Project, stageName common.DevStatus, status string) *DevStage {
 	if status == "" {
 		status = common.CommonStatusInProgress
 	}
@@ -75,14 +74,14 @@ func NewDevStage(project *Project, stageName common.DevStage, status string) *De
 		ProjectGuid: project.GUID,
 		Name:        string(stageName),
 		Status:      status,
-		Progress:    constants.GetProgressByCommandStatus(status),
-		Description: constants.GetDevStageDescription(common.DevStage(stageName)),
+		Progress:    common.GetProgressByCommonStatus(status),
+		Description: common.GetDevStageDescription(stageName),
 	}
 }
 
 func (ds *DevStage) SetStatus(status string) {
 	ds.Status = status
-	ds.Progress = constants.GetProgressByCommandStatus(status)
+	ds.Progress = common.GetProgressByCommonStatus(status)
 }
 
 // BeforeCreate 创建前的钩子

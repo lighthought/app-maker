@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
+	"shared-models/utils"
 
 	"github.com/hibiken/asynq"
 )

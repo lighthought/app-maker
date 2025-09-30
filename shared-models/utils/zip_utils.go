@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
 )
 
 // CompressDirectory 压缩指定目录到zip文件

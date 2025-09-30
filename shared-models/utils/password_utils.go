@@ -3,9 +3,6 @@ package utils
 import (
 	"crypto/rand"
 	"math/big"
-	"strings"
-
-	"github.com/google/uuid"
 )
 
 // PasswordUtils 密码工具类
@@ -83,5 +80,6 @@ func (u *PasswordUtils) shuffleBytes(bytes []byte) {
 
 // GenerateSimplePassword 生成简单密码（仅用于测试）
 func (u *PasswordUtils) GenerateSimplePassword() string {
-	return strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
+	n := GenerateUUID()
+	return n[:12]
 }

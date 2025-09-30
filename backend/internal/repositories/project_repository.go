@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
 
 	"gorm.io/gorm"
 )

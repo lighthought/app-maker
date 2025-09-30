@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
 	"encoding/json"
 	"net/http"
 	"shared-models/common"
+	"shared-models/logger"
+	"shared-models/tasks"
+	"shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
@@ -48,11 +48,7 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	if err != nil {
 		completedTasks, err := s.inspector.ListCompletedTasks("default")
 		if err != nil {
-			c.JSON(http.StatusOK, common.ErrorResponse{
-				Code:      common.INTERNAL_ERROR,
-				Message:   "获取任务状态失败: " + err.Error(),
-				Timestamp: utils.GetCurrentTime(),
-			})
+			c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取任务状态失败: "+err.Error()))
 			return
 		}
 
@@ -66,54 +62,31 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 	}
 
 	if info == nil {
-		c.JSON(http.StatusNotFound, common.ErrorResponse{
-			Code:      common.NOT_FOUND,
-			Message:   "任务不存在, " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusNotFound, utils.GetErrorResponse(common.NOT_FOUND, "任务不存在, "+err.Error()))
 		return
 	}
 
-	taskResult := models.TaskResult{
+	taskResult := tasks.TaskResult{
 		TaskID:   taskID,
 		Status:   common.CommonStatusInProgress,
 		Progress: 0,
 		Message:  "任务执行中",
 	}
 	if info.Result == nil {
-		c.JSON(http.StatusOK, common.Response{
-			Code:      common.SUCCESS_CODE,
-			Message:   "获取任务状态成功",
-			Data:      taskResult,
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetSuccessResponse("获取任务状态成功", taskResult))
 		return
 	}
 
 	if len(info.Result) == 0 {
-		c.JSON(http.StatusOK, common.Response{
-			Code:      common.SUCCESS_CODE,
-			Message:   "获取任务状态成功",
-			Data:      taskResult,
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetSuccessResponse("获取任务状态成功", taskResult))
 		return
 	}
 
 	err = json.Unmarshal(info.Result, &taskResult)
 	if err != nil {
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "解析任务结果失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "解析任务结果失败: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "获取任务状态成功",
-		Data:      taskResult,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取任务状态成功", taskResult))
 }

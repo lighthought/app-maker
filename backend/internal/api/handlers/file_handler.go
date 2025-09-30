@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"autocodeweb-backend/internal/services"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
 	"net/http"
 	"os"
 	"shared-models/common"
+	"shared-models/logger"
+	"shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,11 +40,7 @@ func NewFileHandler(fileService services.FileService, projectService services.Pr
 func (h *FileHandler) DownloadFile(c *gin.Context) {
 	filePath := c.Query("filePath")
 	if filePath == "" {
-		c.JSON(http.StatusNotFound, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "文件路径不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusNotFound, utils.GetErrorResponse(common.VALIDATION_ERROR, "文件路径不能为空"))
 		return
 	}
 
@@ -55,21 +51,13 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "文件路径不合法: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusNotFound, utils.GetErrorResponse(common.VALIDATION_ERROR, "文件路径不合法: "+err.Error()))
 		return
 	}
 
 	file, err := os.Open(fullPath)
 	if err != nil {
-		c.JSON(http.StatusNotFound, common.ErrorResponse{
-			Code:      common.NOT_FOUND,
-			Message:   "文件不存在: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusNotFound, utils.GetErrorResponse(common.NOT_FOUND, "文件不存在: "+err.Error()))
 		return
 	}
 	defer file.Close()
@@ -95,11 +83,7 @@ func (h *FileHandler) DownloadFile(c *gin.Context) {
 func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
@@ -108,20 +92,11 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 
 	files, err := h.fileService.GetProjectFiles(c.Request.Context(), userID, projectGuid, path)
 	if err != nil {
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "获取文件列表失败, " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取文件列表失败, "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "success",
-		Data:      files,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取文件列表成功", files))
 }
 
 // GetFileContent 获取文件内容
@@ -140,21 +115,13 @@ func (h *FileHandler) GetProjectFiles(c *gin.Context) {
 func (h *FileHandler) GetFileContent(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
 	filePath := c.Query("filePath")
 	if filePath == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "文件路径不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "文件路径不能为空"))
 		return
 	}
 
@@ -162,18 +129,9 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 
 	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectGuid, filePath)
 	if err != nil {
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "获取文件内容失败, " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取文件内容失败, "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "success",
-		Data:      content,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取文件内容成功", content))
 }

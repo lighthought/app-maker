@@ -6,7 +6,7 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
-	"autocodeweb-backend/pkg/auth"
+	"shared-models/auth"
 
 	"golang.org/x/crypto/bcrypt"
 )

@@ -2,11 +2,11 @@ package utils
 
 import (
 	"archive/zip"
-	"autocodeweb-backend/pkg/logger"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"shared-models/logger"
 	"strings"
 )
 

@@ -3,16 +3,16 @@ package container
 import (
 	"autocodeweb-backend/internal/api/handlers"
 	"autocodeweb-backend/internal/config"
-	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/services"
 	"autocodeweb-backend/internal/worker"
-	"autocodeweb-backend/pkg/auth"
 	"autocodeweb-backend/pkg/cache"
-	"autocodeweb-backend/pkg/logger"
 	"context"
 	"fmt"
 	"log"
+	"shared-models/auth"
+	"shared-models/common"
+	"shared-models/logger"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -184,20 +184,20 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 			Concurrency: concurrency, // 并发 worker 数量
 			// 可以按权重指定优先处理哪些队列
 			Queues: map[string]int{
-				"critical": models.TaskQueueCritical,
-				"default":  models.TaskQueueDefault,
-				"low":      models.TaskQueueLow,
+				"critical": common.TaskQueueCritical,
+				"default":  common.TaskQueueDefault,
+				"low":      common.TaskQueueLow,
 			},
 		},
 	)
 
 	// 注册任务处理器
 	mux := asynq.NewServeMux()
-	mux.Handle(models.TypeProjectDownload, projectTaskHandler)
-	mux.Handle(models.TypeProjectBackup, projectTaskHandler)
-	mux.Handle(models.TypeProjectInit, projectService)
-	mux.Handle(models.TypeProjectDevelopment, projectStageService)
-	mux.Handle(models.TypeWebSocketBroadcast, webSocketService)
+	mux.Handle(common.TypeProjectDownload, projectTaskHandler)
+	mux.Handle(common.TypeProjectBackup, projectTaskHandler)
+	mux.Handle(common.TypeProjectInit, projectService)
+	mux.Handle(common.TypeProjectDevelopment, projectStageService)
+	mux.Handle(common.TypeWebSocketBroadcast, webSocketService)
 	// ... 注册其他任务处理器
 
 	// 启动服务器

@@ -1,23 +1,6 @@
-package models
+package tasks
 
 import "encoding/json"
-
-// 任务类型常量
-const (
-	TypeEmailDelivery      = "email:deliver"
-	TypeProjectDownload    = "project:download"    // 下载项目
-	TypeProjectBackup      = "project:backup"      // 备份项目
-	TypeProjectInit        = "project:init"        // 初始化项目
-	TypeProjectDevelopment = "project:development" // 开发项目
-	TypeWebSocketBroadcast = "ws:broadcast"        // WebSocket 消息广播
-)
-
-// 任务优先级
-const (
-	TaskQueueCritical = 6 // 高优先级
-	TaskQueueDefault  = 3 // 中优先级
-	TaskQueueLow      = 1 // 低优先级
-)
 
 // 用于传递任务结果的结构
 type TaskResult struct {
@@ -30,21 +13,6 @@ type TaskResult struct {
 
 func (t *TaskResult) ToBytes() []byte {
 	bytes, err := json.Marshal(t)
-	if err != nil {
-		return nil
-	}
-	return bytes
-}
-
-// 发送邮件任务的负载
-type EmailTaskPayload struct {
-	UserID  string `json:"user_id"`
-	Content string `json:"content"`
-}
-
-// 发送邮件任务的负载转换为 []byte
-func (p *EmailTaskPayload) ToBytes() []byte {
-	bytes, err := json.Marshal(p)
 	if err != nil {
 		return nil
 	}
@@ -67,6 +35,7 @@ func (p *ProjectTaskPayload) ToBytes() []byte {
 	return bytes
 }
 
+// WebSocket消息广播任务负载
 type WebSocketTaskPayload struct {
 	ProjectGUID string `json:"project_guid"` // 项目GUID
 	MessageType string `json:"message_type"` // 消息类型，在常量TypeWebSocketBroadcast中定义

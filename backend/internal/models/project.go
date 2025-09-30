@@ -1,15 +1,13 @@
 package models
 
 import (
-	"autocodeweb-backend/internal/constants"
 	"encoding/json"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"shared-models/common"
+	"shared-models/utils"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -63,10 +61,8 @@ type Project struct {
 }
 
 func GetDefaultProject(userID, requirements string) *Project {
-	var guid string
-	guid = uuid.New().String()
-	guid = strings.ReplaceAll(guid, "-", "")
-	filePath := filepath.Join("/app/data/projects", userID, guid) // 这里是假的路径，需要替换为真实的路径
+	guid := utils.GenerateUUID()
+	filePath := filepath.Join("/app/data/projects", userID, guid)
 	newProject := &Project{
 		GUID:         guid,
 		Requirements: requirements,
@@ -92,9 +88,9 @@ func (p *Project) GetUpdateInfo() *ProjectInfoUpdate {
 	}
 }
 
-func (p *Project) SetDevStatus(stage common.DevStage) {
+func (p *Project) SetDevStatus(stage common.DevStatus) {
 	p.DevStatus = string(stage)
-	p.DevProgress = constants.GetDevStageProgress(stage)
+	p.DevProgress = common.GetDevStageProgress(stage)
 }
 
 // 转换为 []byte
@@ -133,8 +129,7 @@ func (p *Project) BeforeCreate(tx *gorm.DB) error {
 		p.ID = result
 	}
 	if p.GUID == "" {
-		p.GUID = uuid.New().String()
-		p.GUID = strings.ReplaceAll(p.GUID, "-", "")
+		p.GUID = utils.GenerateUUID()
 	}
 	return nil
 }

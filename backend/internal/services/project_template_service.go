@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
+	"shared-models/utils"
 )
 
 // ProjectTemplateService 项目模板服务接口

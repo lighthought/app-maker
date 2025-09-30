@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"autocodeweb-backend/internal/utils"
 	"net/http"
-	"shared-models/common"
+	"shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,10 +17,5 @@ import (
 // @Failure 500 {object} map[string]string "服务器内部错误"
 // @Router /api/v1/health [get]
 func HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "AutoCodeWeb Backend is running",
-		Data:      "1.0.0",
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("AutoCodeWeb Backend is running", "1.0.0"))
 }

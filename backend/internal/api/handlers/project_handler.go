@@ -3,13 +3,13 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"shared-models/common"
 	"strconv"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/common"
+	"shared-models/logger"
+	"shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,11 +53,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("requestBody", fmt.Sprintf("%v", c.Request.Body)),
 		)
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "请求参数错误, " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "请求参数错误, "+err.Error()))
 		return
 	}
 
@@ -75,11 +71,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("userID", userID),
 		)
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "创建项目失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "创建项目失败: "+err.Error()))
 		return
 	}
 
@@ -89,12 +81,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		logger.String("userID", userID),
 	)
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "项目创建成功",
-		Data:      project,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目创建成功", project))
 }
 
 // GetProject godoc
@@ -114,11 +101,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 func (h *ProjectHandler) GetProject(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
@@ -128,27 +111,14 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	project, err := h.projectService.GetProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, common.ErrorResponse{
-				Code:      common.FORBIDDEN,
-				Message:   "访问被拒绝",
-				Timestamp: utils.GetCurrentTime(),
-			})
+			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
 			return
 		}
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "获取项目失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取项目失败: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "获取项目成功",
-		Data:      project,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取项目成功", project))
 }
 
 // DeleteProject godoc
@@ -168,11 +138,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
@@ -182,27 +148,14 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	err := h.projectService.DeleteProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, common.ErrorResponse{
-				Code:      common.FORBIDDEN,
-				Message:   "访问被拒绝",
-				Timestamp: utils.GetCurrentTime(),
-			})
+			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
 			return
 		}
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "删除项目失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "删除项目失败: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "项目删除成功",
-		Data:      nil,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目删除成功", nil))
 }
 
 // ListProjects godoc
@@ -245,11 +198,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 
 	pagination, err := h.projectService.GetUserProjects(c.Request.Context(), userID, &req)
 	if err != nil {
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "获取项目列表失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取项目列表失败: "+err.Error()))
 		return
 	}
 
@@ -271,30 +220,17 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
 	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectGuid)
 	if err != nil {
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      common.INTERNAL_ERROR,
-			Message:   "获取开发阶段失败, " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取开发阶段失败: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "获取开发阶段成功",
-		Data:      stages,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取开发阶段成功", stages))
 }
 
 // DownloadProject godoc
@@ -315,11 +251,7 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	projectGuid := c.Param("guid")
 	if projectGuid == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      http.StatusBadRequest,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
@@ -330,18 +262,10 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == "access denied" {
-			c.JSON(http.StatusForbidden, common.ErrorResponse{
-				Code:      http.StatusForbidden,
-				Message:   "访问被拒绝",
-				Timestamp: utils.GetCurrentTime(),
-			})
+			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
 			return
 		}
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "获取项目信息失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取项目信息失败: "+err.Error()))
 		return
 	}
 
@@ -352,18 +276,9 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 			logger.String("error", err.Error()),
 			logger.String("projectID", project.ID),
 		)
-		c.JSON(http.StatusOK, common.ErrorResponse{
-			Code:      http.StatusInternalServerError,
-			Message:   "生成项目压缩任务失败: " + err.Error(),
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "生成项目压缩任务失败: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "success",
-		Data:      taskID,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("生成项目压缩任务成功", taskID))
 }

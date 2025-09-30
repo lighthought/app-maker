@@ -4,7 +4,7 @@ import (
 	"autocodeweb-backend/internal/api/handlers"
 	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/container"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
 
 	"github.com/gin-gonic/gin"
 )

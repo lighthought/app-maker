@@ -1,22 +1,22 @@
 package services
 
 import (
-	"app-maker-agents/internal/models"
-	"app-maker-agents/internal/utils"
-	"app-maker-agents/pkg/logger"
+	"app-maker-agents/internal/config"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"shared-models/logger"
+	"shared-models/utils"
 	"strings"
 )
 
 type GitService interface {
 	SetupSSH() error
 	GetPublicKey() (string, error)
-	InitializeGit(ctx context.Context, config *models.GitConfig) (string, error)
-	CommitAndPush(ctx context.Context, config *models.GitConfig) error
+	InitializeGit(ctx context.Context, config *config.GitConfig) (string, error)
+	CommitAndPush(ctx context.Context, config *config.GitConfig) error
 }
 
 type gitService struct {
@@ -148,7 +148,7 @@ func (s *gitService) GetPublicKey() (string, error) {
 }
 
 // InitializeGit 初始化Git仓库
-func (s *gitService) InitializeGit(ctx context.Context, config *models.GitConfig) (string, error) {
+func (s *gitService) InitializeGit(ctx context.Context, config *config.GitConfig) (string, error) {
 	projectDir := config.ProjectPath
 
 	logger.Info("初始化Git仓库",
@@ -209,7 +209,7 @@ func (s *gitService) InitializeGit(ctx context.Context, config *models.GitConfig
 }
 
 // CommitAndPush 提交并推送代码
-func (s *gitService) CommitAndPush(ctx context.Context, config *models.GitConfig) error {
+func (s *gitService) CommitAndPush(ctx context.Context, config *config.GitConfig) error {
 	projectDir := config.ProjectPath
 
 	logger.Info("开始提交并推送代码",

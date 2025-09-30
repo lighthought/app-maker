@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
 
 	deepseek "github.com/cohesion-org/deepseek-go"
 	"github.com/cohesion-org/deepseek-go/constants"

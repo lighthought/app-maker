@@ -5,11 +5,9 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	github.com/cohesion-org/deepseek-go v1.3.2
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-gonic/gin v1.10.0
-	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/hibiken/asynq v0.25.1
 	github.com/redis/go-redis/v9 v9.13.0
@@ -17,15 +15,17 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.6
-	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.40.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
+	shared-models v0.0.0
 )
 
 require (
+	github.com/cohesion-org/deepseek-go v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	shared-models v0.0.0 // indirect
 )
 
 require (
@@ -67,7 +67,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/ollama/ollama v0.11.11
+	github.com/ollama/ollama v0.12.3 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
@@ -77,8 +77,7 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/mod v0.26.0 // indirect
 	golang.org/x/net v0.42.0 // indirect

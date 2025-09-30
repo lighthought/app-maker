@@ -4,7 +4,7 @@ import (
 	"app-maker-agents/internal/api/handlers"
 	"app-maker-agents/internal/config"
 	"app-maker-agents/internal/services"
-	"app-maker-agents/pkg/auth"
+	"shared-models/auth"
 )
 
 type Container struct {

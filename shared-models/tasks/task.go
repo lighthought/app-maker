@@ -1,9 +1,11 @@
 package tasks
 
 import (
-	"autocodeweb-backend/internal/constants"
-	"autocodeweb-backend/internal/models"
+	"shared-models/common"
+	"shared-models/utils"
 	"time"
+
+	"shared-models/logger"
 
 	"github.com/hibiken/asynq"
 )
@@ -14,28 +16,14 @@ const (
 	taskRetentionHour = 4 * time.Hour
 )
 
-// 创建发送邮件的任务
-func NewEmailDeliveryTask(userID string, content string) *asynq.Task {
-	payload := models.EmailTaskPayload{
-		UserID:  userID,
-		Content: content,
-	}
-	// 通常我们会返回一个唯一的任务ID，方便后续查询，Asynq会自动生成
-	return asynq.NewTask(models.TypeEmailDelivery,
-		payload.ToBytes(),
-		asynq.Queue(taskQueueDefault),
-		asynq.MaxRetry(taskMaxRetry),
-		asynq.Retention(taskRetentionHour))
-}
-
 // 创建下载项目任务
 func NewProjectDownloadTask(projectID, projectGuid, projectPath string) *asynq.Task {
-	payload := models.ProjectTaskPayload{
+	payload := ProjectTaskPayload{
 		ProjectID:   projectID,
 		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
-	return asynq.NewTask(models.TypeProjectDownload,
+	return asynq.NewTask(common.TypeProjectDownload,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -44,13 +32,13 @@ func NewProjectDownloadTask(projectID, projectGuid, projectPath string) *asynq.T
 
 // 创建备份项目任务
 func NewProjectBackupTask(projectID, projectGuid, projectPath string) *asynq.Task {
-	payload := models.ProjectTaskPayload{
+	payload := ProjectTaskPayload{
 		ProjectID:   projectID,
 		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
 
-	return asynq.NewTask(models.TypeProjectBackup,
+	return asynq.NewTask(common.TypeProjectBackup,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -59,12 +47,12 @@ func NewProjectBackupTask(projectID, projectGuid, projectPath string) *asynq.Tas
 
 // 创建项目开发任务
 func NewProjectDevelopmentTask(projectID, projectGuid, gitlabRepoURL string) *asynq.Task {
-	payload := models.ProjectTaskPayload{
+	payload := ProjectTaskPayload{
 		ProjectID:   projectID,
 		ProjectGuid: projectGuid,
 		ProjectPath: gitlabRepoURL,
 	}
-	return asynq.NewTask(models.TypeProjectDevelopment,
+	return asynq.NewTask(common.TypeProjectDevelopment,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -73,12 +61,12 @@ func NewProjectDevelopmentTask(projectID, projectGuid, gitlabRepoURL string) *as
 
 // 创建项目初始化任务
 func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task {
-	payload := models.ProjectTaskPayload{
+	payload := ProjectTaskPayload{
 		ProjectID:   projectID,
 		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
-	return asynq.NewTask(models.TypeProjectInit,
+	return asynq.NewTask(common.TypeProjectInit,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -87,23 +75,41 @@ func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task 
 
 // 创建WebSocket消息广播任务
 func NewWebSocketBroadcastTask(projectGUID, messageType, targetID string) *asynq.Task {
-	payload := models.WebSocketTaskPayload{
+	payload := WebSocketTaskPayload{
 		ProjectGUID: projectGUID,
 		MessageType: messageType,
 	}
 
 	switch messageType {
-	case constants.WebSocketMessageTypeProjectMessage:
+	case common.WebSocketMessageTypeProjectMessage:
 		payload.MessageID = targetID
-	case constants.WebSocketMessageTypeProjectStageUpdate:
+	case common.WebSocketMessageTypeProjectStageUpdate:
 		payload.StageID = targetID
-	case constants.WebSocketMessageTypeProjectInfoUpdate:
+	case common.WebSocketMessageTypeProjectInfoUpdate:
 		payload.ProjectID = targetID
 	}
 
-	return asynq.NewTask(models.TypeWebSocketBroadcast,
+	return asynq.NewTask(common.TypeWebSocketBroadcast,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
 		asynq.Retention(taskRetentionHour))
+}
+
+// updateResult 是一个帮助函数，用于将任务进度更新到Redis。
+// 这里假设使用一个Redis Hash结构，key为`task:progress:<task_id>`。
+func UpdateResult(resultWriter *asynq.ResultWriter, status string, progress int, message string) {
+	if resultWriter == nil {
+		logger.Error("resultWriter is nil, can't update result")
+		return
+	}
+
+	data := TaskResult{
+		TaskID:    resultWriter.TaskID(),
+		Status:    status,
+		Progress:  progress,
+		Message:   message,
+		UpdatedAt: utils.GetCurrentTime(),
+	}
+	resultWriter.Write(data.ToBytes())
 }

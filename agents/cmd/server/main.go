@@ -32,7 +32,7 @@ import (
 	"app-maker-agents/internal/api/routes"
 	"app-maker-agents/internal/config"
 	"app-maker-agents/internal/container"
-	"app-maker-agents/pkg/logger"
+	"shared-models/logger"
 
 	_ "app-maker-agents/docs"
 

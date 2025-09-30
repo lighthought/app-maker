@@ -82,7 +82,7 @@ func (c *AgentClient) SetupProjectEnvironment(ctx context.Context, req *agent.Se
 }
 
 // AnalyseProjectBrief 分析项目简介
-func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetProjBriefReq) (*common.AgentResult, error) {
+func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetProjBriefReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/analyse/project-brief", req)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetPro
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetPro
 }
 
 // GetPRD 获取 PRD
-func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*common.AgentResult, error) {
+func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/pm/prd", req)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*common
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*common
 }
 
 // GetUXStandard 获取 UX 标准
-func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandardReq) (*common.AgentResult, error) {
+func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandardReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/ux-expert/ux-standard", req)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandar
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandar
 }
 
 // GetArchitecture 获取架构设计
-func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchitectureReq) (*common.AgentResult, error) {
+func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchitectureReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/architect/architect", req)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchite
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchite
 }
 
 // GetDatabaseDesign 获取数据库设计
-func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatabaseDesignReq) (*common.AgentResult, error) {
+func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatabaseDesignReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/architect/database", req)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatab
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatab
 }
 
 // GetAPIDefinition 获取 API 定义
-func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDefinitionReq) (*common.AgentResult, error) {
+func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDefinitionReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/architect/apidefinition", req)
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDef
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDef
 }
 
 // GetEpicsAndStories 获取史诗和故事
-func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpicsAndStoriesReq) (*common.AgentResult, error) {
+func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpicsAndStoriesReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/po/epicsandstories", req)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpic
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpic
 }
 
 // ImplementStory 实现用户故事
-func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementStoryReq) (*common.AgentResult, error) {
+func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementStoryReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/dev/implstory", req)
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementSt
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementSt
 }
 
 // FixBug 修复 Bug
-func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*common.AgentResult, error) {
+func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*agent.AgentResult, error) {
 	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/dev/fixbug", req)
 	if err != nil {
 		return nil, err
@@ -244,7 +244,7 @@ func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*common
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*common
 }
 
 // RunTest 运行测试
-func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*common.AgentResult, error) {
+func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*agent.AgentResult, error) {
 	// 转换为 FixBugReq 格式（临时方案）
 	fixBugReq := &agent.FixBugReq{
 		ProjectGuid:    req.ProjectGuid,
@@ -269,7 +269,7 @@ func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*comm
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*comm
 }
 
 // Deploy 部署项目
-func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*common.AgentResult, error) {
+func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*agent.AgentResult, error) {
 	// 转换为 FixBugReq 格式（临时方案）
 	fixBugReq := &agent.FixBugReq{
 		ProjectGuid:    req.ProjectGuid,
@@ -294,7 +294,7 @@ func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*common
 		return nil, fmt.Errorf("Agent 执行失败: %s", resp.Message)
 	}
 
-	result := &common.AgentResult{}
+	result := &agent.AgentResult{}
 	if err := parseResponseData(resp, result); err != nil {
 		return nil, err
 	}

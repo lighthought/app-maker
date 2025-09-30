@@ -28,6 +28,14 @@ type Config struct {
 	Command CommandConfig `mapstructure:"COMMAND"`
 }
 
+// GitConfig Git配置
+type GitConfig struct {
+	UserID        string
+	GUID          string
+	ProjectPath   string
+	CommitMessage string
+}
+
 func Load() (*Config, error) {
 	v := viper.New()
 	v.SetEnvPrefix("AGENTS")

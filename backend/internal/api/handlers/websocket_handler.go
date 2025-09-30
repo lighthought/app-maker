@@ -4,19 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"shared-models/auth"
 	"shared-models/common"
+	"shared-models/logger"
+	"shared-models/utils"
 	"strings"
 	"time"
 
-	"autocodeweb-backend/internal/constants"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/auth"
-	"autocodeweb-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -54,11 +52,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 	// 获取项目 GUID
 	projectGUID := c.Param("guid")
 	if projectGUID == "" {
-		c.JSON(http.StatusBadRequest, common.ErrorResponse{
-			Code:      common.VALIDATION_ERROR,
-			Message:   "项目GUID不能为空",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
 		return
 	}
 
@@ -67,11 +61,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 	// 在升级 WebSocket 之前进行认证验证
 	token := c.Query("token")
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, common.ErrorResponse{
-			Code:      common.UNAUTHORIZED,
-			Message:   "Token is required",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Token is required"))
 		return
 	}
 
@@ -79,11 +69,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	parts := strings.Split(token, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(http.StatusUnauthorized, common.ErrorResponse{
-			Code:      common.UNAUTHORIZED,
-			Message:   "Invalid authorization format",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Invalid authorization format"))
 		c.Abort()
 		return
 	}
@@ -92,11 +78,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	claims, err := h.jwtService.ValidateToken(realToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, common.ErrorResponse{
-			Code:      common.UNAUTHORIZED,
-			Message:   "Invalid token",
-			Timestamp: utils.GetCurrentTime(),
-		})
+		c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Invalid token"))
 		return
 	}
 
@@ -112,7 +94,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	// 创建客户端连接
 	client := &models.WebSocketClient{
-		ID:          uuid.New().String(),
+		ID:          utils.GenerateUUID(),
 		UserID:      userID,
 		ProjectGUID: projectGUID,
 		Conn:        conn,
@@ -218,13 +200,13 @@ func (h *WebSocketHandler) handleMessage(client *models.WebSocketClient, message
 	}
 
 	switch message.Type {
-	case "ping":
+	case common.WebSocketMessageTypePing:
 		h.handlePing(client)
-	case "join_project":
+	case common.WebSocketMessageTypeJoinProject:
 		h.handleJoinProject(client, &message)
-	case "leave_project":
+	case common.WebSocketMessageTypeLeaveProject:
 		h.handleLeaveProject(client, &message)
-	case "user_feedback":
+	case common.WebSocketMessageTypeUserFeedback:
 		h.handleUserFeedback(client, &message)
 	default:
 		h.sendError(client, "未知消息类型", message.Type)
@@ -236,7 +218,7 @@ func (h *WebSocketHandler) handlePing(client *models.WebSocketClient) {
 	response := models.WebSocketMessage{
 		Type:      "pong",
 		Timestamp: utils.GetCurrentTime(),
-		ID:        uuid.New().String(),
+		ID:        utils.GenerateUUID(),
 	}
 
 	h.sendMessage(client, &response)
@@ -262,7 +244,7 @@ func (h *WebSocketHandler) handleJoinProject(client *models.WebSocketClient, mes
 			"message": "成功加入项目",
 		},
 		Timestamp: utils.GetCurrentTime(),
-		ID:        uuid.New().String(),
+		ID:        utils.GenerateUUID(),
 	}
 
 	h.sendMessage(client, &response)
@@ -283,7 +265,7 @@ func (h *WebSocketHandler) handleLeaveProject(client *models.WebSocketClient, me
 			"message": "已离开项目",
 		},
 		Timestamp: utils.GetCurrentTime(),
-		ID:        uuid.New().String(),
+		ID:        utils.GenerateUUID(),
 	}
 
 	h.sendMessage(client, &response)
@@ -307,7 +289,7 @@ func (h *WebSocketHandler) handleUserFeedback(client *models.WebSocketClient, me
 			"message": "反馈已收到",
 		},
 		Timestamp: utils.GetCurrentTime(),
-		ID:        uuid.New().String(),
+		ID:        utils.GenerateUUID(),
 	}
 
 	h.sendMessage(client, &response)
@@ -343,7 +325,7 @@ func (h *WebSocketHandler) sendError(client *models.WebSocketClient, message, de
 			"details": details,
 		},
 		Timestamp: utils.GetCurrentTime(),
-		ID:        uuid.New().String(),
+		ID:        utils.GenerateUUID(),
 	}
 
 	h.sendMessage(client, &errorMessage)
@@ -353,12 +335,7 @@ func (h *WebSocketHandler) sendError(client *models.WebSocketClient, message, de
 func (h *WebSocketHandler) GetWebSocketStats(c *gin.Context) {
 	stats := h.webSocketService.GetStats()
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "获取 WebSocket 统计信息成功",
-		Data:      stats,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取 WebSocket 统计信息成功", stats))
 }
 
 // HealthCheck WebSocket 健康检查
@@ -371,12 +348,7 @@ func (h *WebSocketHandler) HealthCheck(c *gin.Context) {
 		"stats":     stats,
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "WebSocket 服务健康",
-		Data:      health,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("WebSocket 服务健康", health))
 }
 
 // GetWebSocketDebugInfo 获取 WebSocket 调试信息
@@ -399,31 +371,26 @@ func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
 	debugInfo := map[string]interface{}{
 		"stats":              stats,
 		"active_connections": activeConnections,
-		"server_time":        time.Now().Format(time.RFC3339),
+		"server_time":        utils.GetCurrentTime(),
 		"endpoints": map[string]string{
 			"websocket": "/ws/project/:guid",
 			"stats":     "/ws/admin/stats",
 			"health":    "/ws/admin/health",
 		},
 		"message_types": []string{
-			constants.WebSocketMessageTypePing,
-			constants.WebSocketMessageTypePong,
-			constants.WebSocketMessageTypeJoinProject,
-			constants.WebSocketMessageTypeLeaveProject,
-			constants.WebSocketMessageTypeProjectStageUpdate,
-			constants.WebSocketMessageTypeProjectMessage,
-			constants.WebSocketMessageTypeProjectInfoUpdate,
-			constants.WebSocketMessageTypeAgentMessage,
-			constants.WebSocketMessageTypeUserFeedback,
-			constants.WebSocketMessageTypeUserFeedbackResponse,
-			constants.WebSocketMessageTypeError,
+			common.WebSocketMessageTypePing,
+			common.WebSocketMessageTypePong,
+			common.WebSocketMessageTypeJoinProject,
+			common.WebSocketMessageTypeLeaveProject,
+			common.WebSocketMessageTypeProjectStageUpdate,
+			common.WebSocketMessageTypeProjectMessage,
+			common.WebSocketMessageTypeProjectInfoUpdate,
+			common.WebSocketMessageTypeAgentMessage,
+			common.WebSocketMessageTypeUserFeedback,
+			common.WebSocketMessageTypeUserFeedbackResponse,
+			common.WebSocketMessageTypeError,
 		},
 	}
 
-	c.JSON(http.StatusOK, common.Response{
-		Code:      common.SUCCESS_CODE,
-		Message:   "WebSocket 调试信息获取成功",
-		Data:      debugInfo,
-		Timestamp: utils.GetCurrentTime(),
-	})
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("WebSocket 调试信息获取成功", debugInfo))
 }

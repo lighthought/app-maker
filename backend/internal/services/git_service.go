@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"autocodeweb-backend/internal/utils"
-	"autocodeweb-backend/pkg/logger"
+	"shared-models/logger"
+	"shared-models/utils"
 )
 
 type GitService interface {
