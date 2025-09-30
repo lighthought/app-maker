@@ -23,7 +23,7 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 
 		// 解析Bearer token
 		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
+		if len(parts) != 2 || parts[0] != common.TokenHeaderPrefix {
 			c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Invalid authorization format"))
 			c.Abort()
 			return

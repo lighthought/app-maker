@@ -3,6 +3,7 @@ package routes
 import (
 	"app-maker-agents/internal/api/handlers"
 	"app-maker-agents/internal/container"
+	"shared-models/common"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,7 +13,7 @@ func Register(
 	engine *gin.Engine,
 	container *container.Container,
 ) {
-	routers := engine.Group("/api/v1")
+	routers := engine.Group(common.DefaultApiPrefix)
 	{
 		routers.GET("/health", handlers.HealthCheck)
 		// 项目环境准备

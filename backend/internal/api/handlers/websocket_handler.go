@@ -68,7 +68,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 	logger.Info("[ws] 获取Token", logger.String("token", token))
 
 	parts := strings.Split(token, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
+	if len(parts) != 2 || parts[0] != common.TokenHeaderPrefix {
 		c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Invalid authorization format"))
 		c.Abort()
 		return

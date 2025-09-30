@@ -45,7 +45,6 @@ type projectService struct {
 	projectStageRepo repositories.StageRepository
 	asyncClient      *asynq.Client
 	templateService  ProjectTemplateService
-	nameGenerator    ProjectNameGenerator
 	gitService       GitService
 	webSocketService WebSocketService
 }
@@ -57,7 +56,6 @@ func NewProjectService(
 	projectStageRepo repositories.StageRepository,
 	asyncClient *asynq.Client,
 	templateService ProjectTemplateService,
-	nameGenerator ProjectNameGenerator,
 	gitService GitService,
 	webSocketService WebSocketService,
 ) ProjectService {
@@ -71,7 +69,6 @@ func NewProjectService(
 		projectStageRepo: projectStageRepo,
 		asyncClient:      asyncClient,
 		templateService:  templateService,
-		nameGenerator:    nameGenerator,
 		gitService:       gitService,
 		webSocketService: webSocketService,
 	}
@@ -140,6 +137,28 @@ func (s *projectService) updateProjectNetworkSetting(ctx context.Context, projec
 	return nil
 }
 
+// 生成项目配置
+func GenerateProjectConfig(requirements string, projectConfig *models.Project) {
+	// 设置项目配置
+	projectConfig.Name = common.DefaultProjectName
+	projectConfig.Description = "这是一个新的项目"
+	projectConfig.Requirements = requirements
+	projectConfig.ApiBaseUrl = common.DefaultApiPrefix
+
+	// 生成密码
+	passwordUtils := utils.NewPasswordUtils()
+	projectConfig.AppSecretKey = passwordUtils.GenerateRandomPassword("app")
+	projectConfig.RedisPassword = passwordUtils.GenerateRandomPassword("redis")
+	projectConfig.JwtSecretKey = passwordUtils.GenerateRandomPassword("jwt")
+	projectConfig.DatabasePassword = passwordUtils.GenerateRandomPassword("database")
+	projectConfig.Subnetwork = "172.20.0.0/16"
+
+	logger.Info("项目配置生成成功",
+		logger.String("projectName", projectConfig.Name),
+		logger.String("projectDescription", projectConfig.Description),
+	)
+}
+
 // CreateProject 创建项目
 func (s *projectService) CreateProject(ctx context.Context, req *models.CreateProjectRequest, userID string) (*models.ProjectInfo, error) {
 	logger.Info("开始创建项目",
@@ -162,11 +181,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	logger.Info("生成项目路径", logger.String("projectPath", newProject.ProjectPath))
 
 	// 自动生成项目配置信息和密码信息
-	bGerated := s.nameGenerator.GenerateProjectConfig(req.Requirements, newProject)
-	if !bGerated {
-		logger.Error("自动生成项目配置信息失败", logger.String("requirements", req.Requirements))
-		return nil, fmt.Errorf("failed to generate project config")
-	}
+	GenerateProjectConfig(req.Requirements, newProject)
 
 	// 更新项目网络设置
 	if err := s.updateProjectNetworkSetting(ctx, newProject); err != nil {
@@ -321,7 +336,7 @@ func (s *projectService) updateProjectNameAndBrief(ctx context.Context, project 
 	}
 
 	// 已经生成过，跳过
-	if project.Name != "" && project.Name != "newproj" && project.Description != "" {
+	if project.Name != "" && project.Name != common.DefaultProjectName && project.Description != "" {
 		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 40, "项目名和描述已存在")
 		logger.Info("项目名和描述已存在，跳过生成")
 		return

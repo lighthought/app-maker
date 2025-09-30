@@ -40,7 +40,6 @@ type Container struct {
 	ProjectTemplateService services.ProjectTemplateService
 	ProjectStageService    services.ProjectStageService
 	ProjectService         services.ProjectService
-	ProjectNameGenerator   services.ProjectNameGenerator
 	MessageService         services.MessageService
 	GitService             services.GitService
 	FileService            services.FileService
@@ -113,12 +112,11 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	fileService := services.NewFileService(asyncClient)
 	projectTemplateService := services.NewProjectTemplateService(fileService)
 	projectStageService := services.NewProjectStageService(projectRepository, stageRepository, messageRepository, webSocketService)
-	projectNameGenerator := services.NewProjectNameGenerator()
 	gitService := services.NewGitService()
 	gitService.SetupSSH()
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
-		asyncClient, projectTemplateService, projectNameGenerator, gitService, webSocketService)
+		asyncClient, projectTemplateService, gitService, webSocketService)
 
 	// 有缓存，才处理异步任务
 	if cacheInstance != nil {
@@ -142,6 +140,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
 	userHandler := handlers.NewUserHandler(userService)
 	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, projectService, jwtService)
+
 	return &Container{
 		AsyncClient:            asyncClient,
 		JWTService:             jwtService,
@@ -157,7 +156,6 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		ProjectTemplateService: projectTemplateService,
 		ProjectStageService:    projectStageService,
 		ProjectService:         projectService,
-		ProjectNameGenerator:   projectNameGenerator,
 		MessageService:         messageService,
 		GitService:             gitService,
 		WebSocketService:       webSocketService,

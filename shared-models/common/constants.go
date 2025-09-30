@@ -47,9 +47,22 @@ const (
 	UserStatusSuspended = "suspended"
 )
 
+// 用户角色
 const (
 	UserRoleAdmin = "admin"
 	UserRoleUser  = "user"
+)
+
+// 环境
+const (
+	EnvironmentDevelopment = "development"
+	EnvironmentProduction  = "production"
+)
+
+const (
+	TokenHeaderPrefix  = "Bearer"
+	DefaultProjectName = "newproj"
+	DefaultApiPrefix   = "/api/v1"
 )
 
 // 通用状态

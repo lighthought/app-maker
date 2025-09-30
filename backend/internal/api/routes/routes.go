@@ -4,6 +4,7 @@ import (
 	"autocodeweb-backend/internal/api/handlers"
 	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/container"
+	"shared-models/common"
 	"shared-models/logger"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +34,7 @@ func Register(engine *gin.Engine, container *container.Container) {
 	}
 
 	// API v1 路由组
-	routers := engine.Group("/api/v1")
+	routers := engine.Group(common.DefaultApiPrefix)
 	{
 		// 0.健康检查
 		routers.GET("/health", handlers.HealthCheck)

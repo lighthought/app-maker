@@ -32,6 +32,7 @@ import (
 	"app-maker-agents/internal/api/routes"
 	"app-maker-agents/internal/config"
 	"app-maker-agents/internal/container"
+	"shared-models/common"
 	"shared-models/logger"
 
 	_ "app-maker-agents/docs"
@@ -54,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.App.Environment == "production" {
+	if cfg.App.Environment == common.EnvironmentProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
