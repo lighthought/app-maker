@@ -805,7 +805,7 @@ const docTemplate = `{
                 },
                 "epic_file": {
                     "type": "string",
-                    "example": "docs/epics/epic.md"
+                    "example": "docs/epics.md"
                 },
                 "prd_path": {
                     "type": "string",

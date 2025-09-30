@@ -14,23 +14,27 @@ import (
 )
 
 type Container struct {
-	CommandService   *services.CommandService
-	GitService       services.GitService
-	AsyncClient      *asynq.Client
-	AsyncInspector   *asynq.Inspector
-	AgentTaskService services.AgentTaskService
-	AsyncServer      *asynq.Server
+	// External Services
+	AsyncClient    *asynq.Client
+	AsyncInspector *asynq.Inspector
+	AsyncServer    *asynq.Server
+	JWTService     *auth.JWTService
 
+	// Internal Services
+	CommandService   services.CommandService
+	GitService       services.GitService
+	AgentTaskService services.AgentTaskService
+	ProjectService   services.ProjectService
+
+	// API Handlers
 	ProjectHandler   *handlers.ProjectHandler
 	AnalyseHandler   *handlers.AnalyseHandler
 	PmHandler        *handlers.PmHandler
+	UxHandler        *handlers.UxHandler
+	ArchitectHandler *handlers.ArchitectHandler
 	PoHandler        *handlers.PoHandler
 	DevHandler       *handlers.DevHandler
-	ArchitectHandler *handlers.ArchitectHandler
-	UxHandler        *handlers.UxHandler
 	TaskHandler      *handlers.TaskHandler
-
-	JWTService *auth.JWTService
 }
 
 func NewContainer(cfg *config.Config) *Container {
@@ -44,10 +48,11 @@ func NewContainer(cfg *config.Config) *Container {
 	asyncClient := asynq.NewClient(redisClientOpt)
 	asyncInspector := asynq.NewInspector(redisClientOpt)
 
-	gitSvc := services.NewGitService()
 	commandSvc := services.NewCommandService(cfg.Command, cfg.App.WorkspacePath)
+	gitService := services.NewGitService(commandSvc)
+
 	projectSvc := services.NewProjectService(commandSvc, cfg.App.WorkspacePath)
-	agentTaskService := services.NewAgentTaskService(commandSvc, asyncClient)
+	agentTaskService := services.NewAgentTaskService(commandSvc, gitService, asyncClient)
 	asynqServer := initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
 	projectHandler := handlers.NewProjectHandler(agentTaskService, projectSvc)
@@ -65,7 +70,7 @@ func NewContainer(cfg *config.Config) *Container {
 		AgentTaskService: agentTaskService,
 		AsyncServer:      asynqServer,
 		CommandService:   commandSvc,
-		GitService:       gitSvc,
+		GitService:       gitService,
 		ProjectHandler:   projectHandler,
 		AnalyseHandler:   analyseHandler,
 		PmHandler:        pmHandler,

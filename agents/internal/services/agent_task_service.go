@@ -19,12 +19,13 @@ type AgentTaskService interface {
 }
 
 type agentTaskService struct {
-	commandService *CommandService
+	commandService CommandService
+	gitService     GitService
 	asyncClient    *asynq.Client
 }
 
-func NewAgentTaskService(commandService *CommandService, asyncClient *asynq.Client) AgentTaskService {
-	return &agentTaskService{commandService: commandService, asyncClient: asyncClient}
+func NewAgentTaskService(commandService CommandService, gitService GitService, asyncClient *asynq.Client) AgentTaskService {
+	return &agentTaskService{commandService: commandService, gitService: gitService, asyncClient: asyncClient}
 }
 
 // Enqueue 创建代理执行任务
@@ -62,7 +63,15 @@ func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 		return fmt.Errorf("agent execute task failed: %s", result.Error)
 	}
 
-	logger.Info("代理任务执行成功", logger.String("taskID", task.ResultWriter().TaskID()), logger.String("output", result.Output))
+	logger.Info("代理任务执行成功", logger.String("taskID", task.ResultWriter().TaskID()))
+
+	err := h.gitService.CommitAndPush(ctx, payload.ProjectGUID, result.Output)
+	if err != nil {
+		logger.Error("项目文档、代码提交并推送失败", logger.String("GUID", payload.ProjectGUID), logger.String("error", err.Error()))
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, err.Error())
+		return fmt.Errorf("项目文档、代码提交并推送失败: %w", err)
+	}
+
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, result.Output)
 	return nil
 }

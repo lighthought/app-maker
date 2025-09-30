@@ -215,7 +215,7 @@ func testDevelopStories(t *testing.T, client *client.AgentClient, ctx context.Co
 		DbFolder:    "docs/db",
 		ApiFolder:   "docs/api",
 		UxSpecPath:  "docs/ux/ux-spec.md",
-		EpicFile:    "docs/epics/user-management.md",
+		EpicFile:    "docs/epics.md",
 		StoryFile:   "docs/stories/user-registration.md",
 	}
 

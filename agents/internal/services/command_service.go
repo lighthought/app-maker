@@ -20,21 +20,31 @@ type CommandResult struct {
 }
 
 // CommandService 命令执行服务，负责按项目维护会话执行命令
-type CommandService struct {
+type commandService struct {
 	timeout       time.Duration
 	WorkspacePath string
 }
 
+type CommandService interface {
+	SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult
+	//GetWorkspacePath() string
+}
+
 // NewCommandService 创建命令执行服务
-func NewCommandService(cfg config.CommandConfig, workspacePath string) *CommandService {
-	return &CommandService{
+func NewCommandService(cfg config.CommandConfig, workspacePath string) CommandService {
+	return &commandService{
 		timeout:       cfg.Timeout,
 		WorkspacePath: workspacePath,
 	}
 }
 
+// 获取工作空间路径
+// func (s *commandService) GetWorkspacePath() string {
+// 	return s.WorkspacePath
+// }
+
 // SimpleExecute 直接执行命令，不使用 session 管理
-func (s *CommandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult {
+func (s *commandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult {
 	// 根据操作系统选择 shell 和参数
 	cmd := exec.Command(process, arg...)
 
