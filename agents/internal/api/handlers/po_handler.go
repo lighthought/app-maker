@@ -11,11 +11,11 @@ import (
 )
 
 type PoHandler struct {
-	commandService *services.CommandService
+	agentTaskService services.AgentTaskService
 }
 
-func NewPoHandler(commandService *services.CommandService) *PoHandler {
-	return &PoHandler{commandService: commandService}
+func NewPoHandler(agentTaskService services.AgentTaskService) *PoHandler {
+	return &PoHandler{agentTaskService: agentTaskService}
 }
 
 // GetEpicsAndStories godoc
@@ -41,17 +41,10 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 		"生成分片的 Epics，输出到 docs/epics/ 下多个文件。再根据 Epics 生成分片的 Stories，输出到 docs/stories/ 下多个文件。" +
 		"注意：stories 中要包含验收标准。不要考虑安全、合规。"
 
-	result := s.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "获取史诗和用户故事任务失败: "+result.Error))
+	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePO, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "获取史诗和用户故事任务失败: "+err.Error()))
 		return
 	}
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取史诗和用户故事成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取史诗和用户故事成功", taskInfo.ID))
 }

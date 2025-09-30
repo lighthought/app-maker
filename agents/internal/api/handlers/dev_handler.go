@@ -11,11 +11,11 @@ import (
 )
 
 type DevHandler struct {
-	commandService *services.CommandService
+	agentTaskService services.AgentTaskService
 }
 
-func NewDevHandler(commandService *services.CommandService) *DevHandler {
-	return &DevHandler{commandService: commandService}
+func NewDevHandler(agentTaskService services.AgentTaskService) *DevHandler {
+	return &DevHandler{agentTaskService: agentTaskService}
 }
 
 // ImplementStory godoc
@@ -47,19 +47,13 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 		"2. 实现完，编译确认下验收的标准是否都达到了，达到了以后，更新用户故事文档，勾上对应的验收标准。  \n" +
 		"3. 然后再询问我，是否继续。不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	result := h.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "实现用户故事任务失败: "+result.Error))
+	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "实现用户故事任务失败: "+err.Error()))
 		return
 	}
 
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("实现用户故事成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("实现用户故事任务创建成功", taskInfo.ID))
 }
 
 // FixBug godoc
@@ -88,19 +82,13 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 		"5. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。" +
 		"我当前遇到了 " + req.BugDescription + "，请你帮我修复下。"
 
-	result := h.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "修复Bug任务失败: "+result.Error))
+	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "修复Bug任务失败: "+err.Error()))
 		return
 	}
 
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("修复Bug成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("修复Bug任务创建成功", taskInfo.ID))
 }
 
 // RunTest godoc
@@ -125,19 +113,13 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 		"如果有 make test 命令，直接执行即可\n" +
 		"注意：不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	result := h.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "运行测试任务失败: "+result.Error))
+	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "运行测试任务失败: "+err.Error()))
 		return
 	}
 
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("运行测试成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("测试任务创建成功", taskInfo.ID))
 }
 
 // Deploy godoc
@@ -162,17 +144,11 @@ func (h *DevHandler) Deploy(c *gin.Context) {
 		"如果有类似 make build-dev 或 make build-prod 命令，直接执行即可。\n" +
 		"注意：不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	result := h.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "部署项目任务失败: "+result.Error))
+	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "部署项目任务失败: "+err.Error()))
 		return
 	}
 
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("部署项目成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("部署项目任务创建成功", taskInfo.ID))
 }

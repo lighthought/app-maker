@@ -20,7 +20,26 @@ func Register(
 		projectHandler := container.ProjectHandler
 		project := routers.Group("/project")
 		{
-			project.POST("/setup", projectHandler.SetupProjectEnvironment)
+			if projectHandler != nil {
+				project.POST("/setup", projectHandler.SetupProjectEnvironment)
+			} else {
+				project.POST("/setup", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Project setup endpoint - TODO"})
+				})
+			}
+		}
+
+		// 异步任务路由
+		var taskHandler = container.TaskHandler
+		tasks := routers.Group("/tasks")
+		{
+			if taskHandler != nil {
+				tasks.GET("/:id", taskHandler.GetTaskStatus) // 获取任务状
+			} else {
+				tasks.GET("/:id", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Task status endpoint - TODO"})
+				})
+			}
 		}
 
 		agent := routers.Group("/agent")

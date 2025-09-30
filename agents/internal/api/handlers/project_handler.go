@@ -12,12 +12,13 @@ import (
 
 // ProjectHandler 处理项目级接口
 type ProjectHandler struct {
-	projectService services.ProjectService
+	agentTaskService services.AgentTaskService
+	projectService   services.ProjectService
 }
 
 // NewProjectHandler 创建 ProjectHandler
-func NewProjectHandler(projectService services.ProjectService) *ProjectHandler {
-	return &ProjectHandler{projectService: projectService}
+func NewProjectHandler(agentTaskService services.AgentTaskService, projectService services.ProjectService) *ProjectHandler {
+	return &ProjectHandler{agentTaskService: agentTaskService, projectService: projectService}
 }
 
 // SetupProjectEnvironment godoc
@@ -38,11 +39,11 @@ func (h *ProjectHandler) SetupProjectEnvironment(c *gin.Context) {
 		return
 	}
 
-	response, err := h.projectService.SetupProjectEnvironment(c.Request.Context(), &req)
+	taskInfo, err := h.agentTaskService.EnqueueReq(&req)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目环境准备成功", response))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目环境准备成功", taskInfo.ID))
 }

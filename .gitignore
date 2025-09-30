@@ -50,3 +50,5 @@ frontend/node_modules/
 
 #.vite
 /.vite/deps_temp_169df612
+/agents/cmd/server/logs/app-maker-agents.log
+/agents/logs/app-maker-agents.log

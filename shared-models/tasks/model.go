@@ -51,3 +51,18 @@ func (p *WebSocketTaskPayload) ToBytes() []byte {
 	}
 	return bytes
 }
+
+// 代理执行任务负载
+type AgentExecuteTaskPayload struct {
+	ProjectGUID string `json:"project_guid"`
+	AgentType   string `json:"agent_type"`
+	Message     string `json:"message"`
+}
+
+func (a *AgentExecuteTaskPayload) ToBytes() []byte {
+	bytes, err := json.Marshal(a)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}

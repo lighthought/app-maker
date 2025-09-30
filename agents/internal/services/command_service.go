@@ -35,9 +35,6 @@ func NewCommandService(cfg config.CommandConfig, workspacePath string) *CommandS
 
 // SimpleExecute 直接执行命令，不使用 session 管理
 func (s *CommandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult {
-
-	fmt.Printf("🔧 直接执行命令: %s (工作目录: %s, 超时: %v)\n", process, s.WorkspacePath, s.timeout)
-
 	// 根据操作系统选择 shell 和参数
 	cmd := exec.Command(process, arg...)
 
@@ -47,6 +44,8 @@ func (s *CommandService) SimpleExecute(ctx context.Context, subfolder, process s
 	} else {
 		cmd.Dir = s.WorkspacePath
 	}
+
+	fmt.Printf("🔧 直接执行命令: %s (工作目录: %s, 超时: %v)\n", process, cmd.Dir, s.timeout)
 
 	// 设置环境变量 - 继承当前进程的环境变量
 	cmd.Env = os.Environ()

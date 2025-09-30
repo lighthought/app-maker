@@ -11,11 +11,11 @@ import (
 )
 
 type UxHandler struct {
-	commandService *services.CommandService
+	agentTaskService services.AgentTaskService
 }
 
-func NewUxHandler(commandService *services.CommandService) *UxHandler {
-	return &UxHandler{commandService: commandService}
+func NewUxHandler(agentTaskService services.AgentTaskService) *UxHandler {
+	return &UxHandler{agentTaskService: agentTaskService}
 }
 
 // GetUXStandard godoc
@@ -36,20 +36,15 @@ func (s *UxHandler) GetUXStandard(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/ux-expert.mdc 帮我基于PRD文档 @" + req.PrdPath + " 和参考页面设计(如果需求有提及的话)，输出前端的 UX Spec 到 docs/ux/ux-spec.md。" +
+	message := "@bmad/ux-expert.mdc 帮我基于PRD文档 @" + req.PrdPath +
+		" 和参考页面设计(如果需求有提及的话)，输出前端的 UX Spec 到 docs/ux/ux-spec.md。" +
 		"关键web页面的文生网站提示词到 docs/ux/page-prompt.md。我的需求是：" + req.Requirements
 
-	result := s.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "UX标准生成任务失败: "+result.Error))
+	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeUX, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "UX标准生成任务失败: "+err.Error()))
 		return
 	}
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("UX标准生成任务成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("UX标准生成任务成功", taskInfo.ID))
 }

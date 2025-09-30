@@ -240,11 +240,13 @@ const (
 
 // 任务类型常量
 const (
-	TypeProjectDownload    = "project:download"    // 下载项目
-	TypeProjectBackup      = "project:backup"      // 备份项目
-	TypeProjectInit        = "project:init"        // 初始化项目
-	TypeProjectDevelopment = "project:development" // 开发项目
-	TypeWebSocketBroadcast = "ws:broadcast"        // WebSocket 消息广播
+	TaskTypeProjectDownload    = "project:download"    // 下载项目
+	TaskTypeProjectBackup      = "project:backup"      // 备份项目
+	TaskTypeProjectInit        = "project:init"        // 初始化项目
+	TaskTypeProjectDevelopment = "project:development" // 开发项目
+	TaskTypeWebSocketBroadcast = "ws:broadcast"        // WebSocket 消息广播
+	TaskTypeAgentExecute       = "agent:execute"       // 代理执行任务
+	TaskTypeAgentSetup         = "agent:setup"         // 项目环境准备任务
 )
 
 // 任务优先级

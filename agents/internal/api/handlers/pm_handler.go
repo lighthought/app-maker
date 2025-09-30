@@ -13,12 +13,12 @@ import (
 
 // PmHandler 负责产品经理 Agent 的接口
 type PmHandler struct {
-	commandService *services.CommandService
+	agentTaskService services.AgentTaskService
 }
 
 // NewPmHandler 创建新的 PM Handler
-func NewPmHandler(commandService *services.CommandService) *PmHandler {
-	return &PmHandler{commandService: commandService}
+func NewPmHandler(agentTaskService services.AgentTaskService) *PmHandler {
+	return &PmHandler{agentTaskService: agentTaskService}
 }
 
 // GetPRD godoc
@@ -44,16 +44,11 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 		"技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。\n" +
 		"我的需求是：" + req.Requirements
 
-	result := s.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, "claude", "--dangerously-skip-permissions", "-p", message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "PRD 生成失败: "+result.Error))
+	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePM, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "PRD 生成失败: "+err.Error()))
 		return
 	}
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("PRD 生成成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("PRD 生成成功", taskInfo.ID))
 }

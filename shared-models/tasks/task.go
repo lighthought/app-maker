@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"shared-models/agent"
 	"shared-models/common"
 	"shared-models/utils"
 	"time"
@@ -23,7 +24,7 @@ func NewProjectDownloadTask(projectID, projectGuid, projectPath string) *asynq.T
 		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
-	return asynq.NewTask(common.TypeProjectDownload,
+	return asynq.NewTask(common.TaskTypeProjectDownload,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -38,7 +39,7 @@ func NewProjectBackupTask(projectID, projectGuid, projectPath string) *asynq.Tas
 		ProjectPath: projectPath,
 	}
 
-	return asynq.NewTask(common.TypeProjectBackup,
+	return asynq.NewTask(common.TaskTypeProjectBackup,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -52,7 +53,7 @@ func NewProjectDevelopmentTask(projectID, projectGuid, gitlabRepoURL string) *as
 		ProjectGuid: projectGuid,
 		ProjectPath: gitlabRepoURL,
 	}
-	return asynq.NewTask(common.TypeProjectDevelopment,
+	return asynq.NewTask(common.TaskTypeProjectDevelopment,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -66,7 +67,7 @@ func NewProjectInitTask(projectID, projectGuid, projectPath string) *asynq.Task 
 		ProjectGuid: projectGuid,
 		ProjectPath: projectPath,
 	}
-	return asynq.NewTask(common.TypeProjectInit,
+	return asynq.NewTask(common.TaskTypeProjectInit,
 		payload.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
@@ -89,8 +90,31 @@ func NewWebSocketBroadcastTask(projectGUID, messageType, targetID string) *asynq
 		payload.ProjectID = targetID
 	}
 
-	return asynq.NewTask(common.TypeWebSocketBroadcast,
+	return asynq.NewTask(common.TaskTypeWebSocketBroadcast,
 		payload.ToBytes(),
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
+}
+
+// 创建代理执行任务
+func NewAgentExecuteTask(projectGUID, agentType, message string) *asynq.Task {
+	payload := AgentExecuteTaskPayload{
+		ProjectGUID: projectGUID,
+		AgentType:   agentType,
+		Message:     message,
+	}
+	return asynq.NewTask(common.TaskTypeAgentExecute,
+		payload.ToBytes(),
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
+}
+
+// 创建项目环境准备任务
+func NewProjectSetupTask(req *agent.SetupProjEnvReq) *asynq.Task {
+	return asynq.NewTask(common.TaskTypeAgentSetup,
+		req.ToBytes(),
 		asynq.Queue(taskQueueDefault),
 		asynq.MaxRetry(taskMaxRetry),
 		asynq.Retention(taskRetentionHour))

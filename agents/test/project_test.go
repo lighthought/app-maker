@@ -9,7 +9,6 @@ import (
 
 	"shared-models/agent"
 	"shared-models/client"
-	"shared-models/common"
 )
 
 const (
@@ -86,22 +85,12 @@ func testSetupProjectEnvironment(t *testing.T, client *client.AgentClient, ctx c
 		BmadCliType:     "claude",
 	}
 
-	resp, err := client.SetupProjectEnvironment(ctx, req)
+	result, err := client.SetupProjectEnvironment(ctx, req)
 	if err != nil {
 		t.Fatalf("项目环境准备失败: %v", err)
 	}
 
-	if resp.BmadMethodStatus != common.CommonStatusDone {
-		t.Fatalf("项目环境未就绪， Bmad Method 准备返回失败状态: %s", resp.BmadMethodStatus)
-	}
-
-	if resp.FrontendStatus != common.CommonStatusDone {
-		t.Fatalf("项目环境未就绪， Frontend 准备返回失败状态: %s", resp.FrontendStatus)
-	}
-
-	if resp.BackendStatus != common.CommonStatusDone {
-		t.Fatalf("项目环境未就绪， Backend 准备返回失败状态: %s", resp.BackendStatus)
-	}
+	log.Printf("项目环境准备成功: %s", result.Message)
 }
 
 // testAnalyseProjectBrief 测试分析项目概览
@@ -116,7 +105,7 @@ func testAnalyseProjectBrief(t *testing.T, client *client.AgentClient, ctx conte
 		t.Fatalf("分析项目概览失败: %v", err)
 	}
 
-	log.Printf("分析项目概览成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("分析项目概览成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testGeneratePRD 测试生成PRD文档
@@ -131,7 +120,7 @@ func testGeneratePRD(t *testing.T, client *client.AgentClient, ctx context.Conte
 		t.Fatalf("生成PRD文档失败: %v", err)
 	}
 
-	log.Printf("生成PRD文档成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("生成PRD文档成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testDefineUXStandards 测试定义UX标准
@@ -147,7 +136,7 @@ func testDefineUXStandards(t *testing.T, client *client.AgentClient, ctx context
 		t.Fatalf("定义UX标准失败: %v", err)
 	}
 
-	log.Printf("定义UX标准成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("定义UX标准成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testDesignArchitecture 测试设计系统架构
@@ -164,7 +153,7 @@ func testDesignArchitecture(t *testing.T, client *client.AgentClient, ctx contex
 		t.Fatalf("设计系统架构失败: %v", err)
 	}
 
-	log.Printf("设计系统架构成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("设计系统架构成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testDefineDataModel 测试定义数据模型
@@ -181,7 +170,7 @@ func testDefineDataModel(t *testing.T, client *client.AgentClient, ctx context.C
 		t.Fatalf("定义数据模型失败: %v", err)
 	}
 
-	log.Printf("定义数据模型成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("定义数据模型成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testDefineAPIDefinition 测试定义API接口
@@ -198,7 +187,7 @@ func testDefineAPIDefinition(t *testing.T, client *client.AgentClient, ctx conte
 		t.Fatalf("定义API接口失败: %v", err)
 	}
 
-	log.Printf("定义API接口成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("定义API接口成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testPlanEpicsAndStories 测试划分Epic和Story
@@ -214,7 +203,7 @@ func testPlanEpicsAndStories(t *testing.T, client *client.AgentClient, ctx conte
 		t.Fatalf("划分Epic和Story失败: %v", err)
 	}
 
-	log.Printf("划分Epic和Story成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("划分Epic和Story成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testDevelopStories 测试开发Story功能
@@ -235,7 +224,7 @@ func testDevelopStories(t *testing.T, client *client.AgentClient, ctx context.Co
 		t.Fatalf("开发Story功能失败: %v", err)
 	}
 
-	log.Printf("开发Story功能成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("开发Story功能成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testFixBugs 测试修复开发问题
@@ -250,7 +239,7 @@ func testFixBugs(t *testing.T, client *client.AgentClient, ctx context.Context) 
 		t.Fatalf("修复开发问题失败: %v", err)
 	}
 
-	log.Printf("修复开发问题成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("修复开发问题成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testRunTests 测试执行自动测试
@@ -264,7 +253,7 @@ func testRunTests(t *testing.T, client *client.AgentClient, ctx context.Context)
 		t.Fatalf("执行自动测试失败: %v", err)
 	}
 
-	log.Printf("执行自动测试成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("执行自动测试成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // testDeployProject 测试打包部署项目
@@ -284,7 +273,7 @@ func testDeployProject(t *testing.T, client *client.AgentClient, ctx context.Con
 		t.Fatalf("打包部署项目失败: %v", err)
 	}
 
-	log.Printf("打包部署项目成功: %s, markdown:\n%s", result.Output, result.MarkdownContent)
+	log.Printf("打包部署项目成功: %s, message:\n%s", result.Status, result.Message)
 }
 
 // TestSingleStep 测试单个步骤 - 用于单独调试某个阶段

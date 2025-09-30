@@ -1,11 +1,21 @@
 package agent
 
+import "encoding/json"
+
 // 项目环境准备请求
 type SetupProjEnvReq struct {
 	ProjectGuid     string `json:"project_guid" binding:"required" example:"1234567890"`
 	GitlabRepoUrl   string `json:"gitlab_repo_url" binding:"required" example:"https://gitlab.lighthought.com/app-maker/project-guid.git"`
 	SetupBmadMethod bool   `json:"setup_bmad_method" binding:"required" example:"true"`
 	BmadCliType     string `json:"bmad_cli_type" binding:"required" example:"claude"`
+}
+
+func (a *SetupProjEnvReq) ToBytes() []byte {
+	bytes, err := json.Marshal(a)
+	if err != nil {
+		return nil
+	}
+	return bytes
 }
 
 // 获取项目概览请求

@@ -212,7 +212,7 @@ func convertToDeepseekResponse(response api.ChatResponse) *deepseek.ChatCompleti
 
 func CreateOllamaChatCompletion(req *deepseek.ChatCompletionRequest) (deepseek.ChatCompletionResponse, error) {
 	if !IsOllamaRunning() {
-		return deepseek.ChatCompletionResponse{}, fmt.Errorf("Ollama server is not running")
+		return deepseek.ChatCompletionResponse{}, fmt.Errorf("ollama server is not running")
 	}
 
 	if req == nil {

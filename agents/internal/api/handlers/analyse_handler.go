@@ -12,12 +12,12 @@ import (
 
 // AnalyseHandler 负责分析 Agent 的接口
 type AnalyseHandler struct {
-	commandService *services.CommandService
+	agentTaskService services.AgentTaskService
 }
 
 // NewAnalyseHandler 创建新的分析 Handler
-func NewAnalyseHandler(commandService *services.CommandService) *AnalyseHandler {
-	return &AnalyseHandler{commandService: commandService}
+func NewAnalyseHandler(agentTaskService services.AgentTaskService) *AnalyseHandler {
+	return &AnalyseHandler{agentTaskService: agentTaskService}
 }
 
 // ProjectBrief godoc
@@ -39,16 +39,12 @@ func (s *AnalyseHandler) ProjectBrief(c *gin.Context) {
 	}
 
 	message := "@bmad/analyst.mdc 请你为我生成项目简介，再执行市场研究。输出对应的文档到 docs/analyse/ 目录下。我的需求是：\n" + req.Requirements
-	result := s.commandService.SimpleExecute(c.Request.Context(), req.ProjectGuid, message)
-	if !result.Success {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "分析任务失败: "+result.Error))
+
+	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeAnalyse, message)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "异步任务压入失败: "+err.Error()))
 		return
 	}
-	// TODO: 检查实际输出的文档，组装成结果，返回给 backend
-	agentResult := agent.AgentResult{
-		Output: result.Output,
-		Error:  result.Error,
-	}
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("分析任务成功", agentResult))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目概览任务创建成功", taskInfo.ID))
 }
