@@ -214,7 +214,7 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 		Content:         "项目开发环境已准备完成",
 		IsMarkdown:      true,
 		MarkdownContent: result.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -248,9 +248,9 @@ func (s *projectStageService) checkRequirement(ctx context.Context,
 		AgentRole:       common.AgentAnalyst.Role,
 		AgentName:       common.AgentAnalyst.Name,
 		Content:         "项目需求已检查完成",
-		IsMarkdown:      false,
+		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -284,7 +284,7 @@ func (s *projectStageService) generatePRD(ctx context.Context,
 		Content:         "项目PRD文档已生成",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -320,7 +320,7 @@ func (s *projectStageService) defineUXStandards(ctx context.Context,
 		Content:         "项目UX标准已定义",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -361,7 +361,7 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 		Content:         "项目系统架构已设计",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -398,7 +398,7 @@ func (s *projectStageService) defineDataModel(ctx context.Context,
 		Content:         "项目数据模型已定义",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -435,7 +435,7 @@ func (s *projectStageService) defineAPIs(ctx context.Context,
 		Content:         "项目API接口已定义",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -471,7 +471,7 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 		Content:         "项目Epic和Story已划分",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -509,7 +509,7 @@ func (s *projectStageService) developStories(ctx context.Context,
 		Content:         "项目Story功能已开发",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -544,7 +544,7 @@ func (s *projectStageService) fixBugs(ctx context.Context,
 		Content:         "项目开发问题已修复",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -578,7 +578,7 @@ func (s *projectStageService) runTests(ctx context.Context,
 		Content:         "项目自动测试已执行",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
@@ -614,7 +614,7 @@ func (s *projectStageService) packageProject(ctx context.Context,
 		Content:         "项目项目已打包部署",
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
-		IsExpanded:      false,
+		IsExpanded:      true,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)

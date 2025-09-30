@@ -78,7 +78,7 @@ const getStageDisplayName = (stageName: string) => {
   const nameMap: Record<string, string> = {
     'initializing': '初始化',
     'setup_environment': '环境配置',
-    'pending_agents': '等待处理',
+    'pending_agents': 'agent初始化',
     'check_requirement': '需求检查',
     'generate_prd': '生成PRD',
     'define_ux_standard': 'UX标准',

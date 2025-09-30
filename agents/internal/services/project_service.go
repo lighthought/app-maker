@@ -10,6 +10,7 @@ import (
 	"shared-models/logger"
 	"shared-models/tasks"
 	"shared-models/utils"
+	"strings"
 
 	"github.com/hibiken/asynq"
 )
@@ -56,7 +57,8 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	var projectPath = filepath.Join(s.workspacePath, req.ProjectGuid)
 	if !utils.IsDirectoryExists(projectPath) {
 		// git clone 项目
-		res := s.commandService.SimpleExecute(ctx, "", "git", "clone", req.GitlabRepoUrl, req.ProjectGuid)
+		gitUrl := strings.Replace(req.GitlabRepoUrl, "git@gitlab:app-maker", "http://gitlab.app-maker.localhost/app-maker", 1)
+		res := s.commandService.SimpleExecute(ctx, "", "git", "clone", gitUrl, req.ProjectGuid)
 		if !res.Success {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "git clone 项目失败: "+res.Error)
 			return fmt.Errorf("git clone 项目失败: %s", res.Error)
