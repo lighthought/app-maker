@@ -64,7 +64,7 @@ func NewWebSocketService(asyncClient *asynq.Client,
 
 // ProcessTask 处理任务
 func (s *webSocketService) ProcessTask(ctx context.Context, task *asynq.Task) error {
-	if task.Type() != common.TypeWebSocketBroadcast {
+	if task.Type() != common.TaskTypeWebSocketBroadcast {
 		return fmt.Errorf("不支持的任务类型: %s", task.Type())
 	}
 
@@ -125,57 +125,6 @@ func (s *webSocketService) broadcastToProject(projectGUID string, message *model
 		logger.String("projectGUID", projectGUID),
 		logger.String("message", string(jsonMessage)))
 	s.hub.Broadcast <- message
-}
-
-// broadcastToUser 向指定用户广播消息
-func (s *webSocketService) broadcastToUser(userID string, message *models.WebSocketMessage) {
-	s.hub.Mutex.RLock()
-	defer s.hub.Mutex.RUnlock()
-	jsonMessage, _ := json.Marshal(message)
-	logger.Info("[ws] 向指定用户广播消息",
-		logger.String("userID", userID),
-		logger.String("message", string(jsonMessage)))
-
-	for client := range s.hub.Clients {
-		if client.UserID == userID {
-			select {
-			case client.Send <- s.serializeMessage(message):
-			default:
-				close(client.Send)
-				delete(s.hub.Clients, client)
-				if projectClients, exists := s.hub.Projects[client.ProjectGUID]; exists {
-					delete(projectClients, client)
-					if len(projectClients) == 0 {
-						delete(s.hub.Projects, client.ProjectGUID)
-					}
-				}
-			}
-		}
-	}
-}
-
-// broadcastToAll 向所有客户端广播消息
-func (s *webSocketService) broadcastToAll(message *models.WebSocketMessage) {
-	s.hub.Mutex.RLock()
-	defer s.hub.Mutex.RUnlock()
-	jsonMessage, _ := json.Marshal(message)
-	logger.Info("[ws] 向所有客户端广播消息",
-		logger.String("message", string(jsonMessage)))
-
-	for client := range s.hub.Clients {
-		select {
-		case client.Send <- s.serializeMessage(message):
-		default:
-			close(client.Send)
-			delete(s.hub.Clients, client)
-			if projectClients, exists := s.hub.Projects[client.ProjectGUID]; exists {
-				delete(projectClients, client)
-				if len(projectClients) == 0 {
-					delete(s.hub.Projects, client.ProjectGUID)
-				}
-			}
-		}
-	}
 }
 
 // broadcastProjectStage 广播项目阶段

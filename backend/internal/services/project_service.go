@@ -236,7 +236,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 // ProcessTask 处理任务
 func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
-	case common.TypeProjectInit:
+	case common.TaskTypeProjectInit:
 		return s.HandleProjectInitTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())

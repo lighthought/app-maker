@@ -25,9 +25,9 @@ func NewProjectTaskWorker() *ProjectTaskHandler {
 // ProcessTask 处理项目任务
 func (h *ProjectTaskHandler) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
-	case common.TypeProjectDownload:
+	case common.TaskTypeProjectDownload:
 		return h.HandleProjectDownloadTask(ctx, task)
-	case common.TypeProjectBackup:
+	case common.TaskTypeProjectBackup:
 		return h.HandleProjectBackupTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())

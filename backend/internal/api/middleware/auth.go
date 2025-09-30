@@ -34,7 +34,7 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		// 验证JWT token
 		claims, err := jwtService.ValidateToken(token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Invalid token"))
+			c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, common.MESSAGE_INVALID_TOKEN))
 			c.Abort()
 			return
 		}

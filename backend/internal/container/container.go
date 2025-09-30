@@ -25,6 +25,7 @@ type Container struct {
 	// background Items
 	AsyncClient    *asynq.Client
 	AsyncInspector *asynq.Inspector
+	AsyncServer    *asynq.Server
 	CachMonitor    *cache.Monitor
 	JWTService     *auth.JWTService
 	CacheInstance  cache.Cache
@@ -118,10 +119,11 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, gitService, webSocketService)
 
+	var asynqServer *asynq.Server
 	// 有缓存，才处理异步任务
 	if cacheInstance != nil {
 		projectTaskHandler := worker.NewProjectTaskWorker()
-		initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService, webSocketService)
+		asynqServer = initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService, webSocketService)
 	}
 
 	// 启动 WebSocket 服务
@@ -143,6 +145,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 
 	return &Container{
 		AsyncClient:            asyncClient,
+		AsyncServer:            asynqServer,
 		JWTService:             jwtService,
 		CachMonitor:            cachMonitor,
 		AsyncInspector:         asyncInspector,
@@ -169,12 +172,26 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	}
 }
 
+// 停止
+func (c *Container) Stop() {
+	c.WebSocketService.Stop()
+	logger.Info("WebSocket 服务已停止")
+	c.AsyncInspector.Close()
+	logger.Info("AsyncInspector 已关闭")
+	c.AsyncClient.Close()
+	logger.Info("AsyncClient 已关闭")
+	c.AsyncServer.Shutdown()
+	logger.Info("AsyncServer 已关闭")
+	c.CacheInstance.Close()
+	logger.Info("CacheInstance 已关闭")
+}
+
 // 初始化异步服务
 func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 	projectTaskHandler *worker.ProjectTaskHandler,
 	projectService services.ProjectService,
 	projectStageService services.ProjectStageService,
-	webSocketService services.WebSocketService) {
+	webSocketService services.WebSocketService) *asynq.Server {
 	// 配置 Worker
 	server := asynq.NewServer(
 		redisClientOpt,
@@ -191,11 +208,11 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 
 	// 注册任务处理器
 	mux := asynq.NewServeMux()
-	mux.Handle(common.TypeProjectDownload, projectTaskHandler)
-	mux.Handle(common.TypeProjectBackup, projectTaskHandler)
-	mux.Handle(common.TypeProjectInit, projectService)
-	mux.Handle(common.TypeProjectDevelopment, projectStageService)
-	mux.Handle(common.TypeWebSocketBroadcast, webSocketService)
+	mux.Handle(common.TaskTypeProjectDownload, projectTaskHandler)
+	mux.Handle(common.TaskTypeProjectBackup, projectTaskHandler)
+	mux.Handle(common.TaskTypeProjectInit, projectService)
+	mux.Handle(common.TaskTypeProjectDevelopment, projectStageService)
+	mux.Handle(common.TaskTypeWebSocketBroadcast, webSocketService)
 	// ... 注册其他任务处理器
 
 	// 启动服务器
@@ -206,4 +223,6 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 			log.Fatal("Could not start worker: ", err)
 		}
 	}()
+
+	return server
 }

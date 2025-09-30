@@ -78,7 +78,7 @@ func (h *WebSocketHandler) WebSocketUpgrade(c *gin.Context) {
 
 	claims, err := h.jwtService.ValidateToken(realToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, "Invalid token"))
+		c.JSON(http.StatusUnauthorized, utils.GetErrorResponse(common.UNAUTHORIZED, common.MESSAGE_INVALID_TOKEN))
 		return
 	}
 

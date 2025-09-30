@@ -62,7 +62,7 @@ func (s *projectStageService) GetProjectStages(ctx context.Context, projectGuid 
 // ProcessTask 处理项目任务
 func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
-	case common.TypeProjectDevelopment:
+	case common.TaskTypeProjectDevelopment:
 		return h.HandleProjectDevelopmentTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
@@ -189,37 +189,21 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 	}
 }
 
+// pendingAgents 准备项目开发环境
 func (s *projectStageService) pendingAgents(ctx context.Context,
 	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
 	devProjectStage := models.NewDevStage(project, common.DevStatusPendingAgents, common.CommonStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
-	response, err := agentClient.SetupProjectEnvironment(ctx, &agent.SetupProjEnvReq{
+	result, err := agentClient.SetupProjectEnvironment(ctx, &agent.SetupProjEnvReq{
 		ProjectGuid:     project.GUID,
 		GitlabRepoUrl:   project.GitlabRepoURL,
 		SetupBmadMethod: true,
 		BmadCliType:     "claude",
 	})
 	if err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Agents 健康检查失败: "+err.Error())
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "agents 项目环境准备失败: "+err.Error())
 		return err
-	}
-
-	markdownContent := ""
-	if response.BmadMethodStatus == common.CommonStatusDone {
-		markdownContent += "Bmad Method 安装成功\n"
-	} else {
-		markdownContent += "Bmad Method 安装失败\n"
-	}
-	if response.FrontendStatus == common.CommonStatusDone {
-		markdownContent += "Frontend 安装成功\n"
-	} else {
-		markdownContent += "Frontend 安装失败\n"
-	}
-	if response.BackendStatus == common.CommonStatusDone {
-		markdownContent += "Backend 安装成功\n"
-	} else {
-		markdownContent += "Backend 安装失败\n"
 	}
 
 	projectMsg := &models.ConversationMessage{
@@ -229,14 +213,14 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 		AgentName:       common.AgentPM.Name,
 		Content:         "项目开发环境已准备完成",
 		IsMarkdown:      true,
-		MarkdownContent: markdownContent,
+		MarkdownContent: result.Message,
 		IsExpanded:      false,
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "项目需求已检查完成")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "项目开发环境已准备完成")
 
 	return nil
 }
@@ -265,7 +249,7 @@ func (s *projectStageService) checkRequirement(ctx context.Context,
 		AgentName:       common.AgentAnalyst.Name,
 		Content:         "项目需求已检查完成",
 		IsMarkdown:      false,
-		MarkdownContent: response.MarkdownContent,
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -299,7 +283,7 @@ func (s *projectStageService) generatePRD(ctx context.Context,
 		AgentName:       common.AgentPM.Name,
 		Content:         "项目PRD文档已生成",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -335,7 +319,7 @@ func (s *projectStageService) defineUXStandards(ctx context.Context,
 		AgentName:       common.AgentUXExpert.Name,
 		Content:         "项目UX标准已定义",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -353,10 +337,14 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetArchitectureReq{
-		ProjectGuid:             project.GUID,
-		PrdPath:                 "docs/PRD.md",
-		UxSpecPath:              "docs/ux/ux-spec.md",
-		TemplateArchDescription: "Vue.js + Vite 前端，Go + Gin 后端，PostgreSQL 数据库，Redis 缓存，Docker 部署",
+		ProjectGuid: project.GUID,
+		PrdPath:     "docs/PRD.md",
+		UxSpecPath:  "docs/ux/ux-spec.md",
+		// 从模板中读取架构信息
+		TemplateArchDescription: "1. 前端：vue.js+ vite ；\n" +
+			"2. 后端服务和 API： GO + Gin 框架实现 API、数据库用 PostgreSql、缓存用 Redis。\n" +
+			"3. 部署相关的脚本已经有了，用的 docker，前端用一个 nginx ，配置 /api 重定向到 /backend:port ，这样就能在前端项目中访问后端 API 了。" +
+			" 引用关系是：前端依赖后端，后端依赖 Redis 和 PostgreSql。",
 	}
 	// 调用 agents-server 设计系统架构
 	response, err := agentClient.GetArchitecture(ctx, req)
@@ -372,7 +360,7 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 		AgentName:       common.AgentArchitect.Name,
 		Content:         "项目系统架构已设计",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -409,7 +397,7 @@ func (s *projectStageService) defineDataModel(ctx context.Context,
 		AgentName:       common.AgentArchitect.Name,
 		Content:         "项目数据模型已定义",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -446,7 +434,7 @@ func (s *projectStageService) defineAPIs(ctx context.Context,
 		AgentName:       common.AgentArchitect.Name,
 		Content:         "项目API接口已定义",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -482,7 +470,7 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 		AgentName:       common.AgentPO.Name,
 		Content:         "项目Epic和Story已划分",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -520,7 +508,7 @@ func (s *projectStageService) developStories(ctx context.Context,
 		AgentName:       common.AgentDev.Name,
 		Content:         "项目Story功能已开发",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -555,7 +543,7 @@ func (s *projectStageService) fixBugs(ctx context.Context,
 		AgentName:       common.AgentDev.Name,
 		Content:         "项目开发问题已修复",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -589,7 +577,7 @@ func (s *projectStageService) runTests(ctx context.Context,
 		AgentName:       common.AgentDev.Name,
 		Content:         "项目自动测试已执行",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 
@@ -625,7 +613,7 @@ func (s *projectStageService) packageProject(ctx context.Context,
 		AgentName:       common.AgentDev.Name,
 		Content:         "项目项目已打包部署",
 		IsMarkdown:      true,
-		MarkdownContent: response.GetMarkdownContent(),
+		MarkdownContent: response.Message,
 		IsExpanded:      false,
 	}
 

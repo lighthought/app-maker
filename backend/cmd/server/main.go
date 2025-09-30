@@ -124,6 +124,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	logger.Info("正在关闭服务器...")
+	the_container.Stop()
 
 	// 优雅关闭
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

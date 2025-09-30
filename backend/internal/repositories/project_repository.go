@@ -13,6 +13,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// Ports 端口模型
+type Ports struct {
+	BackendPort  int `json:"backend_port"`
+	FrontendPort int `json:"frontend_port"`
+	RedisPort    int `json:"redis_port"`
+	PostgresPort int `json:"postgres_port"`
+}
+
 // ProjectRepository 项目仓库接口
 type ProjectRepository interface {
 	// 基础CRUD操作
@@ -28,7 +36,7 @@ type ProjectRepository interface {
 
 	// 端口管理
 	IsPortAvailable(ctx context.Context, port int, portType string) (bool, error)
-	GetNextAvailablePorts(ctx context.Context) (*models.Ports, error)
+	GetNextAvailablePorts(ctx context.Context) (*Ports, error)
 
 	// 用户权限检查
 	IsOwner(ctx context.Context, projectID, userID string) (bool, error)
@@ -192,9 +200,9 @@ func (r *projectRepository) IsPortAvailable(ctx context.Context, port int, portT
 }
 
 // GetNextAvailablePorts 获取下一个可用的端口
-func (r *projectRepository) GetNextAvailablePorts(ctx context.Context) (*models.Ports, error) {
+func (r *projectRepository) GetNextAvailablePorts(ctx context.Context) (*Ports, error) {
 	// 从默认端口开始查找
-	ports := models.Ports{
+	ports := Ports{
 		BackendPort:  9501,
 		FrontendPort: 3501,
 		RedisPort:    7501,

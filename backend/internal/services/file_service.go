@@ -16,6 +16,12 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// PreviewFilesConfig 预览项目文件配置
+type PreviewFilesConfig struct {
+	Folders []string `json:"folders"`
+	Files   []string `json:"files"`
+}
+
 // ProjectFileService 项目文件服务接口
 type FileService interface {
 	// GetProjectFiles 获取项目文件列表
@@ -38,7 +44,7 @@ func NewFileService(asyncClient *asynq.Client) FileService {
 }
 
 // loadPreviewFilesConfig 加载预览文件配置
-func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*models.PreviewFilesConfig, error) {
+func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*PreviewFilesConfig, error) {
 	projectPath := utils.GetProjectPath(userID, projectGuid)
 	if projectPath == "" {
 		return nil, fmt.Errorf("项目路径为空")
@@ -49,7 +55,7 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*model
 	// 检查配置文件是否存在
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// 如果配置文件不存在，返回默认配置
-		return &models.PreviewFilesConfig{
+		return &PreviewFilesConfig{
 			Folders: []string{"backend", "frontend"},
 			Files:   []string{"README.md", "docker-compose.yml"},
 		}, nil
@@ -61,7 +67,7 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*model
 		return nil, fmt.Errorf("读取预览文件配置失败: %w", err)
 	}
 
-	var config models.PreviewFilesConfig
+	var config PreviewFilesConfig
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("解析预览文件配置失败: %w", err)
 	}
@@ -107,7 +113,7 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 }
 
 // getRootDirectoryFiles 获取根目录文件
-func (s *fileService) getRootDirectoryFiles(projectPath string, config *models.PreviewFilesConfig) ([]models.FileItem, error) {
+func (s *fileService) getRootDirectoryFiles(projectPath string, config *PreviewFilesConfig) ([]models.FileItem, error) {
 	var files []models.FileItem
 
 	// 1. 添加配置中指定的根目录文件
@@ -145,7 +151,7 @@ func (s *fileService) getRootDirectoryFiles(projectPath string, config *models.P
 }
 
 // getSubDirectoryFiles 获取子目录文件
-func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, config *models.PreviewFilesConfig) ([]models.FileItem, error) {
+func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, config *PreviewFilesConfig) ([]models.FileItem, error) {
 	var files []models.FileItem
 
 	// 读取目录内容
