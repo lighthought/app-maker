@@ -18,14 +18,7 @@
         <div class="stage-content">
           <div class="stage-name">{{ getStageDisplayName(stage.name) }}</div>
           <div v-if="layout === 'vertical'" class="stage-description">{{ stage.description }}</div>
-        </div>
-        
-        <!-- 连接线 -->
-        <div
-          v-if="index < stages.length - 1 && shouldShowConnector(stage, stages[index + 1])"
-          class="stage-connector"
-          :class="[getConnectorClass(stage, stages[index + 1]), { 'horizontal': layout === 'horizontal' }]"
-        ></div>
+        </div>        
       </div>
     </div>
     
@@ -136,22 +129,6 @@ const getStageClass = (stage: DevStage) => ({
   'stage-pending': stage.status === 'pending'
 })
 
-// 判断是否应该显示连接线
-const shouldShowConnector = (currentStage: DevStage, nextStage: DevStage) => {
-  // 只有当前阶段是进行中、失败或待处理状态时才显示连接线
-  // 已完成阶段不显示连接线，避免误导用户以为还在该阶段
-  return currentStage.status === 'in_progress' || 
-         currentStage.status === 'failed' || 
-         currentStage.status === 'pending'
-}
-
-// 获取连接线样式类
-const getConnectorClass = (currentStage: DevStage, nextStage: DevStage) => ({
-  'connector-done': currentStage.status === 'done',
-  'connector-failed': currentStage.status === 'failed',
-  'connector-in-progress': currentStage.status === 'in_progress',
-  'connector-pending': currentStage.status === 'pending'
-})
 
 // 获取状态颜色
 const getStatusColor = (status: string) => {
@@ -304,7 +281,6 @@ const ClockIcon = () => h('svg', {
   display: flex;
   align-items: center;
   margin-bottom: var(--spacing-lg);
-  margin-top: var(--spacing-lg);
   position: relative;
 }
 
@@ -312,7 +288,7 @@ const ClockIcon = () => h('svg', {
   flex-direction: column;
   margin-bottom: 0;
   flex-shrink: 0;
-  min-width: 80px;
+  min-width: 60px;
   text-align: center;
 }
 
@@ -419,39 +395,6 @@ const ClockIcon = () => h('svg', {
   }
 }
 
-/* 连接线样式 */
-.stage-connector {
-  position: absolute;
-  left: 17px;
-  top: 36px;
-  width: 2px;
-  height: var(--spacing-lg);
-  transition: all 0.3s ease;
-}
-
-.stage-connector.horizontal {
-  position: static;
-  width: var(--spacing-md);
-  height: 2px;
-  margin: var(--spacing-sm) 0;
-  flex-shrink: 0;
-}
-
-.connector-done {
-  background: #38A169;
-}
-
-.connector-failed {
-  background: #E53E3E;
-}
-
-.connector-in-progress {
-  background: linear-gradient(to bottom, #D69E2E, #A0AEC0);
-}
-
-.connector-pending {
-  background: #A0AEC0;
-}
 
 /* 当前状态信息 */
 .current-status {
@@ -505,9 +448,6 @@ const ClockIcon = () => h('svg', {
     height: 28px;
   }
   
-  .stage-connector {
-    left: 13px;
-  }
   
   .stage-item.horizontal {
     min-width: 60px;
