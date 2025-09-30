@@ -30,6 +30,8 @@ type projectStageService struct {
 	stageRepo        repositories.StageRepository
 	messageRepo      repositories.MessageRepository
 	webSocketService WebSocketService
+	gitService       GitService
+	fileService      FileService
 	agentsURL        string
 }
 
@@ -39,6 +41,8 @@ func NewProjectStageService(
 	stageRepo repositories.StageRepository,
 	messageRepo repositories.MessageRepository,
 	webSocketService WebSocketService,
+	gitService GitService,
+	fileService FileService,
 ) ProjectStageService {
 	// 读取配置
 	var agentsURL string
@@ -50,6 +54,8 @@ func NewProjectStageService(
 		stageRepo:        stageRepo,
 		messageRepo:      messageRepo,
 		webSocketService: webSocketService,
+		gitService:       gitService,
+		fileService:      fileService,
 		agentsURL:        agentsURL,
 	}
 }
@@ -88,6 +94,8 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 	}
 	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Second)
 
+	// TODO: 检查项目是否已有正在进行中（未完成、未失败）的任务，且任务 ID 和当前不同，不同，则直接跳过。
+
 	// 2. 执行开发阶段
 	stages := []struct {
 		status      common.DevStatus
@@ -108,10 +116,19 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		{common.DevStatusDeploy, "打包项目", s.packageProject},
 	}
 
+	gitConfig := &GitConfig{
+		UserID:        project.UserID,
+		GUID:          project.GUID,
+		ProjectPath:   project.ProjectPath,
+		CommitMessage: fmt.Sprintf("Auto commit by App Maker - %s", project.Name),
+	}
+
 	for _, stage := range stages {
-		// 更新项目状态
-		project.SetDevStatus(stage.status)
-		s.projectRepo.Update(ctx, project)
+		// 检查已经存在已完成的阶段，跳过
+		if s.checkIfStageIsDone(ctx, project.GUID, string(stage.status)) {
+			tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(stage.status), common.GetDevStageDescription(stage.status)+"已完成")
+			continue
+		}
 
 		// 执行阶段
 		if err := stage.executor(ctx, project, resultWriter, agentClient); err != nil {
@@ -124,8 +141,14 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 			// 更新项目状态为失败
 			project.SetDevStatus(common.DevStatusFailed)
 			s.projectRepo.Update(ctx, project)
-
 			return err
+		}
+
+		if err := s.gitService.Pull(ctx, gitConfig); err != nil {
+			logger.Error("拉取远程仓库代码失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
 		}
 	}
 
@@ -189,9 +212,19 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 	}
 }
 
+// checkIfStageIsDone 检查阶段是否已存在并完成
+func (s *projectStageService) checkIfStageIsDone(ctx context.Context, projectGuid string, stageName string) bool {
+	devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, projectGuid, stageName)
+	if err != nil {
+		return false
+	}
+	return devProjectStage.Status == common.CommonStatusDone
+}
+
 // pendingAgents 准备项目开发环境
 func (s *projectStageService) pendingAgents(ctx context.Context,
 	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+
 	devProjectStage := models.NewDevStage(project, common.DevStatusPendingAgents, common.CommonStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
@@ -220,7 +253,7 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "项目开发环境已准备完成")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusPendingAgents), "项目开发环境已准备完成")
 
 	return nil
 }
@@ -256,7 +289,7 @@ func (s *projectStageService) checkRequirement(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "项目需求已检查完成")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusCheckRequirement), "项目需求已检查完成")
 	return nil
 }
 
@@ -290,7 +323,7 @@ func (s *projectStageService) generatePRD(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 20, "项目PRD文档已生成")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusGeneratePRD), "项目PRD文档已生成")
 	return nil
 }
 
@@ -326,7 +359,7 @@ func (s *projectStageService) defineUXStandards(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "项目UX标准已定义")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusDefineUXStandard), "项目UX标准已定义")
 	return nil
 }
 
@@ -367,7 +400,7 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 40, "项目系统架构已设计")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusDesignArchitecture), "项目系统架构已设计")
 	return nil
 }
 
@@ -404,7 +437,7 @@ func (s *projectStageService) defineDataModel(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 45, "项目数据模型已定义")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusDefineDataModel), "项目数据模型已定义")
 	return nil
 }
 
@@ -441,7 +474,7 @@ func (s *projectStageService) defineAPIs(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 50, "项目API接口已定义")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusDefineAPI), "项目API接口已定义")
 	return nil
 }
 
@@ -463,6 +496,7 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 		return err
 	}
 
+	// TODO: git 拉新代码，通过文件解析 epics 和 stories 这个关键信息
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
 		Type:            common.ConversationTypeAgent,
@@ -477,7 +511,8 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 	devProjectStage.SetStatus(common.CommonStatusDone)
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 55, "项目Epic和Story已划分")
+	// TODO: 让用户反馈，这个部分是比较关键的，后期加入了交互以后，需要调整这一块内容
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusPlanEpicAndStory), "项目Epic和Story已划分")
 	return nil
 }
 
@@ -493,27 +528,52 @@ func (s *projectStageService) developStories(ctx context.Context,
 		ArchFolder:  "docs/arch",
 		DbFolder:    "docs/db",
 		ApiFolder:   "docs/api",
+		UxSpecPath:  "docs/ux/ux-spec.md",
+		EpicFile:    "docs/epics.md",
+		StoryFile:   "",
 	}
-	// 调用 agents-server 开发 Story 功能
-	response, err := agentClient.ImplementStory(ctx, req)
+
+	storyFiles, err := s.fileService.GetRelativeFiles(project.ProjectPath, "docs/stories")
 	if err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "获取 stories 下的文件失败: "+err.Error())
 		return err
 	}
 
-	projectMsg := &models.ConversationMessage{
-		ProjectGuid:     project.GUID,
-		Type:            common.ConversationTypeAgent,
-		AgentRole:       common.AgentDev.Role,
-		AgentName:       common.AgentDev.Name,
-		Content:         "项目Story功能已开发",
-		IsMarkdown:      true,
-		MarkdownContent: response.Message,
-		IsExpanded:      true,
+	var response = &tasks.TaskResult{}
+	developStoryCount := 0
+	bDev := (utils.GetEnvOrDefault("ENVIRONMENT", common.EnvironmentDevelopment) == common.EnvironmentDevelopment)
+	// 获取 stories 下的文件，循环开发每个 Story
+	for _, storyFile := range storyFiles {
+		// development 模式，只开发一个，其他的都直接打印结果就可以了
+		if developStoryCount < 1 || !bDev {
+			req.StoryFile = storyFile
+			// 调用 agents-server 开发 Story 功能
+			response, err = agentClient.ImplementStory(ctx, req)
+			if err != nil {
+				tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
+				return err
+			}
+
+			developStoryCount += 1
+		} else {
+			response.Message = "开发需求故事" + storyFile + "已完成"
+		}
+
+		projectMsg := &models.ConversationMessage{
+			ProjectGuid:     project.GUID,
+			Type:            common.ConversationTypeAgent,
+			AgentRole:       common.AgentDev.Role,
+			AgentName:       common.AgentDev.Name,
+			Content:         "项目Story功能已开发",
+			IsMarkdown:      true,
+			MarkdownContent: response.Message,
+			IsExpanded:      true,
+		}
+
+		s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
-	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "项目Story功能已开发")
 	return nil

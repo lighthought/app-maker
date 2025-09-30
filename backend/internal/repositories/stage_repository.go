@@ -20,6 +20,9 @@ type StageRepository interface {
 	// GetByProjectGUID 根据项目GUID获取开发阶段列表
 	GetByProjectGUID(ctx context.Context, projectGuid string) ([]*models.DevStage, error)
 
+	// GetByProjectGuidAndName 根据项目GUID和阶段名称获取开发阶段
+	GetByProjectGuidAndName(ctx context.Context, projectGuid, name string) (*models.DevStage, error)
+
 	// 更新 stage 的状态为 done
 	UpdateStageToDone(ctx context.Context, projectID, name string) (*models.DevStage, error)
 
@@ -70,6 +73,16 @@ func (r *stageRepository) GetByProjectGUID(ctx context.Context, projectGuid stri
 	return stages, err
 }
 
+// GetByProjectGuidAndName 根据项目GUID和阶段名称获取开发阶段
+func (r *stageRepository) GetByProjectGuidAndName(ctx context.Context, projectGuid, name string) (*models.DevStage, error) {
+	var stage models.DevStage
+	err := r.db.WithContext(ctx).
+		Where("project_guid = ?", projectGuid).
+		Where("name = ?", name).
+		First(&stage).Error
+	return &stage, err
+}
+
 // 更新 stage 的状态为 done
 func (r *stageRepository) UpdateStageToDone(ctx context.Context, projectID, name string) (*models.DevStage, error) {
 	var stage models.DevStage
@@ -77,7 +90,9 @@ func (r *stageRepository) UpdateStageToDone(ctx context.Context, projectID, name
 		Model(&models.DevStage{}).
 		Where("project_id = ?", projectID).
 		Where("name = ?", name).
-		Update("status", common.CommonStatusDone).First(&stage).Error
+		Update("status", common.CommonStatusDone).
+		Update("progress", 100). // 同时更新进度
+		First(&stage).Error
 	return &stage, err
 }
 

@@ -29,6 +29,9 @@ type FileService interface {
 
 	// GetFileContent 获取文件内容
 	GetFileContent(ctx context.Context, userID, projectGuid, filePath string) (*models.FileContent, error)
+
+	// GetRelativeFiles 获取相对路径的文件列表
+	GetRelativeFiles(projectPath, subFolder string) ([]string, error)
 }
 
 // projectFileService 项目文件服务实现
@@ -148,6 +151,23 @@ func (s *fileService) getRootDirectoryFiles(projectPath string, config *PreviewF
 	}
 
 	return files, nil
+}
+
+// GetRelativeFiles 获取相对路径的文件列表
+func (s *fileService) GetRelativeFiles(projectPath, subFolder string) ([]string, error) {
+	var fileNames []string
+
+	entries, err := os.ReadDir(filepath.Join(projectPath, subFolder))
+	if err != nil {
+		logger.Error("读取目录内容失败", logger.String("projectPath", projectPath), logger.String("subFolder", subFolder))
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		fileNames = append(fileNames, entry.Name())
+	}
+
+	return fileNames, nil
 }
 
 // getSubDirectoryFiles 获取子目录文件

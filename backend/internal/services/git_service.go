@@ -17,6 +17,7 @@ type GitService interface {
 	GetPublicKey() (string, error)
 	InitializeGit(ctx context.Context, config *GitConfig) (string, error)
 	CommitAndPush(ctx context.Context, config *GitConfig) error
+	Pull(ctx context.Context, config *GitConfig) error
 }
 
 // GitService Git操作服务
@@ -325,6 +326,35 @@ func (s *gitService) isGitRepository(projectDir string) bool {
 	gitDir := filepath.Join(projectDir, ".git")
 	_, err := os.Stat(gitDir)
 	return err == nil
+}
+
+// Pull 拉取远程仓库的最新代码
+func (s *gitService) Pull(ctx context.Context, config *GitConfig) error {
+	projectDir := config.ProjectPath
+
+	logger.Info("开始拉取远程仓库代码",
+		logger.String("GUID", config.GUID),
+		logger.String("projectPath", projectDir),
+	)
+
+	// 检查是否是Git仓库
+	if !s.isGitRepository(projectDir) {
+		return fmt.Errorf("项目目录不是Git仓库: %s", projectDir)
+	}
+
+	// 拉取远程代码
+	if err := s.runGitCommand(ctx, projectDir, "pull", "origin", "master"); err != nil {
+		// 如果master分支不存在，尝试main分支
+		if err := s.runGitCommand(ctx, projectDir, "pull", "origin", "main"); err != nil {
+			return fmt.Errorf("拉取远程代码失败: %w", err)
+		}
+	}
+
+	logger.Info("远程代码拉取完成",
+		logger.String("GUID", config.GUID),
+	)
+
+	return nil
 }
 
 // hasChanges 检查是否有文件变更
