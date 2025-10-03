@@ -10,7 +10,7 @@
       <!-- 认证表单区域 -->
       <div class="auth-form-container">
         <div class="form-header">
-          <h2>{{ isLogin ? '欢迎回来' : '创建账户' }}</h2>
+          <h2>{{ isLogin ? t('auth.welcomeBack') : t('auth.createAccount') }}</h2>
         </div>
 
         <!-- 切换按钮 -->
@@ -21,7 +21,7 @@
             @click="isLogin = true"
             class="toggle-btn"
           >
-            登录
+            {{ t('auth.login') }}
           </n-button>
           <n-button
             :type="!isLogin ? 'primary' : 'default'"
@@ -29,7 +29,7 @@
             @click="isLogin = false"
             class="toggle-btn"
           >
-            注册
+            {{ t('auth.register') }}
           </n-button>
         </div>
 
@@ -43,14 +43,14 @@
         >
           <!-- 邮箱 -->
           <n-form-item
-            label="邮箱"
+            :label="t('auth.email')"
             path="email"
             class="form-item"
           >
             <n-input
               v-model:value="formData.email"
               type="text"
-              placeholder="请输入邮箱"
+              :placeholder="t('auth.emailPlaceholder')"
               size="large"
               clearable
               class="form-input"
@@ -64,13 +64,13 @@
           <!-- 用户名(仅注册时显示) -->
           <n-form-item
             v-if="!isLogin"
-            label="用户名"
+            :label="t('auth.username')"
             path="username"
             class="form-item"
           >
             <n-input
               v-model:value="formData.username"
-              placeholder="请输入用户名"
+              :placeholder="t('auth.usernamePlaceholder')"
               size="large"
               clearable
               class="form-input"
@@ -83,14 +83,14 @@
 
           <!-- 密码 -->
           <n-form-item
-            label="密码"
+            :label="t('auth.password')"
             path="password"
             class="form-item"
           >
             <n-input
               v-model:value="formData.password"
               type="password"
-              placeholder="请输入密码"
+              :placeholder="t('auth.passwordPlaceholder')"
               size="large"
               show-password-on="click"
               clearable
@@ -105,14 +105,14 @@
           <!-- 确认密码（仅注册时显示） -->
           <n-form-item
             v-if="!isLogin"
-            label="确认密码"
+            :label="t('auth.confirmPassword')"
             path="confirmPassword"
             class="form-item"
           >
             <n-input
               v-model:value="formData.confirmPassword"
               type="password"
-              placeholder="请再次输入密码"
+              :placeholder="t('auth.confirmPasswordPlaceholder')"
               size="large"
               show-password-on="click"
               clearable
@@ -127,10 +127,10 @@
           <!-- 记住我（仅登录时显示） -->
           <div v-if="isLogin" class="form-options">
             <n-checkbox v-model:checked="formData.rememberMe">
-              记住我
+              {{ t('auth.rememberMe') }}
             </n-checkbox>
             <n-button text type="primary" @click="forgotPassword">
-              忘记密码？
+              {{ t('auth.forgotPassword') }}
             </n-button>
           </div>
 
@@ -143,19 +143,19 @@
             class="submit-btn"
             block
           >
-            {{ isLogin ? '登录' : '注册' }}
+            {{ isLogin ? t('auth.login') : t('auth.register') }}
           </n-button>
 
           <!-- 协议同意（仅注册时显示） -->
           <div v-if="!isLogin" class="agreement">
             <n-checkbox v-model:checked="formData.agreeTerms">
-              注册即表示您同意我们的
+              {{ t('auth.agreeTerms') }}
               <n-button text type="primary" @click="showTerms">
-                《用户协议》
+                {{ t('auth.userAgreement') }}
               </n-button>
-              和
+              {{ t('common.and') }}
               <n-button text type="primary" @click="showPrivacy">
-                《隐私政策》
+                {{ t('auth.privacyPolicy') }}
               </n-button>
             </n-checkbox>
           </div>
@@ -192,20 +192,20 @@
     </div>
 
     <!-- 协议弹窗 -->
-    <n-modal v-model:show="showTermsModal" preset="card" title="用户协议" style="width: 600px">
+    <n-modal v-model:show="showTermsModal" preset="card" :title="t('auth.userAgreement')" style="width: 600px">
       <div class="terms-content">
-        <h3>用户协议</h3>
-        <p>欢迎使用 App-Maker！</p>
-        <p>本协议是您与 App-Maker 平台之间的法律协议，请您仔细阅读。</p>
+        <h3>{{ t('auth.userAgreement') }}</h3>
+        <p>{{ t('auth.welcomeToAppMaker') }}</p>
+        <p>{{ t('auth.termsDescription') }}</p>
         <!-- 更多协议内容 -->
       </div>
     </n-modal>
 
-    <n-modal v-model:show="showPrivacyModal" preset="card" title="隐私政策" style="width: 600px">
+    <n-modal v-model:show="showPrivacyModal" preset="card" :title="t('auth.privacyPolicy')" style="width: 600px">
       <div class="privacy-content">
-        <h3>隐私政策</h3>
-        <p>我们非常重视您的隐私保护。</p>
-        <p>本政策说明了我们如何收集、使用和保护您的个人信息。</p>
+        <h3>{{ t('auth.privacyPolicy') }}</h3>
+        <p>{{ t('auth.privacyImportance') }}</p>
+        <p>{{ t('auth.privacyDescription') }}</p>
         <!-- 更多隐私政策内容 -->
       </div>
     </n-modal>
@@ -215,6 +215,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import {
@@ -246,6 +247,7 @@ const GoogleIcon = () => h('span', { style: 'font-size: 16px;' }, '🔍')
 
 const router = useRouter()
 const userStore = useUserStore()
+const { t } = useI18n()
 
 // 获取 message 实例
 const message = useMessage()
@@ -272,17 +274,17 @@ const formRules = computed(() => ({
   username: isLogin.value ? [] : [
     {
       required: true,
-      message: '请输入用户名',
+      message: t('auth.usernameRequired'),
       trigger: 'blur'
     },
     {
       validator: (rule: any, value: string) => {        
         // 注册时验证用户名格式
         if (value.length < 3) {
-          return new Error('用户名至少需要3个字符')
+          return new Error(t('auth.usernameMinLength'))
         }
         if (value.length > 20) {
-          return new Error('用户名不能超过20个字符')
+          return new Error(t('auth.usernameMaxLength'))
         }        
       },
       trigger: 'blur'
@@ -291,14 +293,14 @@ const formRules = computed(() => ({
   email: [
     {
       required: true,
-      message: '请输入邮箱',
+      message: t('auth.emailRequired'),
       trigger: 'blur'
     },
     {
       validator: (rule: any, value: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(value)) {
-          return new Error('请输入有效的邮箱地址')
+          return new Error(t('auth.emailFormatError'))
         }
       },
       trigger: 'blur'
@@ -307,25 +309,25 @@ const formRules = computed(() => ({
   password: [
     {
       required: true,
-      message: '请输入密码',
+      message: t('auth.passwordRequired'),
       trigger: 'blur'
     },
     {
       min: 6,
-      message: '密码至少需要6个字符',
+      message: t('auth.passwordMinLength'),
       trigger: 'blur'
     }
   ],
   confirmPassword: isLogin.value ? [] : [
     {
       required: true,
-      message: '请确认密码',
+      message: t('auth.confirmPasswordRequired'),
       trigger: 'blur'
     },
     {
       validator: (rule: any, value: string) => {
         if (value !== formData.password) {
-          return new Error('两次输入的密码不一致')
+          return new Error(t('auth.passwordMismatch'))
         }
       },
       trigger: 'blur'
@@ -348,15 +350,15 @@ const handleSubmit = async () => {
       
       const result = await userStore.login(loginData)
       if (result.success) {
-        message.success('登录成功')
+        message.success(t('auth.loginSuccess'))
         router.push('/dashboard')
       } else {
-        message.error(result.message || '登录失败')
+        message.error(result.message || t('auth.loginFailed'))
       }
     } else {
       // 注册逻辑
       if (!formData.agreeTerms) {
-        message.warning('请先同意用户协议和隐私政策')
+        message.warning(t('auth.agreeTermsRequired'))
         return
       }
 
@@ -368,11 +370,11 @@ const handleSubmit = async () => {
       
       const result = await userStore.register(registerData)
       if (result.success) {
-        message.success('注册成功')
+        message.success(t('auth.registerSuccess'))
         // 注册成功后直接跳转到创建项目页面，不需要再次登录
         router.push('/create-project')
       } else {
-        message.error(result.message || '注册失败')
+        message.error(result.message || t('auth.registerFailed'))
       }
     }
   } catch (error) {
@@ -383,7 +385,7 @@ const handleSubmit = async () => {
 }
 
 const forgotPassword = () => {
-  message.info('密码重置功能开发中...')
+  message.info(t('auth.forgotPasswordFeature'))
 }
 
 const showTerms = () => {
@@ -395,7 +397,7 @@ const showPrivacy = () => {
 }
 
 const socialLogin = (provider: string) => {
-  message.info(`${provider} 登录功能开发中...`)
+  message.info(t('auth.socialLoginFeature', { provider }))
 }
 </script>
 

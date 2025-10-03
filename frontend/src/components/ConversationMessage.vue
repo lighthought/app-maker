@@ -49,7 +49,7 @@
                     <component :is="message.is_expanded ? 'ChevronUpIcon' : 'ChevronDownIcon'" />
                   </n-icon>
                 </template>
-                {{ message.is_expanded ? '折叠' : '展开' }}
+                {{ message.is_expanded ? t('common.collapse') : t('common.expand') }}
               </n-button>
               <n-button
                 text
@@ -60,7 +60,7 @@
                 <template #icon>
                   <n-icon><CopyIcon /></n-icon>
                 </template>
-                复制
+                {{ t('common.copy') }}
               </n-button>
             </div>
           </div>
@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { computed, h } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { NIcon, NButton, useMessage } from 'naive-ui'
 import { marked } from 'marked'
 import type { ConversationMessage } from '@/types/project'
@@ -88,6 +89,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 interface Emits {
   (e: 'toggle-expanded', messageId: string): void
@@ -243,16 +245,16 @@ const getAgentName = (role?: string) => {
 // 获取Agent角色文本
 const getAgentRoleText = (role?: string) => {
   const roleMap = {
-    dev: '开发工程师',
-    pm: '产品经理',
-    po: '产品负责人',
-    architect: '架构师',
-    'ux-expert': 'UX专家',
-    analyst: '分析师',
-    qa: '测试工程师',
-    ops: '运维工程师'
+    dev: t('agent.devEngineer'),
+    pm: t('agent.productManager'),
+    po: t('agent.productOwner'),
+    architect: t('agent.architect'),
+    'ux-expert': t('agent.uxExpert'),
+    analyst: t('agent.analyst'),
+    qa: t('agent.testEngineer'),
+    ops: t('agent.opsEngineer')
   }
-  return roleMap[role as keyof typeof roleMap] || '开发工程师'
+  return roleMap[role as keyof typeof roleMap] || t('agent.devEngineer')
 }
 
 // 判断是否有Agent信息
@@ -276,14 +278,14 @@ const copyMarkdown = async () => {
     try {
       await navigator.clipboard.writeText(props.message.markdown_content)
       // 显示复制成功提示
-      messageApi.success('代码复制成功', {
+      messageApi.success(t('common.copySuccess'), {
         duration: 2000,
         closable: false
       })
     } catch (err) {
-      console.error('复制失败:', err)
+      console.error(t('common.copyFailed'), err)
       // 显示复制失败提示
-      messageApi.error('复制失败，请重试', {
+      messageApi.error(t('common.copyRetry'), {
         duration: 2000,
         closable: false
       })

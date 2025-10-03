@@ -8,9 +8,9 @@
           <h1>App-Maker</h1>
         </div>
         <nav class="nav">
-          <a href="#process" class="nav-link">使用流程</a>
-          <a href="#features" class="nav-link">功能特性</a>          
-          <a href="#about" class="nav-link">关于我们</a>
+          <a href="#process" class="nav-link">{{ t('process.title') }}</a>
+          <a href="#features" class="nav-link">{{ t('features.title') }}</a>          
+          <a href="#about" class="nav-link">{{ t('about.title') }}</a>
         </nav>
         <div class="header-actions">
           <n-button
@@ -18,11 +18,11 @@
             @click="toggleLanguage"
             class="language-btn"
           >
-            {{ currentLanguage === 'zh' ? 'EN' : '中文' }}
+            {{ locale === 'zh' ? 'EN' : '中文' }}
           </n-button>
           <a :href="isLoggedIn ? '/dashboard' : '/auth'" class="experience-btn">
             <n-button type="primary">
-              {{ isLoggedIn ? '进入控制台' : '立即体验' }}
+              {{ isLoggedIn ? t('buttons.enterConsole') : t('buttons.experience') }}
             </n-button>
           </a>
         </div>
@@ -86,8 +86,8 @@
           >
             <div class="step-number">{{ index + 1 }}</div>
             <div class="step-content">
-              <h3>{{ step.title }}</h3>
-              <p>{{ step.description }}</p>
+              <h3>{{ step.title() }}</h3>
+              <p>{{ step.description() }}</p>
             </div>
           </div>
         </div>
@@ -103,8 +103,8 @@
             <div class="feature-icon">
               <component :is="feature.icon" />
             </div>
-            <h3>{{ feature.title }}</h3>
-            <p>{{ feature.description }}</p>
+            <h3>{{ feature.title() }}</h3>
+            <p>{{ feature.description() }}</p>
           </div>
         </div>
       </div>
@@ -120,15 +120,16 @@
           </div>
           <div class="footer-section">
             <h4>{{ t('footer.contact') }}</h4>
-            <p>邮箱: qqjack2012@gmail.com</p>
-            <p>账号: AI 探趣星船长</p>
+            <p>{{ t('footer.email') }}: qqjack2012@gmail.com</p>
+            <p>{{ t('footer.account') }}: AI 探趣星船长</p>
           </div>
           <div class="footer-section">
             <h4>{{ t('footer.follow') }}</h4>
             <div class="social-links">
-              <a href="https://github.com/lighthought" target="_blank" rel="noopener noreferrer" class="social-link">GitHub</a>
-              <a href="https://www.xiaohongshu.com/user/profile/62033e59000000001000aa0d" target="_blank" rel="noopener noreferrer" class="social-link">小红书</a>
-              <a href="https://space.bilibili.com/44060402" target="_blank" rel="noopener noreferrer" class="social-link">B站</a>
+              <a href="https://github.com/lighthought/app-maker" target="_blank" rel="noopener noreferrer" class="social-link">GitHub</a>
+              <a href="https://www.xiaohongshu.com/user/profile/62033e59000000001000aa0d" target="_blank" rel="noopener noreferrer" class="social-link">{{ t('footer.xiaohongshu') }}</a>
+              <a href="https://space.bilibili.com/44060402" target="_blank" rel="noopener noreferrer" class="social-link">{{ t('footer.bilibili') }}</a>
+              <a href="https://www.douyin.com/user/MS4wLjABAAAA9Dl00eOUp2iD1zKY-Gdlr1uGovve-8ky7Fntl_kM5VA" target="_blank" rel="noopener noreferrer" class="social-link">{{ t('footer.douyin') }}</a>
             </div>
           </div>
         </div>
@@ -143,11 +144,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, h } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
 import { NButton, NIcon, NTag } from 'naive-ui'
 import SmartInput from '@/components/common/SmartInput.vue'
-import type { Project } from '@/types/project'
 
 // 图标组件（使用 div 标签避免倾斜）
 const CodeIcon = () => h('div', { 
@@ -162,9 +163,9 @@ const RocketIcon = () => h('div', {
 const ShieldIcon = () => h('div', { 
   style: 'font-size: 48px; line-height: 1; text-align: center;'
 }, '🛡️')
-const UsersIcon = () => h('div', { 
+const RepositoryIcon = () => h('div', { 
   style: 'font-size: 48px; line-height: 1; text-align: center;'
-}, '👥')
+}, '📂')
 const ZapIcon = () => h('div', { 
   style: 'font-size: 48px; line-height: 1; text-align: center;'
 }, '⚡')
@@ -172,54 +173,55 @@ const ZapIcon = () => h('div', {
 const router = useRouter()
 const userStore = useUserStore()
 const projectStore = useProjectStore()
+const { locale, t } = useI18n()
 
 // 响应式数据
 const isScrolled = ref(false)
-const currentLanguage = ref('zh')
 const projectDescription = ref('')
 const currentStep = ref(0)
 
 // 计算属性
 const isLoggedIn = computed(() => userStore.isAuthenticated)
 const userProjects = computed(() => projectStore.projects.slice(0, 5))
+// 文本使用新的 i18n t 函数
 
 // 功能特性数据
 const features = ref([
   {
     id: 1,
     icon: CodeIcon,
-    title: '智能代码生成',
-    description: '基于自然语言描述，自动生成高质量的代码'
+    title: () => t('features.smartCodeGeneration'),
+    description: () => t('features.smartCodeGenerationDescription')
   },
   {
     id: 2,
     icon: RobotIcon,
-    title: '多Agent协作',
-    description: '产品经理、架构师、开发工程师等多角色协作'
+    title: () => t('features.multiAgentCollaboration'),
+    description: () => t('features.multiAgentCollaborationDescription')
   },
   {
     id: 3,
     icon: RocketIcon,
-    title: '快速部署',
-    description: '支持一键云端部署，或下载后本地部署'
+    title: () => t('features.fastDeployment'),
+    description: () => t('features.fastDeploymentDescription')
   },
   {
     id: 4,
     icon: ShieldIcon,
-    title: '安全可靠',
-    description: '企业级安全保障，数据加密传输'
+    title: () => t('features.secureReliable'),
+    description: () => t('features.secureReliableDescription')
   },
   {
     id: 5,
-    icon: UsersIcon,
-    title: '团队协作',
-    description: '支持团队协作，权限管理完善'
+    icon: RepositoryIcon,
+    title: () => t('features.codeRepository'),
+    description: () => t('features.codeRepositoryDescription')
   },
   {
     id: 6,
     icon: ZapIcon,
-    title: '高效开发',
-    description: '提升开发效率，减少重复工作'
+    title: () => t('features.efficientDevelopment'),
+    description: () => t('features.efficientDevelopmentDescription')
   }
 ])
 
@@ -227,62 +229,30 @@ const features = ref([
 const processSteps = ref([
   {
     id: 1,
-    title: '描述需求',
-    description: '用自然语言描述你的项目需求'
+    title: () => t('process.describe'),
+    description: () => t('process.describeDescription')
   },
   {
     id: 2,
-    title: 'Agent分析',
-    description: '多Agent协作分析需求并制定方案'
+    title: () => t('process.agentAnalysis'),
+    description: () => t('process.agentAnalysisDescription')
   },
   {
     id: 3,
-    title: '生成代码',
-    description: '自动生成高质量的代码和文档'
+    title: () => t('process.generateCode'),
+    description: () => t('process.generateCodeDescription')
   },
   {
     id: 4,
-    title: '测试部署',
-    description: '自动测试并部署到目标环境'
+    title: () => t('process.testDeploy'),
+    description: () => t('process.testDeployDescription')
   }
 ])
 
-// 国际化文本
-const t = (key: string) => {
-  const texts = {
-    zh: {
-      'hero.title': '多Agent自动实现APP和网站项目',
-      'hero.subtitle': '用自然语言描述需求，AI Agent 自动生成完整项目',
-      'hero.inputPlaceholder': '描述你的项目需求，例如：创建一个电商网站...',
-      'hero.createButton': '开始创建',
-      'hero.recentProjects': '最近项目',
-      'features.title': '功能特性',
-      'process.title': '使用流程',
-      'footer.description': '让编程变得更简单，让创意更快实现',
-      'footer.contact': '联系我们',
-      'footer.follow': '关注我们',
-      'footer.rights': '保留所有权利'
-    },
-    en: {
-      'hero.title': 'Multi-Agent Auto Implementation for APP and Web Projects',
-      'hero.subtitle': 'Describe requirements in natural language, AI Agents auto-generate complete projects',
-      'hero.inputPlaceholder': 'Describe your project requirements, e.g.: Create an e-commerce website...',
-      'hero.createButton': 'Start Creating',
-      'hero.recentProjects': 'Recent Projects',
-      'features.title': 'Features',
-      'process.title': 'How It Works',
-      'footer.description': 'Making programming simpler, making ideas come true faster',
-      'footer.contact': 'Contact Us',
-      'footer.follow': 'Follow Us',
-      'footer.rights': 'All rights reserved'
-    }
-  }
-  return texts[currentLanguage.value as keyof typeof texts]?.[key as keyof typeof texts.zh] || key
-}
-
 // 方法
 const toggleLanguage = () => {
-  currentLanguage.value = currentLanguage.value === 'zh' ? 'en' : 'zh'
+  locale.value = locale.value === 'zh' ? 'en' : 'zh'
+  localStorage.setItem('preferred-language', locale.value)
 }
 
 const handleProjectCreate = async () => {
@@ -306,8 +276,8 @@ const goToProject = (projectGuid: string) => {
   router.push(`/project/${projectGuid}`)
 }
 
-const getStatusType = (status: string) => {
-  const statusMap: Record<string, string> = {
+const getStatusType = (status: string): 'default' | 'error' | 'warning' | 'success' | 'primary' | 'info' => {
+  const statusMap: Record<string, 'default' | 'error' | 'warning' | 'success' | 'primary' | 'info'> = {
     draft: 'default',
     in_progress: 'warning',
     done: 'success',
@@ -318,10 +288,10 @@ const getStatusType = (status: string) => {
 
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
-    draft: '草稿',
-    in_progress: '进行中',
-    done: '已完成',
-    failed: '失败'
+    draft: t('common.draft'),
+    in_progress: t('common.inProgress'),
+    done: t('common.completed'),
+    failed: t('common.failed')
   }
   return statusMap[status] || status
 }
@@ -436,6 +406,7 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   transition: all 0.3s ease;
+  width: 50px;
 }
 
 .header-scrolled .language-btn {
@@ -447,6 +418,7 @@ onUnmounted(() => {
 .experience-btn {
   text-decoration: none;
   display: inline-block;
+  width: 98px;
 }
 
 .experience-btn .n-button {
@@ -454,6 +426,7 @@ onUnmounted(() => {
   border: none;
   color: white;
   font-weight: 600;
+  width: 100%;
 }
 
 /* Hero 区域 */

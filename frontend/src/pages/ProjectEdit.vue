@@ -11,7 +11,7 @@
               <template #icon>
                 <n-icon><ArrowLeftIcon /></n-icon>
               </template>
-              返回
+              {{ t('common.back') }}
             </n-button>
             <div class="project-info">
               <h2 class="project-title">{{ getProjectDisplayName() }}</h2>
@@ -54,6 +54,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { NButton, NIcon, NTag } from 'naive-ui'
 import ConversationContainer from '@/components/ConversationContainer.vue'
 import ProjectPanel from '@/components/ProjectPanel.vue'
@@ -63,6 +64,7 @@ import type { Project, ProjectInfoUpdate } from '@/types/project'
 const route = useRoute()
 const router = useRouter()
 const projectStore = useProjectStore()
+const { t } = useI18n()
 
 // 响应式数据
 const project = ref<Project | undefined>(undefined)
@@ -93,25 +95,25 @@ const getStatusType = (status?: string): 'default' | 'primary' | 'info' | 'succe
 // 获取状态文本
 const getStatusText = (status?: string) => {
   const statusMap: Record<string, string> = {
-    pending: '草稿',
-    in_progress: '进行中',
-    done: '已完成',
-    failed: '失败'
+    pending: t('common.draft'),
+    in_progress: t('common.inProgress'),
+    done: t('common.completed'),
+    failed: t('common.failed')
   }
-  return statusMap[status || 'pending'] || '草稿'
+  return statusMap[status || 'pending'] || t('common.draft')
 }
 
 // 获取项目显示名称
 const getProjectDisplayName = () => {
-  if (!project.value) return '项目编辑'
+  if (!project.value) return t('project.editProject')
   
   // 如果项目名称是默认的"new-project"，尝试从对话消息中获取实际项目名称
-  if (project.value.name === 'new-project' || project.value.name === '项目编辑') {
+  if (project.value.name === 'new-project' || project.value.name === t('project.editProject')) {
     // 这里可以从对话消息中提取项目名称，或者使用项目ID
-    return `项目 ${project.value.id.slice(-6)}` // 显示项目ID的后6位
+    return t('project.projectWithId', { id: project.value.id.slice(-6) }) // 显示项目ID的后6位
   }
   
-  return project.value.name || '项目编辑'
+  return project.value.name || t('project.editProject')
 }
 
 // 处理项目信息更新
@@ -132,13 +134,13 @@ const handleProjectInfoUpdate = (info: ProjectInfoUpdate) => {
     project.value.previewUrl = info.previewUrl
   }
   
-  console.log('项目信息已更新:', info)
+  console.log(t('project.projectInfoUpdated'), info)
 }
 
 // 处理项目环境配置完成
 const handleProjectEnvSetup = () => {
   if (projectPanelRef.value && projectPanelRef.value.refreshFiles) {
-    console.log('项目环境配置完成，刷新文件树')
+    console.log(t('project.envSetupCompleted'))
     projectPanelRef.value.refreshFiles()
   }
 }
@@ -207,7 +209,7 @@ const loadProject = async () => {
       router.push('/dashboard')
     }
   } catch (error) {
-    console.error('加载项目失败:', error)
+    console.error(t('project.loadProjectFailed'), error)
     // 跳转到仪表板
     router.push('/dashboard')
   } finally {

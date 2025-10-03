@@ -5,8 +5,8 @@
     <div class="dashboard-header">
       <div class="header-content">
         <div class="welcome-section">
-          <h1>欢迎回来，{{ userStore.user?.username || userStore.user?.name || '用户' }}</h1>
-          <p>今天是 {{ currentDate }}，您有 {{ totalProjects }} 个项目</p>
+          <h1>{{ t('dashboard.welcomeBack', { name: userStore.user?.username || userStore.user?.name || t('common.user') }) }}</h1>
+          <p>{{ t('dashboard.todayStats', { date: currentDate, count: totalProjects }) }}</p>
         </div>
         <div class="header-actions">
           <n-button
@@ -18,7 +18,7 @@
             <template #icon>
               <n-icon><AddIcon /></n-icon>
             </template>
-            创建项目
+            {{ t('buttons.createProject') }}
           </n-button>
         </div>
       </div>
@@ -28,7 +28,7 @@
     <div class="stats-grid">
       <n-card class="stat-card">
         <n-statistic
-          label="总项目数"
+          :label="t('dashboard.totalProjects')"
           :value="totalProjects"
           :value-style="{ color: '#3182CE' }"
         >
@@ -42,7 +42,7 @@
 
       <n-card class="stat-card">
         <n-statistic
-          label="进行中"
+          :label="t('common.inProgress')"
           :value="inProgressProjects"
           :value-style="{ color: '#D69E2E' }"
         >
@@ -56,7 +56,7 @@
 
       <n-card class="stat-card">
         <n-statistic
-          label="已完成"
+          :label="t('common.completed')"
           :value="completedProjects"
           :value-style="{ color: '#38A169' }"
         >
@@ -70,7 +70,7 @@
 
       <n-card class="stat-card">
         <n-statistic
-          label="本月新增"
+          :label="t('dashboard.newThisMonth')"
           :value="newThisMonth"
           :value-style="{ color: '#E53E3E' }"
         >
@@ -88,11 +88,11 @@
       <!-- 左侧项目列表 -->
       <div class="projects-section">
         <div class="section-header">
-          <h2>我的项目</h2>
+          <h2>{{ t('dashboard.myProjects') }}</h2>
           <div class="filter-controls">
             <n-input
               v-model:value="searchKeyword"
-              placeholder="搜索项目..."
+              :placeholder="t('project.searchProjects')"
               clearable
               class="search-input"
             >
@@ -103,7 +103,7 @@
             <n-select
               v-model:value="statusFilter"
               :options="statusOptions"
-              placeholder="状态筛选"
+              :placeholder="t('dashboard.statusFilter')"
               class="status-filter"
             />
           </div>
@@ -156,8 +156,8 @@
               <EmptyIcon />
             </n-icon>
           </div>
-          <h3>暂无项目</h3>
-          <p>您还没有创建任何项目，开始您的第一个项目吧！</p>
+          <h3>{{ t('dashboard.noProjects') }}</h3>
+          <p>{{ t('dashboard.noProjectsDesc') }}</p>
           <n-button
             type="primary"
             size="large"
@@ -167,7 +167,7 @@
             <template #icon>
               <n-icon><AddIcon /></n-icon>
             </template>
-            创建第一个项目
+            {{ t('dashboard.createFirstProject') }}
           </n-button>
         </div>
 
@@ -189,7 +189,7 @@
         <!-- 系统状态 -->
         <n-card class="system-status-card">
           <template #header>
-            <h3>系统状态</h3>
+            <h3>{{ t('dashboard.systemStatus') }}</h3>
           </template>
           
           <div class="status-list">
@@ -200,20 +200,20 @@
               >
                 <CheckIcon />
               </n-icon>
-              <span>后端服务{{ backendStatus === 'ok' ? '正常' : backendStatus === 'error' ? '异常' : '检查中' }}</span>
+              <span>{{ t('dashboard.backendService') }}{{ backendStatus === 'ok' ? t('dashboard.normal') : backendStatus === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
               <span v-if="backendVersion" class="version-info">v{{ backendVersion }}</span>
             </div>
             <div class="status-item">
               <n-icon size="16" color="#38A169">
                 <CheckIcon />
               </n-icon>
-              <span>数据库连接正常</span>
+              <span>{{ t('dashboard.database') }}{{ t('dashboard.normal') }}</span>
             </div>
             <div class="status-item">
               <n-icon size="16" color="#38A169">
                 <CheckIcon />
               </n-icon>
-              <span>AI Agent 在线</span>
+              <span>{{ t('dashboard.agentOnline') }}</span>
             </div>
           </div>
         </n-card>
@@ -222,7 +222,7 @@
         <n-card v-if="currentProject" class="current-project-card">
           <template #header>
             <div class="card-header">
-              <h3>当前项目</h3>
+              <h3>{{ t('dashboard.currentProject') }}</h3>
               <n-button size="tiny" @click="currentProject = null">
                 <n-icon><CloseIcon /></n-icon>
               </n-button>
@@ -240,36 +240,36 @@
             
             <div class="project-stats">
               <div class="stat-item">
-                <span class="label">状态</span>
+                <span class="label">{{ t('common.status') }}</span>
                 <n-tag :type="getStatusType(currentProject.status)">
                   {{ getStatusText(currentProject.status) }}
                 </n-tag>
               </div>
               <div class="stat-item">
-                <span class="label">进度</span>
+                <span class="label">{{ t('dashboard.progress') }}</span>
                 <span class="value">{{ getProjectProgress(currentProject) }}%</span>
               </div>
               <div class="stat-item">
-                <span class="label">创建时间</span>
+                <span class="label">{{ t('dashboard.createdAt') }}</span>
                 <span class="value">{{ formatDateTime(currentProject.created_at) }}</span>
               </div>
             </div>
             
             <div class="project-actions">
               <n-button type="primary" @click="editProject(currentProject.guid)">
-                编辑
+                {{ t('dashboard.actionEdit') }}
               </n-button>
               <n-button 
                 v-if="currentProject.status !== 'pending'"
                 @click="previewProject(currentProject.guid)"
               >
-                预览
+                {{ t('dashboard.actionPreview') }}
               </n-button>
               <n-button @click="downloadProject(currentProject.guid)">
-                下载
+                {{ t('dashboard.actionDownload') }}
               </n-button>
               <n-button type="error" @click="handleDeleteProject(currentProject.guid)">
-                删除
+                {{ t('dashboard.actionDelete') }}
               </n-button>
             </div>
           </div>
@@ -291,6 +291,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore } from '@/stores/file'
@@ -370,6 +371,7 @@ const EmptyIcon = () => h('svg', {
 ])
 
 const router = useRouter()
+const { t } = useI18n()
 const userStore = useUserStore()
 const projectStore = useProjectStore()
 const fileStore = useFilesStore()
@@ -390,13 +392,13 @@ const currentTaskId = ref('')
 const currentDownloadProjectGuid = ref('')
 
 // 状态选项
-const statusOptions = [
-  { label: '全部状态', value: '' },
-  { label: '草稿', value: 'pending' },
-  { label: '进行中', value: 'in_progress' },
-  { label: '已完成', value: 'done' },
-  { label: '失败', value: 'failed' }
-]
+const statusOptions = computed(() => [
+  { label: t('dashboard.allStatus'), value: '' },
+  { label: t('common.draft'), value: 'pending' },
+  { label: t('common.inProgress'), value: 'in_progress' },
+  { label: t('common.completed'), value: 'done' },
+  { label: t('common.failed'), value: 'failed' }
+])
 
 // 计算属性
 const currentDate = computed(() => {
@@ -515,10 +517,10 @@ const getStatusType = (status: string): 'default' | 'error' | 'warning' | 'succe
 
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
-    draft: '草稿',
-    in_progress: '进行中',
-    done: '已完成',
-    failed: '失败'
+    draft: t('common.draft'),
+    in_progress: t('common.inProgress'),
+    done: t('common.completed'),
+    failed: t('common.failed')
   }
   return statusMap[status] || status
 }
@@ -755,7 +757,7 @@ onUnmounted(() => {
 }
 
 .project-card:hover::after {
-  content: '双击编辑';
+  content: '{{ common.doubleClickEdit }}';
   position: absolute;
   top: 8px;
   right: 8px;
@@ -961,7 +963,13 @@ onUnmounted(() => {
 
 .project-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-sm);
+}
+
+.project-actions .n-button {
+  flex: 1;
+  min-width: 60px;
 }
 
 .status-list {

@@ -28,7 +28,7 @@
         </template>
         <div class="notification-panel">
           <div class="notification-header">
-            <h3>消息通知</h3>
+            <h3>{{ t('header.notifications') }}</h3>
             <n-button text size="small" @click="showNotifications = false">
               <template #icon>
                 <n-icon><CloseIcon /></n-icon>
@@ -40,7 +40,7 @@
               <n-icon size="48" color="#CBD5E0">
                 <BellIcon />
               </n-icon>
-              <p>暂无消息</p>
+              <p>{{ t('header.noMessages') }}</p>
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@
               </template>
             </n-avatar>
             <div class="user-details">
-              <div class="username">{{ userStore.user?.username || userStore.user?.name || '用户' }}</div>
+              <div class="username">{{ userStore.user?.username || userStore.user?.name || t('common.user') }}</div>
               <div class="user-email">{{ userStore.user?.email || '' }}</div>
             </div>
           </div>
@@ -84,7 +84,7 @@
               <template #icon>
                 <n-icon><SettingsIcon /></n-icon>
               </template>
-              用户设置
+              {{ t('header.userSettings') }}
             </n-button>
             <n-button
               quaternary
@@ -94,7 +94,7 @@
               <template #icon>
                 <n-icon><LogoutIcon /></n-icon>
               </template>
-              退出登录
+              {{ t('header.logout') }}
             </n-button>
           </div>
         </div>
@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import { ref, h } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { NButton, NIcon, NAvatar, NPopover, NDivider } from 'naive-ui'
 
@@ -121,6 +122,7 @@ const emit = defineEmits<Emits>()
 
 const router = useRouter()
 const userStore = useUserStore()
+const { t } = useI18n()
 
 // 状态管理
 const showNotifications = ref(false)

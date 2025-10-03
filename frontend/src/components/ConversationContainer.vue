@@ -5,18 +5,18 @@
       <NAlert 
         v-if="wsError" 
         type="error" 
-        :title="`WebSocket 连接错误: ${wsError}`"
+        :title="`${t('common.websocketError')}: ${wsError}`"
         closable
         @close="wsError = null"
       >
         <div style="margin-top: 8px;">
-          <n-button size="small" @click="wsReconnect">重连</n-button>
+          <n-button size="small" @click="wsReconnect">{{ t('common.reconnect') }}</n-button>
         </div>
       </NAlert>
       <NAlert 
         v-else-if="wsStatus === 'reconnecting'" 
         type="warning" 
-        :title="`正在重连... (${wsReconnectAttempts}/5)`"
+        :title="t('common.reconnecting', { attempts: wsReconnectAttempts, max: 5 })"
       />
     </div>
 
@@ -45,7 +45,7 @@
           </n-icon>
         </div>
         <div class="loading-content">
-          <div class="loading-text">AI Agent 正在思考中...</div>
+          <div class="loading-text">{{ t('common.aiThinking') }}</div>
           <div class="loading-dots">
             <span></span>
             <span></span>
@@ -59,7 +59,7 @@
     <div class="input-section">
       <SmartInput
         v-model="inputValue"
-        placeholder="输入您的需求或问题..."
+        :placeholder="t('common.inputRequirements')"
         @send="handleSendMessage"
       />
     </div>
@@ -68,6 +68,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, h, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { NIcon, NAlert, NButton } from 'naive-ui'
 import ConversationMessage from './ConversationMessage.vue'
 import DevStages from './DevStages.vue'
@@ -83,6 +84,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 // 定义事件
 const emit = defineEmits<{
@@ -124,7 +126,7 @@ const loadDevStages = async () => {
       devStages.value = stages
     }
   } catch (error) {
-    console.error('加载开发阶段失败:', error)
+    console.error(t('project.loadStagesFailed'), error)
   }
 }
 

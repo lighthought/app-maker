@@ -21,6 +21,7 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { NMenu, NIcon } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 
@@ -34,6 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const activeKey = computed(() => route.name as string)
 
@@ -62,18 +64,18 @@ const AddIcon = () => h('svg', {
   h('path', { d: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z' })
 ])
 
-const menuOptions: MenuOption[] = [
+const menuOptions = computed((): MenuOption[] => [
   {
-    label: '控制台',
+    label: t('nav.dashboard'),
     key: 'Dashboard',
     icon: renderIcon(DashboardIcon)
   },
   {
-    label: '创建项目',
+    label: t('nav.createProject'),
     key: 'CreateProject',
     icon: renderIcon(AddIcon)
   }
-]
+])
 
 function renderIcon(icon: any) {
   return () => h(NIcon, null, { default: icon })

@@ -1,43 +1,44 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import i18n from '@/locales'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
     component: () => import('@/pages/Home.vue'),
-    meta: { title: 'App-Maker', requiresAuth: false }
+    meta: { titleKey: 'nav.home', requiresAuth: false }
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/pages/Dashboard.vue'),
-    meta: { title: '控制台', requiresAuth: true, layout: 'default' }
+    meta: { titleKey: 'nav.dashboard', requiresAuth: true, layout: 'default' }
   },
   {
     path: '/create-project',
     name: 'CreateProject',
     component: () => import('@/pages/CreateProject.vue'),
-    meta: { title: '创建项目', requiresAuth: true, layout: 'default' }
+    meta: { titleKey: 'nav.createProject', requiresAuth: true, layout: 'default' }
   },
   {
     path: '/project/:guid',
     name: 'ProjectEdit',
     component: () => import('@/pages/ProjectEdit.vue'),
-    meta: { title: '项目编辑', requiresAuth: true, layout: 'default' }
+    meta: { titleKey: 'project.editProject', requiresAuth: true, layout: 'default' }
   },
   {
     path: '/auth',
     name: 'Auth',
     component: () => import('@/pages/Auth.vue'),
-    meta: { title: '登录/注册', requiresAuth: false }
+    meta: { titleKey: 'auth.login', requiresAuth: false }
   },
   {
     path: '/debug/websocket',
     name: 'WebSocketDebug',
     component: () => import('@/pages/WebSocketDebug.vue'),
-    meta: { title: 'WebSocket 调试', requiresAuth: true, layout: 'default' }
+    meta: { titleKey: 'common.websocketDebug', requiresAuth: true, layout: 'default' }
   }
 ]
 
@@ -51,7 +52,14 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title}` : 'App-Maker'
+  const titleKey = to.meta.titleKey as string
+  if (titleKey) {
+    document.title = i18n.global.t(titleKey)
+  } else if (to.meta.title) {
+    document.title = to.meta.title as string
+  } else {
+    document.title = 'App-Maker'
+  }
   
   console.log('路由守卫检查:', {
     to: to.path,

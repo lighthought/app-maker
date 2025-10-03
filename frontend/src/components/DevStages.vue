@@ -1,7 +1,7 @@
 <template>
   <div class="dev-stages">
     <div class="stages-header">
-      <h3>开发进度</h3>
+        <h3>{{ t('project.devProgress') }}</h3>
     </div>
     
     <div ref="stagesContainer" class="stages-container" :class="{ 'horizontal': layout === 'horizontal' }">
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed, h, ref, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { NIcon } from 'naive-ui'
 import type { DevStage } from '@/types/project'
 
@@ -56,6 +57,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   layout: 'vertical'
 })
+const { t } = useI18n()
 
 // 滚动容器引用
 const stagesContainer = ref<HTMLElement>()
@@ -155,10 +157,10 @@ const getStatusIcon = (status: string) => {
 // 获取状态文本
 const getStatusText = (stage: DevStage) => {
   const statusMap = {
-    done: `${stage.name}已完成`,
-    failed: `${stage.name}执行失败`,
-    in_progress: `正在${stage.name}...`,
-    pending: `等待${stage.name}`
+    done: `${stage.name} ${t('common.completed')}`,
+    failed: `${stage.name} ${t('common.failed')}`,
+    in_progress: `${t('common.inProgress')} ${stage.name}...`,
+    pending: `${t('common.pending')} ${stage.name}`
   }
   return statusMap[stage.status as keyof typeof statusMap] || stage.name
 }

@@ -6,17 +6,17 @@
         <div class="hero-container">
           <div class="hero-content">
             <h1 class="hero-title">
-              多Agent自动实现APP和网站项目
+              {{ t('hero.title') }}
             </h1>
             <p class="hero-subtitle">
-              用自然语言描述需求，AI Agent 自动生成完整项目
+              {{ t('hero.subtitle') }}
             </p>
             
             <!-- 智能输入框 -->
             <div class="hero-input">
               <SmartInput
                 v-model="projectDescription"
-                placeholder="描述你的项目需求，例如：创建一个电商网站..."
+                :placeholder="t('hero.inputPlaceholder')"
                 size="large"
                 :disabled="isCreating"
                 @send="handleProjectCreate"
@@ -28,7 +28,7 @@
               <n-icon size="24" color="white">
                 <LoadingIcon />
               </n-icon>
-              <span>正在创建项目，请稍候...</span>
+              <span>{{ t('project.creating') }}</span>
             </div>
           </div>
         </div>
@@ -40,6 +40,7 @@
 <script setup lang="ts">
 import { ref, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMessage, NIcon } from 'naive-ui'
 import PageLayout from '@/components/layout/PageLayout.vue'
 import SmartInput from '@/components/common/SmartInput.vue'
@@ -62,6 +63,7 @@ const router = useRouter()
 const route = useRoute()
 const message = useMessage()
 const projectStore = useProjectStore()
+const { t } = useI18n()
 
 // 响应式数据
 const projectDescription = ref('')
@@ -70,13 +72,13 @@ const isCreating = ref(false)
 // 方法
 const handleProjectCreate = async () => {
   if (!projectDescription.value.trim()) {
-    message.warning('请输入项目描述')
+    message.warning(t('project.descriptionRequired'))
     return
   }
   
   try {
     isCreating.value = true
-    message.loading('正在创建项目...', { duration: 0 })
+    message.loading(t('project.creating'), { duration: 0 })
     
     // 不再生成项目名称，让后端自动生成
     const projectData = {
@@ -87,16 +89,16 @@ const handleProjectCreate = async () => {
     
     if (createdProject) {
       message.destroyAll()
-      message.success('项目创建成功！')
+      message.success(t('project.projectCreated'))
       
       // 自动跳转到项目详情页面
       router.push(`/project/${createdProject.guid}`)
     } else {
-      throw new Error('创建失败')
+      throw new Error(t('project.projectCreateError'))
     }
   } catch (error) {
     message.destroyAll()
-    message.error(`创建失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    message.error(`${t('project.projectCreateError')}: ${error instanceof Error ? error.message : t('common.unknownError')}`)
     console.error('创建项目失败:', error)
   } finally {
     isCreating.value = false

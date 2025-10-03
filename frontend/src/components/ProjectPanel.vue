@@ -12,7 +12,7 @@
             <template #icon>
               <n-icon><CodeIcon /></n-icon>
             </template>
-            代码
+            {{ t('editor.code') }}
           </n-button>
           <n-button
             :type="activeTab === 'preview' ? 'primary' : 'default'"
@@ -22,7 +22,7 @@
             <template #icon>
               <n-icon><PreviewIcon /></n-icon>
             </template>
-            预览
+            {{ t('editor.preview') }}
           </n-button>
         </n-button-group>
       </div>
@@ -33,7 +33,7 @@
       <!-- 文件树 -->
       <div class="file-tree">
         <div class="tree-header">
-          <h4>项目文件</h4>
+          <h4>{{ t('project.projectFiles') }}</h4>
           <n-button text size="tiny" @click="refreshFiles">
             <template #icon>
               <n-icon><RefreshIcon /></n-icon>
@@ -45,7 +45,7 @@
           <!-- 加载状态 -->
           <div v-if="isLoadingFiles" class="loading-state">
             <n-spin size="small" />
-            <span>加载文件列表中...</span>
+            <span>{{ t('project.loadingFiles') }}</span>
           </div>
           
           <!-- 暂无数据状态 -->
@@ -53,9 +53,9 @@
             <n-icon size="32" color="#CBD5E0">
               <FolderIcon />
             </n-icon>
-            <p>暂无文件数据</p>
+            <p>{{ t('project.noFileData') }}</p>
             <n-button text size="small" @click="refreshFiles">
-              手动刷新
+              {{ t('common.manualRefresh') }}
             </n-button>
           </div>
           
@@ -101,13 +101,13 @@
               <template #icon>
                 <n-icon><ExternalLinkIcon /></n-icon>
               </template>
-              新窗口打开
+              {{ t('editor.openInNewWindow') }}
             </n-button>
             <n-button text size="tiny" @click="refreshPreview">
               <template #icon>
                 <n-icon><RefreshIcon /></n-icon>
               </template>
-              刷新
+              {{ t('common.refresh') }}
             </n-button>
           </div>
         </div>
@@ -127,10 +127,10 @@
         <n-icon size="64" color="#CBD5E0">
           <GlobeIcon />
         </n-icon>
-        <h3>预览暂不可用</h3>
-        <p>项目正在开发中，预览功能将在部署完成后可用</p>
+        <h3>{{ t('editor.previewUnavailable') }}</h3>
+        <p>{{ t('editor.previewDevelopingNote') }}</p>
         <n-button type="primary" @click="activeTab = 'code'">
-          查看代码
+          {{ t('editor.viewCode') }}
         </n-button>
       </div>
     </div>
@@ -139,6 +139,7 @@
 
 <script setup lang="ts">
 import { ref, computed, h, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { NIcon, NButton, NButtonGroup, NTag, NSpin, useMessage } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore, type FileTreeNode } from '@/stores/file'
@@ -151,6 +152,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 // 获取message实例
 const messageApi = useMessage()
@@ -199,12 +201,12 @@ const getStatusType = (status?: string): 'default' | 'primary' | 'info' | 'succe
 // 获取状态文本
 const getStatusText = (status?: string) => {
   const statusMap: Record<string, string> = {
-    pending: '草稿',
-    in_progress: '进行中',
-    done: '已完成',
-    failed: '失败'
+    pending: t('common.draft'),
+    in_progress: t('common.inProgress'),
+    done: t('common.completed'),
+    failed: t('common.failed')
   }
-  return statusMap[status || 'pending'] || '草稿'
+  return statusMap[status || 'pending'] || t('common.draft')
 }
 
 
@@ -296,7 +298,7 @@ const onPreviewLoad = () => {
 // 预览加载错误
 const onPreviewError = () => {
   previewLoading.value = false
-  console.error('预览加载失败')
+  console.error(t('project.previewLoadFailed'))
 }
 
 // 图标组件
@@ -360,7 +362,7 @@ const ExternalLinkIcon = () => h('svg', {
 // 监听项目数据变化，当项目加载完成后自动加载文件
 watch(() => props.project, (newProject) => {
   if (newProject?.guid) {
-    console.log('项目数据已加载，开始加载文件:', newProject.guid)
+    console.log(t('project.projectDataLoaded'), newProject.guid)
     loadProjectFiles()
   }
 }, { immediate: true })
@@ -374,10 +376,10 @@ defineExpose({
 onMounted(async () => {
   // 如果项目数据已经存在，直接加载文件
   if (props.project?.guid) {
-    console.log('组件挂载时项目数据已存在，开始加载文件:', props.project.guid)
+    console.log(t('project.projectDataExists'), props.project.guid)
     await loadProjectFiles()
   } else {
-    console.log('组件挂载时项目数据尚未加载，等待项目数据...')
+    console.log(t('project.projectDataNotLoaded'))
   }
 })
 </script>

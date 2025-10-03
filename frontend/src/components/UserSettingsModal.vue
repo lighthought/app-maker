@@ -2,7 +2,7 @@
   <n-modal
     v-model:show="show"
     preset="card"
-    title="个人设置"
+    :title="t('header.userSettings')"
     :style="{ width: '500px' }"
     :mask-closable="false"
     :closable="true"
@@ -18,26 +18,26 @@
       label-width="auto"
       require-mark-placement="right-hanging"
     >
-      <n-form-item label="昵称姓名" path="username" required>
+      <n-form-item :label="t('userSettings.nickname')" path="username" required>
         <n-input
           v-model:value="formData.username"
-          placeholder="请输入昵称姓名"
+          :placeholder="t('userSettings.nicknamePlaceholder')"
           maxlength="20"
           show-count
         />
       </n-form-item>
 
-      <n-form-item label="邮箱地址" path="email" required>
+      <n-form-item :label="t('userSettings.email')" path="email" required>
         <n-input
           v-model:value="formData.email"
-          placeholder="请输入邮箱地址"
+          :placeholder="t('userSettings.emailPlaceholder')"
           type="text"
         />
       </n-form-item>
 
-      <n-form-item label="手机号绑定">
+      <n-form-item :label="t('userSettings.phoneBinding')">
          <div class="binding-status">
-           <n-tag type="success" size="small">已绑定手机号</n-tag>
+           <n-tag type="success" size="small">{{ t('userSettings.phoneBound') }}</n-tag>
            <span class="binding-text">138****8888</span>
          </div>
        </n-form-item>
@@ -45,13 +45,13 @@
 
     <template #footer>
       <div class="modal-footer">
-        <n-button @click="handleClose">取消</n-button>
+        <n-button @click="handleClose">{{ t('common.cancel') }}</n-button>
         <n-button
           type="primary"
           :loading="loading"
           @click="handleSave"
         >
-          保存
+          {{ t('common.save') }}
         </n-button>
       </div>
     </template>
@@ -60,6 +60,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useMessage, NModal, NForm, NFormItem, NInput, NButton, NTag, type FormRules } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 import { httpService } from '@/utils/http'
@@ -77,6 +78,7 @@ const emit = defineEmits<Emits>()
 
 const userStore = useUserStore()
 const message = useMessage()
+const { t } = useI18n()
 
 // 表单引用
 const formRef = ref()
@@ -93,12 +95,12 @@ const formData = reactive({
 // 表单验证规则
 const rules: FormRules = {
   username: [
-    { required: true, message: '请输入昵称姓名', trigger: 'blur' },
-    { min: 3, max: 20, message: '昵称长度在 3 到 20 个字符', trigger: 'blur' }
+    { required: true, message: t('userSettings.nicknameRequired'), trigger: 'blur' },
+    { min: 3, max: 20, message: t('userSettings.nicknameLength'), trigger: 'blur' }
   ],
   email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '请输入正确的邮箱格式', trigger: 'blur' }
+    { required: true, message: t('userSettings.emailRequired'), trigger: 'blur' },
+    { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('userSettings.emailFormat'), trigger: 'blur' }
   ]
 }
 
@@ -134,7 +136,7 @@ const handleSave = async () => {
     })
 
     if (response.code === 0) {
-      message.success('保存成功')
+      message.success(t('userSettings.saveSuccess'))
       
       // 更新用户 store 中的用户信息
       if (userStore.user) {
@@ -145,7 +147,7 @@ const handleSave = async () => {
       
       handleClose()
     } else {
-      message.error(response.message || '保存失败')
+      message.error(response.message || t('userSettings.saveFailed'))
     }
   } catch (error: any) {
     console.error('保存用户设置失败:', error)
@@ -153,7 +155,7 @@ const handleSave = async () => {
     if (error.response?.data?.message) {
       message.error(error.response.data.message)
     } else {
-      message.error('保存失败，请检查网络连接')
+      message.error(t('userSettings.networkError'))
     }
   } finally {
     loading.value = false
