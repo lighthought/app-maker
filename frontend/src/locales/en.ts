@@ -277,7 +277,11 @@ export default {
     selectFile: 'Select a file to view code',
     loadingFile: 'Loading file content...',
     selectFileToView: 'Select a file to view code content',
-    loadingFileFailed: 'Failed to load file content'
+    loadingFileFailed: 'Failed to load file content',
+    loadError: 'File load error',
+    rawContent: 'Raw content (may contain garbled text)',
+    encodingConversionFailed: 'Encoding conversion failed',
+    fallbackLoadFailed: 'Fallback load also failed'
   },
 
   // dev stages

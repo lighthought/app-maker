@@ -277,7 +277,11 @@ export default {
     selectFile: '选择文件查看代码',
     loadingFile: '正在加载文件内容...',
     selectFileToView: '选择一个文件查看代码内容',
-    loadingFileFailed: '加载文件内容失败'
+    loadingFileFailed: '加载文件内容失败',
+    loadError: '文件加载出错',
+    rawContent: '原始内容（可能包含乱码）',
+    encodingConversionFailed: '编码转换失败',
+    fallbackLoadFailed: '备用加载也失败'
   },
 
   // AI Agent 角色
