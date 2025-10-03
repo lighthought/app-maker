@@ -409,4 +409,4 @@ func (h *CustomHandler) CustomWebSocketAction(c *gin.Context) {
 
 - 维护者: AI探趣星船长
 - 邮箱: qqjack2012@gmail.com
-- 项目地址: https://github.com/zhujie2006/app-maker
+- 项目地址: https://github.com/lighthought/app-maker
