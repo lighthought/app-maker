@@ -68,20 +68,18 @@ services:
       - LOG_LEVEL=debug
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
-      - GITLAB_URL=${GITLAB_URL:-git@gitlab.lighthought.com}
+      - GITLAB_URL=${GITLAB_URL:-git@gitlab}
       - GITLAB_USERNAME=${GITLAB_USERNAME:-john}
       - GITLAB_EMAIL=${GITLAB_EMAIL:-qqjack2012@gmail.com}
       - SSH_KEY_PATH=${SSH_KEY_PATH:-/home/appuser/.ssh/id_rsa}
       - SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS:-/home/appuser/.ssh/known_hosts}
-      - OLLAMA_URL=${OLLAMA_URL}
-      - AGENTS_SERVER_URL=${AGENTS_SERVER_URL}
+      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+      - AGENTS_SERVER_URL=${AGENTS_SERVER_URL:-http://host.docker.internal:8088}
     volumes:
       - ./backend/configs:/app/configs:ro
       - ./backend/logs:/app/logs
       - app_data:/app/data
       - ssh_keys:/home/appuser/.ssh
-    extra_hosts:
-      - "gitlab.app-maker.localhost:${GITLAB_HOST}"
     depends_on:
       postgres:
         condition: service_healthy
