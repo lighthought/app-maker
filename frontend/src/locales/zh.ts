@@ -127,6 +127,7 @@ export default {
     normal: '正常',
     abnormal: '异常',
     checking: '检查中',
+    doubleClickEdit: '双击编辑',
     createdAt: '创建时间',
     progress: '进度',
     actionEdit: '编辑',
@@ -136,8 +137,7 @@ export default {
     deleteConfirm: '确定要删除此项目吗？',
     createFirstProject: '创建第一个项目',
     noProjects: '暂无项目',
-    noProjectsDesc: '您还没有创建任何项目，开始您的第一个项目吧！',
-    doubleClickEdit: '双击编辑'
+    noProjectsDesc: '您还没有创建任何项目，开始您的第一个项目吧！'
   },
 
   // 项目相关
@@ -281,7 +281,9 @@ export default {
     loadError: '文件加载出错',
     rawContent: '原始内容（可能包含乱码）',
     encodingConversionFailed: '编码转换失败',
-    fallbackLoadFailed: '备用加载也失败'
+    fallbackLoadFailed: '备用加载也失败',
+    previewMode: '预览模式',
+    editMode: '编辑模式'
   },
 
   // AI Agent 角色

@@ -17,14 +17,25 @@
           v-model:value="currentEncoding"
           :options="ENCODING_OPTIONS"
           size="tiny"
-          style="width: 100px; margin-right: 8px;"
+          style="width: 120px; margin-right: 8px;"
           @update:value="handleEncodingChange"
         />
+        <!-- Markdown预览切换按钮 -->
+        <n-button 
+          v-if="isMarkdownFile" 
+          text 
+          size="tiny" 
+          @click="togglePreview"
+          :type="previewMode ? 'primary' : 'default'"
+        >
+          <template #icon>
+            <n-icon><EyeIcon v-if="!previewMode" /><EditIcon v-else /></n-icon>
+          </template>
+        </n-button>
         <n-button text size="tiny" @click="copyCode">
           <template #icon>
             <n-icon><CopyIcon /></n-icon>
           </template>
-          {{ t('common.copy') }}
         </n-button>
       </div>
     </div>
@@ -45,7 +56,14 @@
       
       <!-- 编辑器和状态显示 -->
       <div class="editor-state-container">
-        <div v-if="fileContent && !loadError && !isLoading" ref="editorContainer" class="monaco-editor-container"></div>
+        <!-- Markdown预览模式 -->
+        <div v-if="fileContent && !loadError && !isLoading && isMarkdownFile && previewMode" 
+             class="markdown-preview">
+          <div class="markdown-content" v-html="renderedMarkdown"></div>
+        </div>
+        <!-- 普通编辑器模式 -->
+        <div v-else-if="fileContent && !loadError && !isLoading && (!isMarkdownFile || !previewMode)" 
+             ref="editorContainer" class="monaco-editor-container"></div>
         <div v-else-if="loadError && !isLoading" class="error-editor">
           <n-icon size="48" color="#f56565">
             <WarningIcon />
@@ -71,10 +89,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, h, computed } from 'vue'
 import { NIcon, NButton, NTooltip, NSelect, NSpin, useMessage } from 'naive-ui'
 import { useFilesStore } from '@/stores/file'
 import { useI18n } from 'vue-i18n'
+import { marked } from 'marked'
+import * as iconv from 'iconv-lite'
 const { t } = useI18n()
 interface Props {
   projectGuid?: string
@@ -98,6 +118,33 @@ const ENCODING_OPTIONS = [
 ]
 
 const currentEncoding = ref('utf8')
+
+// Markdown预览相关状态
+const previewMode = ref(true)
+
+// 是否Markdown文件的判断
+const isMarkdownFile = computed(() => {
+  if (!props.filePath) return false
+  const extension = props.filePath.split('.').pop()?.toLowerCase()
+  return extension === 'md' || extension === 'markdown'
+})
+
+// 渲染的Markdown内容
+const renderedMarkdown = computed(() => {
+  if (!fileContent.value || !isMarkdownFile.value) return ''
+  
+  try {
+    // 配置marked选项
+    marked.setOptions({
+      breaks: true,
+      gfm: true
+    })
+    return marked.parse(fileContent.value)
+  } catch (error) {
+    console.error('Markdown渲染失败:', error)
+    return `<pre>${fileContent.value}</pre>`
+  }
+})
 
 interface Emits {
   (e: 'update:value', value: string): void
@@ -123,7 +170,7 @@ const loadError = ref(false)
 const failedFileContent = ref<string>('')
 
 // 防抖处理
-let loadTimeout: number | null = null
+let loadTimeout: ReturnType<typeof setTimeout> | null = null
 
 // 获取stores
 const fileStore = useFilesStore()
@@ -150,21 +197,10 @@ const loadFileContent = async (encoding: string = 'utf8', retry: boolean = false
     failedFileContent.value = ''
     
     try {
-      // 如果有编码需求，可以在这里处理
       const result = await fileStore.getFileContent(props.projectGuid!, props.filePath!)
       if (result) {
         let content = result.content
-        // 如果内容包含乱码，尝试使用备用编码
-        if (encoding !== 'utf8' && isGarbledText(content)) {
-          try {
-            // 这里可以实现编码转换逻辑
-            // 暂时直接使用原内容
-            content = result.content
-            failedFileContent.value = content // 保存原始内容作为备用
-          } catch (encodingError) {
-            console.warn(t('editor.encodingConversionFailed'), encodingError)
-          }
-        }
+        
         fileContent.value = content
         loadError.value = false
       } else {
@@ -191,18 +227,6 @@ const loadFileContent = async (encoding: string = 'utf8', retry: boolean = false
       isLoading.value = false
     }
   }, retry ? 0 : 300) // 重试时不延迟
-}
-
-// 检测文本是否包含乱码
-const isGarbledText = (text: string): boolean => {
-  // 检测常见的乱码字符
-  const garbledPatterns = [
-    /�+/g, // 替换字符
-    /[\uFFFD]+/g, // Unicode 替换字符
-    /[^\x00-\x7F\u4E00-\u9FFF]/g // 包含非 ASCII 和非中文字符
-  ]
-  
-  return garbledPatterns.some(pattern => pattern.test(text))
 }
 
 // 重试加载
@@ -401,8 +425,16 @@ const updateEditor = async () => {
     contentLength: fileContent.value?.length || 0,
     hasEditor: !!editor,
     hasContainer: !!editorContainer.value,
-    filePath: props.filePath
+    filePath: props.filePath,
+    previewMode: previewMode.value,
+    isMarkdownFile: isMarkdownFile.value
   })
+  
+  // 如果是Markdown文件且处于预览模式，跳过编辑器更新
+  if (isMarkdownFile.value && previewMode.value) {
+    console.log('Markdown预览模式，跳过编辑器更新')
+    return
+  }
   
   // 如果有内容但编辑器未初始化，先初始化
   if (fileContent.value && !editor && editorContainer.value) {
@@ -438,7 +470,7 @@ const updateEditor = async () => {
     } catch (error) {
       console.error('更新Monaco编辑器内容失败:', error)
     }
-  } else if (!editor && fileContent.value) {
+  } else if (!editor && fileContent.value && (!isMarkdownFile.value || !previewMode.value)) {
     console.log('有内容但没有编辑器，尝试初始化...')
     // 如果没有编辑器但有内容，尝试初始化
     await nextTick()
@@ -491,9 +523,14 @@ watch(() => [props.projectGuid, props.filePath],async (newValues, oldValues) => 
     // 等待一个tick确保DOM更新和编辑器销毁
     await nextTick()
     
+    // 检测新文件的类型并设置预览模式
+    const newFileExt = props.filePath?.split('.').pop()?.toLowerCase()
+    const isNewMarkdownFile = newFileExt === 'md' || newFileExt === 'markdown'
+    previewMode.value = isNewMarkdownFile
+    
     // 重新加载文件内容
     if (props.projectGuid && props.filePath) {
-      console.log('加载新文件内容:', props.filePath)
+      console.log('加载新文件内容:', props.filePath, '预览模式:', previewMode.value)
       await loadFileContent()
     }
   }
@@ -554,6 +591,22 @@ const WarningIcon = () => h('svg', {
   style: 'width: 1em; height: 1em;'
 }, [
   h('path', { d: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z' })
+])
+
+const EyeIcon = () => h('svg', {
+  viewBox: '0 0 24 24',
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z' })
+])
+
+const EditIcon = () => h('svg', {
+  viewBox: '0 0 24 24',
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z' })
 ])
 
 </script>
@@ -618,6 +671,126 @@ const WarningIcon = () => h('svg', {
 .editor-state-container {
   width: 100%;
   height: 100%;
+}
+
+.markdown-preview {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: white;
+  padding: var(--spacing-lg);
+}
+
+.markdown-content {
+  max-width: none;
+  line-height: 1.6;
+  color: #333;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-content h1 { font-size: 2rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3rem; }
+.markdown-content h2 { font-size: 1.5rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3rem; }
+.markdown-content h3 { font-size: 1.25rem; }
+.markdown-content h4 { font-size: 1rem; }
+.markdown-content h5 { font-size: 0.875rem; }
+.markdown-content h6 { font-size: 0.85rem; color: #6a737d; }
+
+.markdown-content p {
+  margin-bottom: var(--spacing-md);
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--spacing-lg);
+}
+
+.markdown-content li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #dfe2e5;
+  padding: 0 var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  color: #6a737d;
+}
+
+.markdown-content code {
+  background: #f6f8fa;
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.85rem;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.markdown-content pre {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  overflow-x: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.markdown-content table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-md);
+  width: 100%;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+  border: 1px solid #d0d7de;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  text-align: left;
+}
+
+.markdown-content table th {
+  background: #f6f8fa;
+  font-weight: 600;
+}
+
+.markdown-content table tr:nth-child(2n) {
+  background: #f6f8fa;
+}
+
+.markdown-content a {
+  color: #0969da;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid #d0d7de;
+  margin: var(--spacing-lg) 0;
 }
 
 .loading-overlay {

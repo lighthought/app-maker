@@ -116,6 +116,7 @@
             :key="project.guid"
             class="project-card"
             :class="{ 'project-card--active': currentProject?.guid === project.guid }"
+            :style="{ '--double-click-text': `'${t('dashboard.doubleClickEdit')}'` }"
             @click="selectProject(project)"
             @dblclick="editProject(project.guid)"
           >
@@ -757,7 +758,7 @@ onUnmounted(() => {
 }
 
 .project-card:hover::after {
-  content: '{{ common.doubleClickEdit }}';
+  content: var(--double-click-text);
   position: absolute;
   top: 8px;
   right: 8px;

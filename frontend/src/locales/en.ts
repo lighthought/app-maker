@@ -127,6 +127,7 @@ export default {
     normal: 'Normal',
     abnormal: 'Abnormal',
     checking: 'Checking',
+    doubleClickEdit: 'Double-click to edit',
     createdAt: 'Created At',
     progress: 'Progress',
     actionEdit: 'Edit',
@@ -136,8 +137,7 @@ export default {
     deleteConfirm: 'Are you sure you want to delete this project?',
     createFirstProject: 'Create First Project',
     noProjects: 'No Projects',
-    noProjectsDesc: 'You haven\'t created any projects yet, start your first project!',
-    doubleClickEdit: 'Double-click to edit'
+    noProjectsDesc: 'You haven\'t created any projects yet, start your first project!'
   },
 
   // Project
@@ -281,7 +281,9 @@ export default {
     loadError: 'File load error',
     rawContent: 'Raw content (may contain garbled text)',
     encodingConversionFailed: 'Encoding conversion failed',
-    fallbackLoadFailed: 'Fallback load also failed'
+    fallbackLoadFailed: 'Fallback load also failed',
+    previewMode: 'Preview Mode',
+    editMode: 'Edit Mode'
   },
 
   // dev stages
