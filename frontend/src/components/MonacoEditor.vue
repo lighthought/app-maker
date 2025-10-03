@@ -5,7 +5,7 @@
       <div class="file-info">
         <n-tooltip :disabled="!filePath || filePath.length <= 50">
           <template #trigger>
-            <span class="file-path">{{ filePath || '选择文件查看代码' }}</span>
+            <span class="file-path">{{ filePath || t('editor.selectFileToView') }}</span>
           </template>
           {{ filePath }}
         </n-tooltip>
@@ -15,7 +15,7 @@
           <template #icon>
             <n-icon><CopyIcon /></n-icon>
           </template>
-          复制
+          {{ t('common.copy') }}
         </n-button>
       </div>
     </div>
@@ -27,13 +27,13 @@
         <n-icon size="48" color="#CBD5E0">
           <LoadingIcon />
         </n-icon>
-        <p>正在加载文件内容...</p>
+        <p>{{ t('editor.loadingFile') }}</p>
       </div>
       <div v-else class="empty-editor">
         <n-icon size="48" color="#CBD5E0">
           <FileIcon />
         </n-icon>
-        <p>选择一个文件查看代码内容</p>
+        <p>{{ t('editor.selectFileToView') }}</p>
       </div>
     </div>
   </div>
@@ -43,7 +43,8 @@
 import { ref, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
 import { NIcon, NButton, NTooltip, useMessage } from 'naive-ui'
 import { useFilesStore } from '@/stores/file'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Props {
   projectGuid?: string
   filePath?: string
@@ -94,7 +95,7 @@ const loadFileContent = async () => {
       fileContent.value = ''
     }
   } catch (error) {
-    console.error('加载文件内容失败:', error)
+    console.error(t('editor.loadingFileFailed'), error)
     fileContent.value = ''
   } finally {
     isLoading.value = false
@@ -106,13 +107,13 @@ const copyCode = async () => {
   if (fileContent.value) {
     try {
       await navigator.clipboard.writeText(fileContent.value)
-      messageApi.success('代码复制成功', {
+      messageApi.success(t('common.copySuccess'), {
         duration: 2000,
         closable: false
       })
     } catch (err) {
-      console.error('复制失败:', err)
-      messageApi.error('复制失败，请重试', {
+      console.error(t('common.copyFailed'), err)
+      messageApi.error(t('common.copyRetry'), {
         duration: 2000,
         closable: false
       })

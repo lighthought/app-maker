@@ -41,6 +41,7 @@ export default {
     refresh: 'Refresh',
     expand: 'Expand',
     collapse: 'Collapse',
+    copy: 'Copy',
     copySuccess: 'Code copied successfully',
     copyFailed: 'Copy failed',
     copyRetry: 'Copy failed, please try again'
@@ -274,8 +275,29 @@ export default {
     previewDevelopingNote: 'The project is under development, preview will be available after deployment',
     viewCode: 'View Code',
     selectFile: 'Select a file to view code',
-    copy: 'Copy',
     loadingFile: 'Loading file content...',
-    selectFileToView: 'Select a file to view code content'
+    selectFileToView: 'Select a file to view code content',
+    loadingFileFailed: 'Failed to load file content'
+  },
+
+  // dev stages
+  stage: {
+    initializing: 'Initializing',
+    setupEnvironment: 'Setup Environment',
+    pendingAgents: 'Pending Agents',
+    checkRequirement: 'Check Requirement',
+    generatePrd: 'Generate PRD',
+    defineUxStandard: 'UX Standard',
+    designArchitecture: 'Architecture Design',
+    defineDataModel: 'Data Model',
+    defineApi: 'API Design',
+    planEpicAndStory: 'Task Planning',
+    developStory: 'Function Development',
+    fixBug: 'Bug Fix',
+    runTest: 'Auto Test',
+    deploy: 'Project Deployment',
+    done: 'Completed',
+    failed: 'Failed'
   }
+
 }

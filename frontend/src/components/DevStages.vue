@@ -71,22 +71,22 @@ const currentStage = computed(() => {
 // 获取阶段显示名称（中文翻译）
 const getStageDisplayName = (stageName: string) => {
   const nameMap: Record<string, string> = {
-    'initializing': '初始化',
-    'setup_environment': '环境配置',
-    'pending_agents': 'agent初始化',
-    'check_requirement': '需求检查',
-    'generate_prd': '生成PRD',
-    'define_ux_standard': 'UX标准',
-    'design_architecture': '架构设计',
-    'define_data_model': '数据模型',
-    'define_api': 'API设计',
-    'plan_epic_and_story': '任务规划',
-    'develop_story': '功能开发',
-    'fix_bug': '问题修复',
-    'run_test': '自动测试',
-    'deploy': '项目部署',
-    'done': '完成',
-    'failed': '失败'
+    'initializing': t('stage.initializing') ,
+    'setup_environment': t('stage.setupEnvironment'),
+    'pending_agents': t('stage.pendingAgents'),
+    'check_requirement': t('stage.checkRequirement'),
+    'generate_prd': t('stage.generatePrd'),
+    'define_ux_standard': t('stage.defineUxStandard'),
+    'design_architecture': t('stage.designArchitecture'),
+    'define_data_model': t('stage.defineDataModel'),
+    'define_api': t('stage.defineApi'),
+    'plan_epic_and_story': t('stage.planEpicAndStory'),
+    'develop_story': t('stage.developStory'),
+    'fix_bug': t('stage.fixBug'),
+    'run_test': t('stage.runTest'),
+    'deploy': t('stage.deploy'),
+    'done': t('stage.done'),
+    'failed': t('stage.failed')
   }
   return nameMap[stageName] || stageName
 }

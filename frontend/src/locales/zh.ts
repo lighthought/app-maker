@@ -41,6 +41,7 @@ export default {
     refresh: '刷新',
     expand: '展开',
     collapse: '折叠',
+    copy: '复制',
     copySuccess: '代码复制成功',
     copyFailed: '复制失败',
     copyRetry: '复制失败，请重试'
@@ -274,9 +275,9 @@ export default {
     previewDevelopingNote: '项目正在开发中，预览功能将在部署完成后可用',
     viewCode: '查看代码',
     selectFile: '选择文件查看代码',
-    copy: '复制',
     loadingFile: '正在加载文件内容...',
-    selectFileToView: '选择一个文件查看代码内容'
+    selectFileToView: '选择一个文件查看代码内容',
+    loadingFileFailed: '加载文件内容失败'
   },
 
   // AI Agent 角色
@@ -289,5 +290,25 @@ export default {
     analyst: '分析师',
     testEngineer: '测试工程师',
     opsEngineer: '运维工程师'
+  },
+
+  // 开发阶段
+  stage: {
+    initializing: '初始化',
+    setupEnvironment: '环境配置',
+    pendingAgents: 'agent初始化',
+    checkRequirement: '需求检查',
+    generatePrd: '生成PRD',
+    defineUxStandard: 'UX标准',
+    designArchitecture: '架构设计',
+    defineDataModel: '数据模型',
+    defineApi: 'API设计',
+    planEpicAndStory: '任务规划',
+    developStory: '功能开发',
+    fixBug: '问题修复',
+    runTest: '自动测试',
+    deploy: '项目部署',
+    done: '完成',
+    failed: '失败'
   }
 }
