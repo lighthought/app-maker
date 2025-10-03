@@ -851,7 +851,7 @@ interface PerformanceMetrics {
 ```mermaid
 graph TB
     subgraph "负载均衡器"
-        LB[Load Balancer<br/>Nginx/Traefik]
+        LB[Load Balancer<br/>Traefik]
     end
     
     subgraph "Agents Server集群"

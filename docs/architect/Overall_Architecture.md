@@ -1,11 +1,11 @@
-# AutoCodeWeb 整体架构设计
+# App-Maker 整体架构设计
 
 ## 1. 系统架构概述
 
 ### 1.1 架构理念
 - **微服务架构**：支持不同Agent功能的独立部署和扩展
 - **事件驱动**：基于消息队列的异步处理机制
-- **容器化部署**：Docker + Nginx 的轻量级部署方案
+- **容器化部署**：Docker + Traefik 的轻量级部署方案
 - **AI优先**：以BMad-Method为核心的智能开发平台
 
 ### 1.2 系统边界
@@ -13,7 +13,7 @@
 - **后端服务**：Go + Gin 的API服务集群
 - **AI引擎**：BMad-Method Agent协作框架
 - **数据层**：PostgreSQL + Redis 的存储系统
-- **部署层**：Docker + Nginx 的容器化部署
+- **部署层**：Docker + Traefik 的容器化部署
 
 ## 2. 技术栈选型
 

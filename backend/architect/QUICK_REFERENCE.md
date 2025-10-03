@@ -1,17 +1,17 @@
-# AutoCodeWeb Backend - 快速参考
+# App Maker Backend - 快速参考
 
 ## 项目概览
 
-AutoCodeWeb 是一个基于 Go 的智能项目开发平台，通过多Agent协作实现自动化代码生成和项目开发。
+App Maker 是一个基于 Go 的智能项目开发平台，通过多 Agent 协作实现自动化代码生成和项目开发。
 
 ## 核心特性
 
 - 🚀 **异步任务处理**: 支持多阶段项目开发流程
-- 🤖 **AI驱动开发**: 集成 Cursor CLI 和 BMad-Method
+- 🤖 **AI 驱动开发**: 集成 Claude CLI
 - 📊 **实时监控**: 任务状态和进度跟踪
 - 🔐 **安全认证**: JWT 认证和权限控制
 - 🗄️ **数据持久化**: PostgreSQL + Redis 缓存
-- 📚 **API文档**: 自动生成 Swagger 文档
+- 📚 **API 文档**: 自动生成 Swagger 文档
 
 ## 技术栈
 
@@ -25,7 +25,7 @@ AutoCodeWeb 是一个基于 Go 的智能项目开发平台，通过多Agent协�
 | 认证 | JWT | 无状态认证 |
 | 文档 | Swagger | API文档生成 |
 | 容器 | Docker | 容器化部署 |
-| CI/CD | Jenkins | 持续集成 |
+| CI/CD | GitLab CI/CD + Group Runners | 持续集成 |
 
 ## 项目结构
 
@@ -118,7 +118,7 @@ erDiagram
 # 数据库配置
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=autocodeweb
+DB_NAME=app_maker
 DB_USER=postgres
 DB_PASSWORD=password
 
@@ -159,7 +159,7 @@ open http://localhost:8080/swagger/index.html
 
 ```bash
 # 构建镜像
-docker build -t autocodeweb-backend .
+docker build -t app-maker-backend .
 
 # 使用Docker Compose部署
 docker-compose -f docker-compose.prod.yml up -d
@@ -181,35 +181,13 @@ docker-compose -f docker-compose.prod.yml up -d
 - 数据库连接状态
 - API响应时间
 
-## 扩展开发
-
-### 添加新的开发阶段
-
-1. 在 `ProjectStageService` 中添加新的阶段方法
-2. 在 `Project` 模型中添加对应的状态常量
-3. 更新 `GetDevStageProgress()` 方法
-4. 在开发流程数组中添加新阶段
-
-### 添加新的API端点
-
-1. 在对应的 Handler 中添加处理方法
-2. 添加 Swagger 注释
-3. 在路由文件中注册路由
-4. 更新服务层和仓库层
-
-### 添加新的数据模型
-
-1. 在 `models/` 目录下创建模型文件
-2. 在 `repositories/` 目录下创建仓库接口和实现
-3. 在 `services/` 目录下创建服务接口和实现
-4. 在 `handlers/` 目录下创建处理器
 
 ## 故障排除
 
 ### 常见问题
 
 1. **任务执行失败**
-   - 检查 Cursor CLI 是否正确安装
+   - 检查 Claude CLI 是否正确安装
    - 检查项目目录权限
    - 查看任务日志获取详细错误信息
 
@@ -243,7 +221,3 @@ docker-compose -f docker-compose.prod.yml up -d
 3. 提交更改
 4. 推送到分支
 5. 创建 Pull Request
-
-## 许可证
-
-MIT License

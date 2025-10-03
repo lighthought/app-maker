@@ -1,8 +1,8 @@
-# AutoCodeWeb Frontend Architecture
+# App Maker Frontend Architecture
 
 ## 系统架构概览
 
-AutoCodeWeb 前端采用现代化的 Vue 3 + TypeScript + Naive UI 技术栈，结合 Pinia 状态管理和 Axios HTTP 客户端，实现响应式、类型安全的多页面应用。系统支持多 Agent 协作的项目创建和管理，提供完整的用户认证、项目管理、实时对话等功能。
+App Maker 前端采用现代化的 Vue 3 + TypeScript + Naive UI 技术栈，结合 Pinia 状态管理和 Axios HTTP 客户端，实现响应式、类型安全的多页面应用。系统支持多 Agent 协作的项目创建和管理，提供完整的用户认证、项目管理、实时对话等功能。
 
 ## 核心架构图
 
@@ -487,19 +487,24 @@ frontend/src/
 │   ├── ConversationMessage.vue # 对话消息组件
 │   ├── ConversationContainer.vue # 对话容器组件
 │   ├── DevStages.vue      # 开发阶段组件
+│   ├── FileTreeNode.vue   # 文件树组件
+│   ├── MonacoEditor.vue   # 代码编辑器组件
 │   ├── ProjectPanel.vue   # 项目面板组件
+│   ├── TaskProgressModal.vue # 任务进度弹窗
 │   └── UserSettingsModal.vue # 用户设置弹窗
 ├── pages/                  # 页面组件
 │   ├── Auth.vue           # 认证页面
 │   ├── CreateProject.vue  # 创建项目页面
 │   ├── Dashboard.vue      # 仪表板页面
 │   ├── Home.vue           # 首页
-│   └── ProjectEdit.vue    # 项目编辑页面
+│   ├── ProjectEdit.vue    # 项目编辑页面
+│   └── WebSocketDebug.vue # WebSocket 调试菜单
 ├── router/                 # 路由配置
 │   └── index.ts           # 路由定义
 ├── stores/                 # 状态管理
 │   ├── file.ts            # 文件状态
 │   ├── project.ts         # 项目状态
+│   ├── task.ts            # 任务状态
 │   └── user.ts            # 用户状态
 ├── styles/                 # 样式文件
 │   ├── main.scss          # 主样式文件
@@ -507,12 +512,16 @@ frontend/src/
 │   └── variables.scss     # CSS变量
 ├── types/                  # 类型定义
 │   ├── project.ts         # 项目相关类型
-│   └── user.ts            # 用户相关类型
+│   ├── task.ts            # 任务相关类型
+│   ├── user.ts            # 用户相关类型
+│   └── websocket.ts       # WebSocket 相关类型
 └── utils/                  # 工具函数
     ├── config.ts          # 配置管理
     ├── http.ts            # HTTP服务
     ├── log.ts             # 日志工具
-    └── time.ts            # 时间工具
+    ├── time.ts            # 时间工具
+    └── websocket.ts       # WebSocket 工具
+├── userWorker.ts           # Web Worker 用户任务处理
 ```
 
 ## 开发约束和规范
@@ -652,54 +661,11 @@ frontend/src/
 
 ## 实际数据流示例
 
-### 用户登录流程
-```typescript
-// 1. 用户在Auth.vue输入登录信息
-const formData = { email: 'user@example.com', password: 'password' }
-
-// 2. 调用UserStore的login方法
-await userStore.login(formData)
-
-// 3. UserStore通过HttpService发送请求
-const response = await httpService.post('/auth/login', formData)
-
-// 4. HttpService自动添加认证头和处理响应
-// 5. 成功后保存token和用户信息到localStorage
-// 6. 路由守卫检查认证状态，跳转到Dashboard
-```
-
-### 项目创建流程
-```typescript
-// 1. 用户在CreateProject.vue输入项目描述
-const projectDescription = "创建一个电商网站"
-
-// 2. 调用ProjectStore的createProject方法
-const project = await projectStore.createProject({ requirements: projectDescription })
-
-// 3. ProjectStore通过HttpService发送请求
-const response = await httpService.post('/projects', { requirements: projectDescription })
-
-// 4. 成功后更新项目列表，跳转到ProjectEdit页面
-router.push(`/project/${project.id}`)
-```
-
-### 项目编辑页面数据流
-```typescript
-// 1. ProjectEdit.vue加载项目数据
-const project = await projectStore.getProject(projectId)
-
-// 2. ConversationContainer获取对话历史
-const messages = await projectStore.getProjectMessages(projectId)
-
-// 3. ConversationContainer获取开发阶段
-const stages = await projectStore.getProjectStages(projectId)
-
-// 4. ProjectPanel获取文件列表
-const files = await fileStore.getProjectFiles(projectId)
-
-// 5. 用户点击文件时获取文件内容
-const content = await fileStore.getFileContent(projectId, filePath)
-```
+### 数据流管理
+- 用户认证：Token 管理和自动刷新
+- 项目管理：CRUD 操作和状态同步  
+- 实时通信：WebSocket 连接和消息处理
+- 任务跟踪：异步任务状态监控
 - **用户认证**: 完整的登录、注册、登出流程，支持token自动刷新和验证
 - **项目管理**: 项目创建、列表、详情、删除功能，支持搜索和筛选
 - **实时对话**: 与AI Agent的交互界面，支持Markdown渲染和消息展开

@@ -1,0 +1,21 @@
+app:
+  port: "8088"
+  environment: "development"
+  workspace_path: "your_local_path/app_data"
+
+log:
+  level: "debug"
+  file: "./logs/app-maker-agents.log"
+
+command:
+  timeout: "5m"
+  cli_tool: "claude"
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 1
+
+asynq:
+  concurrency: 100

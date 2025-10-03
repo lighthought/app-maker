@@ -1,8 +1,8 @@
-# AutoCodeWeb 前端项目
+# App Maker 前端项目
 
 ## 项目简介
 
-AutoCodeWeb 是一个基于 Vue.js 3 + TypeScript + Naive UI 的现代化前端项目，支持多 Agent 协作的自动代码生成平台。项目采用组件化开发，响应式设计，为用户提供直观、高效的项目创建和管理体验。
+App Maker 是一个基于 Vue.js 3 + TypeScript + Naive UI 的现代化前端项目，支持多 Agent 协作的自动代码生成平台。项目采用组件化开发，响应式设计，为用户提供直观、高效的项目创建和管理体验。
 
 ## 实际功能特性
 
@@ -16,6 +16,8 @@ AutoCodeWeb 是一个基于 Vue.js 3 + TypeScript + Naive UI 的现代化前端�
 - ✅ **响应式设计** - 适配桌面、平板、手机各种屏幕尺寸
 - ✅ **国际化支持** - 中英文切换功能
 - ✅ **分屏布局** - 项目编辑页面的左右分屏设计
+- ✅ **WebSocket 连接** - 实时任务状态更新和通知
+- ✅ **代码编辑器** - Monaco Editor 集成支持
 
 ## 技术栈
 
@@ -156,187 +158,33 @@ pnpm type-check
 - 组件目录按功能分类：common、layout、business
 
 #### 组件结构
-```vue
-<template>
-  <!-- 模板内容 -->
-</template>
-
-<script setup lang="ts">
-// 组件逻辑
-</script>
-
-<style scoped>
-/* 组件样式 */
-</style>
-```
-
-#### TypeScript 类型定义
-```typescript
-// 组件 Props 类型定义
-interface Props {
-  title: string
-  count?: number
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  count: 0
-})
-
-// 组件 Emits 类型定义
-const emit = defineEmits<{
-  update: [value: string]
-  delete: [id: number]
-}>()
-```
+- 使用 Vue 3 Composition API
+- 完整的 TypeScript 类型定义
 
 ### 状态管理
 
-#### Pinia Store 结构
-```typescript
-// stores/user.ts
-export const useUserStore = defineStore('user', () => {
-  // 状态
-  const user = ref<User | null>(null)
-  const token = ref<string>('')
-  
-  // 计算属性
-  const isLoggedIn = computed(() => !!token.value)
-  
-  // 动作
-  const login = async (credentials: LoginCredentials) => {
-    // 登录逻辑
-  }
-  
-  return {
-    user, token, isLoggedIn, login
-  }
-})
-```
+#### 状态管理
+- 使用 Pinia 进行状态管理
+- 模块化 Store 结构：user、project、file、task
+- 完整的 TypeScript 支持
 
-### 路由配置
+### 路由管理
 
-#### 路由结构
-```typescript
-// router/index.ts
-const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    component: () => import('@/pages/Home.vue'),
-    meta: { title: 'AutoCode', requiresAuth: false }
-  },
-  {
-    path: '/dashboard',
-    component: () => import('@/pages/Dashboard.vue'),
-    meta: { title: '控制台', requiresAuth: true }
-  }
-]
-```
-
-#### 路由守卫
-```typescript
-router.beforeEach((to, from, next) => {
-  // 设置页面标题
-  if (to.meta.title) {
-    document.title = `${to.meta.title}`
-  }
-  
-  // 权限检查
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      next('/auth')
-      return
-    }
-  }
-  
-  next()
-})
-```
+- 使用 Vue Router 4.x
+- 支持路由守卫和权限控制
+- 懒加载页面组件
 
 ### 样式系统
 
-#### CSS 变量
-```scss
-:root {
-  // 颜色系统
-  --primary-color: #2D3748;
-  --accent-color: #3182CE;
-  --success-color: #38A169;
-  --warning-color: #D69E2E;
-  --error-color: #E53E3E;
-  
-  // 间距系统
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-xxl: 48px;
-}
-```
-
-#### 混入函数
-```scss
-@mixin flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@mixin glassmorphism {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: var(--shadow-lg);
-}
-```
+- 使用 SCSS 预处理器
+- CSS 变量定义主题色彩
+- 玻璃拟态设计风格
 
 ### HTTP 客户端
 
-#### Axios 配置
-```typescript
-// utils/http.ts
-class HttpService {
-  private instance: AxiosInstance
-  
-  constructor() {
-    this.instance = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    this.setupInterceptors()
-  }
-  
-  private setupInterceptors() {
-    // 请求拦截器 - 添加认证头
-    this.instance.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-      }
-    )
-    
-    // 响应拦截器 - 处理错误
-    this.instance.interceptors.response.use(
-      (response) => response.data,
-      (error) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token')
-          window.location.href = '/auth'
-        }
-        return Promise.reject(error)
-      }
-    )
-  }
-}
-```
+- 使用 Axios 进行网络请求
+- 统一的请求/响应拦截器
+- 自动 token 管理和刷新
 
 ## 环境配置
 
@@ -352,82 +200,18 @@ VITE_APP_ENV=production
 ```
 
 ### Vite 配置
-```typescript
-// vite.config.ts
-export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src')
-    }
-  },
-  server: {
-    port: 3000,
-    host: true,
-  },
-  build: {
-    target: 'es2015',
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'],
-          ui: ['naive-ui'],
-          utils: ['axios', '@vueuse/core']
-        }
-      }
-    }
-  }
-})
-```
+
+- 开发环境端口: 3000
+- 生产构建优化
+- 代码分割和懒加载
 
 ## 部署
 
 ### Docker 部署
 
-#### 开发环境
-```dockerfile
-# Dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install
-COPY . .
-RUN pnpm exec vite build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-EXPOSE 3000
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-#### 生产环境
-```dockerfile
-# Dockerfile.prod
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install
-COPY . .
-RUN pnpm exec vite build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.prod.conf /etc/nginx/nginx.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### 静态部署
-```bash
-# 构建生产版本
-pnpm build
-
-# 将 dist 目录部署到 Web 服务器
-```
+- 支持开发和生产环境
+- 使用 Nginx 作为 Web 服务器
+- 多阶段构建优化镜像大小
 
 ## 开发规范
 
@@ -438,15 +222,8 @@ pnpm build
 - 组件和函数添加 JSDoc 注释
 
 ### Git 提交规范
-```
-feat: 新功能
-fix: 修复 bug
-docs: 文档更新
-style: 代码格式调整
-refactor: 代码重构
-test: 测试相关
-chore: 构建过程或辅助工具的变动
-```
+
+遵循 Conventional Commits 标准
 
 ### 性能优化
 - 使用 Vue 3 的 `<script setup>` 语法
@@ -509,14 +286,12 @@ A: 检查路由守卫逻辑，确认用户认证状态
 
 ## 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 联系方式
-
-- 项目维护者: James (DEV Agent)
-- 邮箱: qqjack2012@gmail.com
-- 项目地址: https://github.com/lighthought/app-maker
+本项目采用 AGPLv3 许可证 - 查看 [LICENSE](..\LICENSE) 文件了解详情。如果您希望在不遵守AGPL条款的项目中集成本代码，需要另行购买商业许可，请联系我。
 
 ---
+## 联系方式
 
-*本文档为 AutoCodeWeb 前端项目的开发指南，由 DEV Agent James 创建*
+- 维护者: AI探趣星船长
+- 邮箱: qqjack2012@gmail.com
+- 项目地址: https://github.com/zhujie2006/app-maker
+
