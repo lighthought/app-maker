@@ -407,6 +407,6 @@ func (h *CustomHandler) CustomWebSocketAction(c *gin.Context) {
 ---
 ## 联系方式
 
-- 维护者: AI探趣星船长
+- 维护者: AI探趣星船长（抖音、小红书、B站同名）
 - 邮箱: qqjack2012@gmail.com
 - 项目地址: https://github.com/lighthought/app-maker
