@@ -41,11 +41,18 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 		"2. 后端的服务和repository 一般都有接口，供上一层调用。接口的定义和实现放在同一个文件中，不用为了定义服务接口或 repository 接口而单独新建文件。\n" +
 		"3. 后端部分每个文件夹的具体作用可以参考 @backend/ReadMe.md。前端部分参考 @frontend/ReadMe.md。\n" +
 		"4. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程；\n" +
-		"请你基于PRD文档 @" + req.PrdPath + " 和架构师的设计 @" + req.ArchFolder + " ，以及 UX 标准 @" + req.UxSpecPath +
-		"  实现 @" + req.EpicFile + " 中的用户故事 @" + req.StoryFile + "。注意：\n" +
-		"1. 数据库的设计在 @" + req.DbFolder + " 目录下。" + "API 的定义在 @" + req.ApiFolder + " 目录下。数据和接口如果在实现过程中需要调整，记得更新数据库设计和 API 定义文档" +
+		"请你基于PRD文档 @" + req.PrdPath + " 和架构师的设计 @" + req.ArchFolder + " ，以及 UX 标准 @" + req.UxSpecPath
+
+	if req.StoryFile == "" {
+		message += " 按照里程碑的顺序，实现 @" + req.EpicFile + " 中的下一个用户故事。"
+	} else {
+		message += " 按照里程碑的顺序，实现 @" + req.EpicFile + " 中的下一个用户故事 @" + req.StoryFile + "。"
+	}
+
+	message += "注意：\n1. 数据库的设计在 @" + req.DbFolder + " 目录下。" + "API 的定义在 @" + req.ApiFolder + " 目录下。数据和接口如果在实现过程中需要调整，记得更新数据库设计和 API 定义文档" +
 		"2. 实现完，编译确认下验收的标准是否都达到了，达到了以后，更新用户故事文档，勾上对应的验收标准。  \n" +
-		"3. 然后再询问我，是否继续。不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
+		"3. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。\n" +
+		"4. 实现过程中如果遇到问题，请自行尝试解决，解决不了再作为遗留问题输出到最后的总结中。"
 
 	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
 	if err != nil {
