@@ -296,7 +296,6 @@ const copyMarkdown = async () => {
 <style scoped>
 .conversation-message {
   margin-bottom: var(--spacing-lg);
-  padding: 0 var(--spacing-md);
 }
 
 /* 用户消息样式 - 右侧显示 */
@@ -305,7 +304,7 @@ const copyMarkdown = async () => {
   justify-content: flex-end;
   align-items: flex-end;
   gap: var(--spacing-sm);
-  margin-left: 20%;
+  margin-left: 8%;
 }
 
 .user-avatar {
@@ -322,13 +321,16 @@ const copyMarkdown = async () => {
 .user-message .message-content {
   width: 100%;
   max-width: 100%;
-  min-width: 300px;
+  min-width: 100px;
   background: #3b82f6;
   color: white;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: 18px;
   border-bottom-right-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Agent/系统消息样式 - 左侧显示 */
@@ -336,7 +338,7 @@ const copyMarkdown = async () => {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm);
-  margin-right: 20%;
+  margin-right: 8%;
 }
 
 .agent-avatar {
@@ -361,13 +363,16 @@ const copyMarkdown = async () => {
 .agent-message .message-content {
   width: 100%;
   max-width: 100%;
-  min-width: 300px;
+  min-width: 100px;
   background: white;
   border: 1px solid #e2e8f0;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: 18px;
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .agent-header {
@@ -395,6 +400,9 @@ const copyMarkdown = async () => {
 .message-text {
   line-height: 1.5;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .message-time {
@@ -426,7 +434,9 @@ const copyMarkdown = async () => {
 
 .content-preview {
   flex: 1;
+  min-width: 0;
   margin-right: var(--spacing-md);
+  overflow: hidden;
 }
 
 .content-text {
@@ -437,12 +447,15 @@ const copyMarkdown = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  word-break: break-all;
+  box-sizing: border-box;
 }
 
 .action-buttons {
   display: flex;
   gap: var(--spacing-xs);
   flex-shrink: 0;
+  min-width: fit-content;
 }
 
 .expand-btn,
@@ -456,6 +469,9 @@ const copyMarkdown = async () => {
   border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
   background: var(--background-color);
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 .markdown-body {
@@ -494,6 +510,28 @@ const copyMarkdown = async () => {
   border-radius: var(--border-radius-md);
   overflow-x: auto;
   margin: var(--spacing-sm) 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 统一滚动条样式 - 与开发进度区域保持一致 */
+.markdown-body :deep(pre)::-webkit-scrollbar {
+  height: 6px;
+}
+
+.markdown-body :deep(pre)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-body :deep(pre)::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.markdown-body :deep(pre)::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .markdown-body :deep(ul),

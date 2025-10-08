@@ -100,7 +100,7 @@ html {
 
 /* 滚动条样式 */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {

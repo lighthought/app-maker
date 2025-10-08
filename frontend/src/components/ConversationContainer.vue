@@ -145,9 +145,26 @@ const loadConversations = async () => {
 
 // 同步 WebSocket 数据到本地状态
 const syncWebSocketData = () => {
-  // 同步项目阶段数据
+  // 智能合并项目阶段数据，避免覆盖丢失
   if (wsProjectStages.value.length > 0) {
-    devStages.value = [...wsProjectStages.value]
+    // 如果本地数据为空，直接使用 WebSocket 数据
+    if (devStages.value.length === 0) {
+      devStages.value = [...wsProjectStages.value]
+    } else {
+      // 否则进行智能合并：保留本地数据，用 WebSocket 数据更新对应阶段
+      wsProjectStages.value.forEach(wsStage => {
+        const existingIndex = devStages.value.findIndex(stage => stage.id === wsStage.id)
+        if (existingIndex >= 0) {
+          // 更新现有阶段
+          devStages.value[existingIndex] = { ...wsStage }
+        } else {
+          // 添加新阶段
+          devStages.value.push({ ...wsStage })
+        }
+      })
+      // 按 ID 排序保持顺序
+      devStages.value.sort((a, b) => a.id.localeCompare(b.id))
+    }
   }
   
   // 同步项目消息数据 - 移除长度检查，避免过滤掉消息
@@ -443,8 +460,11 @@ onUnmounted(() => {
 .conversation-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-lg);
   background: #f8fafc;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-section {
@@ -530,7 +550,7 @@ onUnmounted(() => {
   }
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 与开发进度区域保持一致 */
 .conversation-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -541,7 +561,7 @@ onUnmounted(() => {
 
 .conversation-messages::-webkit-scrollbar-thumb {
   background: #c1c1c1;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .conversation-messages::-webkit-scrollbar-thumb:hover {
