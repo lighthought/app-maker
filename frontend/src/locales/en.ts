@@ -113,7 +113,7 @@ export default {
   dashboard: {
     title: 'Dashboard',
     welcomeBack: 'Welcome back, {name}',
-    todayStats: 'Today is {date}, you have {count} projects',
+    todayStats: 'Today is {date}, you have {count} project(s)',
     totalProjects: 'Total Projects',
     newThisMonth: 'New This Month',
     myProjects: 'My Projects',
@@ -284,6 +284,18 @@ export default {
     fallbackLoadFailed: 'Fallback load also failed',
     previewMode: 'Preview Mode',
     editMode: 'Edit Mode'
+  },
+
+   // AI Agent Roles
+   agent: {
+    devEngineer: 'Dev Engineer',
+    productManager: 'Product Manager',
+    productOwner: 'Product Owner',
+    architect: 'Architect',
+    uxExpert: 'UX Expert',
+    analyst: 'Analyst',
+    testEngineer: 'Test Engineer',
+    opsEngineer: 'Ops Engineer'
   },
 
   // dev stages

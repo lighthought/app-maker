@@ -28,7 +28,7 @@ type FileService interface {
 	GetProjectFiles(ctx context.Context, userID, projectGuid, path string) ([]models.FileItem, error)
 
 	// GetFileContent 获取文件内容
-	GetFileContent(ctx context.Context, userID, projectGuid, filePath string) (*models.FileContent, error)
+	GetFileContent(ctx context.Context, userID, projectGuid, filePath, encoding string) (*models.FileContent, error)
 
 	// GetRelativeFiles 获取相对路径的文件列表
 	GetRelativeFiles(projectPath, subFolder string) ([]string, error)
@@ -246,7 +246,7 @@ func (s *fileService) isDirectoryNotEmpty(dirPath string) bool {
 }
 
 // GetFileContent 获取文件内容
-func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, filePath string) (*models.FileContent, error) {
+func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, filePath, encoding string) (*models.FileContent, error) {
 	if filePath == "" {
 		return nil, fmt.Errorf("文件路径为空")
 	}
@@ -263,15 +263,15 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, f
 		return nil, fmt.Errorf("获取文件信息失败: %w", err)
 	}
 	// 读取文件内容
-	content, err := os.ReadFile(fullPath)
+	content, err := utils.GetFileContent(fullPath, encoding)
 	if err != nil {
 		return nil, fmt.Errorf("读取文件失败: %w", err)
 	}
 
 	return &models.FileContent{
 		Path:       filePath,
-		Content:    string(content),
 		Size:       info.Size(),
 		ModifiedAt: info.ModTime().Format(time.RFC3339),
+		Content:    content,
 	}, nil
 }

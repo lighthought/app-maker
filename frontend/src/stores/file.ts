@@ -47,7 +47,7 @@ const downloadFile = async (filePath: string) => {
   }
 
   // 获取文件内容
-  const getFileContent = async (projectGuid: string, filePath: string) => {
+  const getFileContent = async (projectGuid: string, filePath: string, encoding: string) => {
     try {
       const response = await httpService.get<{
         code: number
@@ -59,7 +59,7 @@ const downloadFile = async (filePath: string) => {
           modifiedAt: string
         }
       }>(`/files/filecontent/${projectGuid}`, {
-        params: { filePath }
+        params: { filePath, encoding }
       })
 
       if (response.code === 0 && response.data) {

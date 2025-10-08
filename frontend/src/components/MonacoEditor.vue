@@ -94,7 +94,7 @@ import { NIcon, NButton, NTooltip, NSelect, NSpin, useMessage } from 'naive-ui'
 import { useFilesStore } from '@/stores/file'
 import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
-import * as iconv from 'iconv-lite'
+import mermaid from 'mermaid'
 const { t } = useI18n()
 interface Props {
   projectGuid?: string
@@ -107,17 +107,13 @@ interface Props {
 
 // 支持的编码格式
 const ENCODING_OPTIONS = [
-  { value: 'utf8', label: 'UTF-8' },
+  { value: 'utf-8', label: 'UTF-8' },
   { value: 'gbk', label: 'GBK' },
-  { value: 'gb2312', label: 'GB2312' },
-  { value: 'big5', label: 'Big5' },
-  { value: 'utf16le', label: 'UTF-16 LE' },
-  { value: 'utf16be', label: 'UTF-16 BE' },
-  { value: 'latin1', label: 'Latin1' },
+  { value: 'gb18030', label: 'GB18030' },
   { value: 'ascii', label: 'ASCII' }
 ]
 
-const currentEncoding = ref('utf8')
+const currentEncoding = ref('utf-8')
 
 // Markdown预览相关状态
 const previewMode = ref(true)
@@ -129,6 +125,30 @@ const isMarkdownFile = computed(() => {
   return extension === 'md' || extension === 'markdown'
 })
 
+// 初始化Mermaid
+const initMermaid = () => {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: 'Arial, sans-serif',
+    fontSize: 14,
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis'
+    },
+    sequence: {
+      useMaxWidth: true,
+      diagramMarginX: 50,
+      diagramMarginY: 10
+    },
+    gantt: {
+      useMaxWidth: true
+    }
+  })
+}
+
 // 渲染的Markdown内容
 const renderedMarkdown = computed(() => {
   if (!fileContent.value || !isMarkdownFile.value) return ''
@@ -139,7 +159,16 @@ const renderedMarkdown = computed(() => {
       breaks: true,
       gfm: true
     })
-    return marked.parse(fileContent.value)
+    
+    let html = marked.parse(fileContent.value) as string
+    
+    // 处理Mermaid图表
+    html = html.replace(/```mermaid\n([\s\S]*?)\n```/g, (match: string, diagram: string) => {
+      const id = 'mermaid-' + Math.random().toString(36).substr(2, 9)
+      return `<div class="mermaid-diagram" id="${id}">${diagram}</div>`
+    })
+    
+    return html
   } catch (error) {
     console.error('Markdown渲染失败:', error)
     return `<pre>${fileContent.value}</pre>`
@@ -176,8 +205,52 @@ let loadTimeout: ReturnType<typeof setTimeout> | null = null
 const fileStore = useFilesStore()
 const messageApi = useMessage()
 
+// 渲染Mermaid图表
+const renderMermaidDiagrams = async () => {
+  await nextTick()
+  const diagrams = document.querySelectorAll('.mermaid-diagram')
+  diagrams.forEach(async (diagram) => {
+    try {
+      const id = diagram.id
+      const content = diagram.textContent || ''
+      if (content.trim()) {
+        const { svg } = await mermaid.render(id + '-svg', content)
+        diagram.innerHTML = svg
+      }
+    } catch (error) {
+      console.error('Mermaid图表渲染失败:', error)
+      diagram.innerHTML = `<div class="mermaid-error">图表渲染失败: ${error}</div>`
+    }
+  })
+}
+
+// 切换Markdown预览模式
+const togglePreview = async () => {
+  previewMode.value = !previewMode.value
+  console.log('切换Markdown预览模式:', previewMode.value)
+  
+  // 如果切换到预览模式，渲染Mermaid图表
+  if (previewMode.value && isMarkdownFile.value) {
+    await renderMermaidDiagrams()
+  }
+  
+  // 如果切换到编辑模式且没有编辑器，需要初始化
+  if (!previewMode.value && !editor && fileContent.value) {
+    console.log('切换到编辑模式，初始化编辑器...')
+    await nextTick()
+    if (editorContainer.value && editorContainer.value.parentNode) {
+      await initEditor()
+      if (editor && fileContent.value) {
+        editor.setValue(fileContent.value)
+        const language = getLanguage(props.filePath)
+        editor.getModel()?.setLanguage(language)
+      }
+    }
+  }
+}
+
 // 获取文件内容
-const loadFileContent = async (encoding: string = 'utf8', retry: boolean = false) => {
+const loadFileContent = async (encoding: string = 'utf-8', retry: boolean = false) => {
   if (!props.projectGuid || !props.filePath) {
     fileContent.value = ''
     loadError.value = false
@@ -197,11 +270,9 @@ const loadFileContent = async (encoding: string = 'utf8', retry: boolean = false
     failedFileContent.value = ''
     
     try {
-      const result = await fileStore.getFileContent(props.projectGuid!, props.filePath!)
-      if (result) {
-        let content = result.content
-        
-        fileContent.value = content
+      const result = await fileStore.getFileContent(props.projectGuid!, props.filePath!, currentEncoding.value)
+      if (result) {        
+        fileContent.value = result.content
         loadError.value = false
       } else {
         fileContent.value = ''
@@ -211,18 +282,6 @@ const loadFileContent = async (encoding: string = 'utf8', retry: boolean = false
       console.error(t('editor.loadingFileFailed'), error)
       fileContent.value = ''
       loadError.value = true
-      
-      // 如果是重试请求，再次尝试获取内容
-      if (!retry) {
-        try {
-          const fallbackResult = await fileStore.getFileContent(props.projectGuid!, props.filePath!)
-          if (fallbackResult && fallbackResult.content) {
-            failedFileContent.value = fallbackResult.content
-          }
-        } catch (fallbackError) {
-          console.error(t('editor.fallbackLoadFailed'), fallbackError)
-        }
-      }
     } finally {
       isLoading.value = false
     }
@@ -488,13 +547,18 @@ const updateLanguage = () => {
 }
 
 // 监听属性变化
-watch(() => fileContent.value, (newContent, oldContent) => {
+watch(() => fileContent.value, async (newContent, oldContent) => {
   console.log('文件内容变化:', { 
     newLength: newContent?.length || 0, 
     oldLength: oldContent?.length || 0,
     hasEditor: !!editor 
   })
   updateEditor()
+  
+  // 如果是Markdown文件且处于预览模式，重新渲染Mermaid图表
+  if (isMarkdownFile.value && previewMode.value && newContent) {
+    await renderMermaidDiagrams()
+  }
 })
 watch(() => props.language, updateLanguage)
 
@@ -517,7 +581,7 @@ watch(() => [props.projectGuid, props.filePath],async (newValues, oldValues) => 
     // 重置状态
     loadError.value = false
     failedFileContent.value = ''
-    currentEncoding.value = 'utf8' // 切换文件时重置编码
+    currentEncoding.value = 'utf-8' // 切换文件时重置编码
     fileContent.value = '' // 清空内容，强制重新渲染
     
     // 等待一个tick确保DOM更新和编辑器销毁
@@ -537,6 +601,9 @@ watch(() => [props.projectGuid, props.filePath],async (newValues, oldValues) => 
 })
 
 onMounted(async () => {
+  // 初始化Mermaid
+  initMermaid()
+  
   await nextTick()
   // 如果有文件路径，加载文件内容
   if (props.projectGuid && props.filePath) {
@@ -791,6 +858,31 @@ const EditIcon = () => h('svg', {
   border: none;
   border-top: 1px solid #d0d7de;
   margin: var(--spacing-lg) 0;
+}
+
+/* Mermaid图表样式 */
+.markdown-content .mermaid-diagram {
+  margin: var(--spacing-lg) 0;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+}
+
+.markdown-content .mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-content .mermaid-error {
+  color: #d73a49;
+  background: #ffeef0;
+  border: 1px solid #f1c0c7;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-sm);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85rem;
 }
 
 .loading-overlay {

@@ -8,6 +8,10 @@ import (
 	"path/filepath"
 	"shared-models/logger"
 	"strings"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 )
 
 const (
@@ -189,6 +193,44 @@ func GetAllTextContent(filePath string) []string {
 	// 解析需要替换的文件列表
 	fileList := strings.Split(string(fileContent), "\n")
 	return fileList
+}
+
+// 获取指定编码格式的文本内容
+func GetFileContent(filePath, encoding string) (string, error) {
+	// 1. 读取文件原始字节
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// 2. 根据 encoding 参数选择对应的解码器
+	var decoder transform.Transformer
+	switch encoding {
+	case "GBK", "gbk":
+		decoder = simplifiedchinese.GBK.NewDecoder()
+	case "GB18030", "gb18030":
+		decoder = simplifiedchinese.GB18030.NewDecoder()
+	case "UTF-8", "utf-8", "":
+		// UTF-8 是Go的默认编码，无需特殊解码
+		decoder = unicode.UTF8.NewDecoder()
+	case "ASCII", "ascii":
+		// ASCII 是 UTF-8 的子集，直接使用 UTF-8 解码器
+		decoder = unicode.UTF8.NewDecoder()
+	default:
+		// 默认情况下也使用UTF-8解码器
+		decoder = unicode.UTF8.NewDecoder()
+	}
+
+	// 3. 使用 transform.Reader 进行编码转换
+	reader := transform.NewReader(file, decoder)
+	contentBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return "", err
+	}
+
+	// 4. 将转换后的字节转换为字符串并返回
+	return string(contentBytes), nil
 }
 
 // 获取安全文件路径

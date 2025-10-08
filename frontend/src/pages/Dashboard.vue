@@ -201,14 +201,14 @@
               >
                 <CheckIcon />
               </n-icon>
-              <span>{{ t('dashboard.backendService') }}{{ backendStatus === 'ok' ? t('dashboard.normal') : backendStatus === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
+              <span>{{ t('dashboard.backendService') }} {{ backendStatus === 'ok' ? t('dashboard.normal') : backendStatus === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
               <span v-if="backendVersion" class="version-info">v{{ backendVersion }}</span>
             </div>
             <div class="status-item">
               <n-icon size="16" color="#38A169">
                 <CheckIcon />
               </n-icon>
-              <span>{{ t('dashboard.database') }}{{ t('dashboard.normal') }}</span>
+              <span>{{ t('dashboard.database') }} {{ t('dashboard.normal') }}</span>
             </div>
             <div class="status-item">
               <n-icon size="16" color="#38A169">
@@ -372,7 +372,7 @@ const EmptyIcon = () => h('svg', {
 ])
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const userStore = useUserStore()
 const projectStore = useProjectStore()
 const fileStore = useFilesStore()
@@ -403,7 +403,8 @@ const statusOptions = computed(() => [
 
 // 计算属性
 const currentDate = computed(() => {
-  return new Date().toLocaleDateString('zh-CN', {
+  const currentLocale = locale.value === 'zh' ? 'zh-CN' : 'en-US'
+  return new Date().toLocaleDateString(currentLocale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

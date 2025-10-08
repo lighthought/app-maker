@@ -125,9 +125,14 @@ func (h *FileHandler) GetFileContent(c *gin.Context) {
 		return
 	}
 
+	encoding := c.Query("encoding")
+	if encoding == "" {
+		encoding = "utf-8"
+	}
+
 	userID := c.GetString("user_id")
 
-	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectGuid, filePath)
+	content, err := h.fileService.GetFileContent(c.Request.Context(), userID, projectGuid, filePath, encoding)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取文件内容失败, "+err.Error()))
 		return
