@@ -77,7 +77,7 @@ type ImplementStoryReq struct {
 	ApiFolder   string `json:"api_folder" binding:"required" example:"docs/api"`
 	UxSpecPath  string `json:"ux_spec_path" binding:"required" example:"docs/ux/ux-spec.md"`
 	EpicFile    string `json:"epic_file" binding:"required" example:"docs/epics/epic.md"`
-	StoryFile   string `json:"story_file" binding:"required" example:"docs/stories/story.md"`
+	StoryFile   string `json:"story_file" example:"docs/stories/story.md"`
 }
 
 // 修复 bug 请求
