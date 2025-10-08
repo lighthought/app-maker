@@ -147,6 +147,40 @@ const initMermaid = () => {
       useMaxWidth: true
     }
   })
+  console.log('Mermaid初始化完成')
+}
+
+// 调试函数：检查Mermaid代码块
+const debugMermaidBlocks = (content: string) => {
+  const mermaidRegex = /```mermaid\s*\n([\s\S]*?)\n```/g
+  const matches = content.match(mermaidRegex)
+  console.log('原始Mermaid代码块匹配结果:', matches)
+  if (matches) {
+    matches.forEach((match, index) => {
+      console.log(`原始Mermaid块 ${index + 1}:`, match.substring(0, 200) + '...')
+    })
+  }
+  return matches
+}
+
+// 调试函数：检查Marked解析后的HTML
+const debugMarkedHTML = (html: string) => {
+  // 检查各种可能的Mermaid HTML格式
+  const patterns = [
+    /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+    /<pre><code>([\s\S]*?)<\/code><\/pre>/g,
+    /<code class="language-mermaid">([\s\S]*?)<\/code>/g
+  ]
+  
+  patterns.forEach((pattern, index) => {
+    const matches = html.match(pattern)
+    console.log(`HTML模式 ${index + 1} 匹配结果:`, matches?.length || 0)
+    if (matches) {
+      matches.forEach((match, matchIndex) => {
+        console.log(`HTML块 ${index + 1}-${matchIndex + 1}:`, match.substring(0, 200) + '...')
+      })
+    }
+  })
 }
 
 // 渲染的Markdown内容
@@ -154,6 +188,9 @@ const renderedMarkdown = computed(() => {
   if (!fileContent.value || !isMarkdownFile.value) return ''
   
   try {
+    // 调试：检查原始内容中的Mermaid代码块
+    //debugMermaidBlocks(fileContent.value)
+    
     // 配置marked选项
     marked.setOptions({
       breaks: true,
@@ -161,12 +198,37 @@ const renderedMarkdown = computed(() => {
     })
     
     let html = marked.parse(fileContent.value) as string
+    console.log('Marked解析后的HTML长度:', html.length)
     
-    // 处理Mermaid图表
-    html = html.replace(/```mermaid\n([\s\S]*?)\n```/g, (match: string, diagram: string) => {
+    // 调试：检查Marked解析后的HTML格式
+    //debugMarkedHTML(html)
+    
+    // 处理Mermaid图表 - 匹配Marked解析后的HTML格式
+    const beforeReplace = html
+    html = html.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match: string, diagram: string) => {
       const id = 'mermaid-' + Math.random().toString(36).substr(2, 9)
-      return `<div class="mermaid-diagram" id="${id}">${diagram}</div>`
+      console.log('发现Mermaid图表:', id, diagram.substring(0, 100) + '...')
+      return `<div class="mermaid-diagram" id="${id}">${diagram.trim()}</div>`
     })
+    
+    // 也尝试匹配没有class的情况
+    html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (match: string, diagram: string) => {
+      // 检查是否是Mermaid内容（简单检查是否包含graph、flowchart等关键字）
+      if (diagram.includes('graph') || diagram.includes('flowchart') || diagram.includes('sequenceDiagram')) {
+        const id = 'mermaid-' + Math.random().toString(36).substr(2, 9)
+        console.log('发现Mermaid图表(无class):', id, diagram.substring(0, 100) + '...')
+        return `<div class="mermaid-diagram" id="${id}">${diagram.trim()}</div>`
+      }
+      return match // 不是Mermaid内容，保持原样
+    })
+    
+    if (html !== beforeReplace) {
+      console.log('Mermaid图表已替换到HTML中')
+    } else {
+      console.log('没有找到Mermaid图表进行替换')
+      // 调试：输出HTML片段来检查格式
+      console.log('HTML片段示例:', html.substring(0, 1000))
+    }
     
     return html
   } catch (error) {
@@ -207,21 +269,36 @@ const messageApi = useMessage()
 
 // 渲染Mermaid图表
 const renderMermaidDiagrams = async () => {
+  console.log('开始渲染Mermaid图表...')
+  
+  // 等待DOM更新
   await nextTick()
+  
+  // 再次等待，确保DOM完全渲染
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
   const diagrams = document.querySelectorAll('.mermaid-diagram')
-  diagrams.forEach(async (diagram) => {
+  console.log('找到Mermaid图表数量:', diagrams.length)
+  
+  for (const diagram of diagrams) {
     try {
       const id = diagram.id
       const content = diagram.textContent || ''
+      console.log('渲染图表:', id, '内容长度:', content.length)
+      
       if (content.trim()) {
+        // 使用更安全的渲染方法
         const { svg } = await mermaid.render(id + '-svg', content)
         diagram.innerHTML = svg
+        console.log('图表渲染成功:', id)
+      } else {
+        console.warn('图表内容为空:', id)
       }
     } catch (error) {
       console.error('Mermaid图表渲染失败:', error)
       diagram.innerHTML = `<div class="mermaid-error">图表渲染失败: ${error}</div>`
     }
-  })
+  }
 }
 
 // 切换Markdown预览模式
@@ -231,7 +308,11 @@ const togglePreview = async () => {
   
   // 如果切换到预览模式，渲染Mermaid图表
   if (previewMode.value && isMarkdownFile.value) {
-    await renderMermaidDiagrams()
+    // 等待DOM更新后再渲染
+    await nextTick()
+    setTimeout(async () => {
+      await renderMermaidDiagrams()
+    }, 200)
   }
   
   // 如果切换到编辑模式且没有编辑器，需要初始化
@@ -557,7 +638,10 @@ watch(() => fileContent.value, async (newContent, oldContent) => {
   
   // 如果是Markdown文件且处于预览模式，重新渲染Mermaid图表
   if (isMarkdownFile.value && previewMode.value && newContent) {
-    await renderMermaidDiagrams()
+    // 延迟渲染，确保DOM更新完成
+    setTimeout(async () => {
+      await renderMermaidDiagrams()
+    }, 300)
   }
 })
 watch(() => props.language, updateLanguage)
