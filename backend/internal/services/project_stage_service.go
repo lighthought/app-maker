@@ -100,7 +100,7 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 	stages := []struct {
 		status      common.DevStatus
 		description string
-		executor    func(context.Context, *models.Project, *asynq.ResultWriter, *client.AgentClient) error
+		executor    func(context.Context, *models.Project, *asynq.ResultWriter, *client.AgentClient, *models.DevStage) error
 	}{
 		{common.DevStatusPendingAgents, "等待Agents处理", s.pendingAgents},
 		{common.DevStatusCheckRequirement, "检查需求", s.checkRequirement},
@@ -111,7 +111,7 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		{common.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
 		{common.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
 		{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
-		{common.DevStatusFixBug, "修复开发问题", s.fixBugs},
+		//{common.DevStatusFixBug, "修复开发问题", s.fixBugs}, // 这个要用户前端输入，可以提供入口
 		{common.DevStatusRunTest, "执行自动测试", s.runTests},
 		{common.DevStatusDeploy, "打包项目", s.packageProject},
 	}
@@ -124,14 +124,16 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 	}
 
 	for _, stage := range stages {
-		// 检查已经存在已完成的阶段，跳过
-		if s.checkIfStageIsDone(ctx, project.GUID, string(stage.status)) {
+		devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, string(stage.status))
+		if err == nil && devProjectStage.Status == common.CommonStatusDone {
 			tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(stage.status), common.GetDevStageDescription(stage.status)+"已完成")
 			continue
+		} else if err != nil {
+			devProjectStage = nil
 		}
 
 		// 执行阶段
-		if err := stage.executor(ctx, project, resultWriter, agentClient); err != nil {
+		if err := stage.executor(ctx, project, resultWriter, agentClient, devProjectStage); err != nil {
 			logger.Error("开发阶段执行失败",
 				logger.String("projectID", project.ID),
 				logger.String("stage", string(stage.status)),
@@ -212,20 +214,18 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 	}
 }
 
-// checkIfStageIsDone 检查阶段是否已存在并完成
-func (s *projectStageService) checkIfStageIsDone(ctx context.Context, projectGuid string, stageName string) bool {
-	devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, projectGuid, stageName)
-	if err != nil {
-		return false
-	}
-	return devProjectStage.Status == common.CommonStatusDone
-}
-
 // pendingAgents 准备项目开发环境
 func (s *projectStageService) pendingAgents(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusPendingAgents, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
 
-	devProjectStage := models.NewDevStage(project, common.DevStatusPendingAgents, common.CommonStatusInProgress)
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	result, err := agentClient.SetupProjectEnvironment(ctx, &agent.SetupProjEnvReq{
@@ -260,8 +260,16 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 
 // checkRequirement 检查需求
 func (s *projectStageService) checkRequirement(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusCheckRequirement, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusCheckRequirement, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetProjBriefReq{
@@ -295,8 +303,16 @@ func (s *projectStageService) checkRequirement(ctx context.Context,
 
 // generatePRD 生成PRD文档
 func (s *projectStageService) generatePRD(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusGeneratePRD, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusGeneratePRD, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 	generatePrdReq := &agent.GetPRDReq{
 		ProjectGuid:  project.GUID,
@@ -329,8 +345,16 @@ func (s *projectStageService) generatePRD(ctx context.Context,
 
 // defineUXStandards 定义UX标准
 func (s *projectStageService) defineUXStandards(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusDefineUXStandard, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusDefineUXStandard, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetUXStandardReq{
@@ -365,8 +389,16 @@ func (s *projectStageService) defineUXStandards(ctx context.Context,
 
 // designArchitecture 设计系统架构
 func (s *projectStageService) designArchitecture(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusDesignArchitecture, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusDesignArchitecture, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetArchitectureReq{
@@ -406,8 +438,16 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 
 // defineDataModel 定义数据模型
 func (s *projectStageService) defineDataModel(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusDefineDataModel, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusDefineDataModel, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetDatabaseDesignReq{
@@ -443,8 +483,16 @@ func (s *projectStageService) defineDataModel(ctx context.Context,
 
 // defineAPIs 定义API接口
 func (s *projectStageService) defineAPIs(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusDefineAPI, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusDefineAPI, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetAPIDefinitionReq{
@@ -480,8 +528,16 @@ func (s *projectStageService) defineAPIs(ctx context.Context,
 
 // planEpicsAndStories 划分Epic和Story
 func (s *projectStageService) planEpicsAndStories(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusPlanEpicAndStory, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusPlanEpicAndStory, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.GetEpicsAndStoriesReq{
@@ -518,8 +574,16 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 
 // developStories 开发Story功能
 func (s *projectStageService) developStories(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusDevelopStory, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusDevelopStory, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.ImplementStoryReq{
@@ -529,14 +593,35 @@ func (s *projectStageService) developStories(ctx context.Context,
 		DbFolder:    "docs/db",
 		ApiFolder:   "docs/api",
 		UxSpecPath:  "docs/ux/ux-spec.md",
-		EpicFile:    "docs/epics.md",
+		EpicFile:    "docs/epics-stories.md",
 		StoryFile:   "",
 	}
 
 	storyFiles, err := s.fileService.GetRelativeFiles(project.ProjectPath, "docs/stories")
-	if err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "获取 stories 下的文件失败: "+err.Error())
-		return err
+	if err != nil || len(storyFiles) == 0 {
+		response, err := agentClient.ImplementStory(ctx, req)
+		if err != nil {
+			tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
+			return err
+		}
+
+		projectMsg := &models.ConversationMessage{
+			ProjectGuid:     project.GUID,
+			Type:            common.ConversationTypeAgent,
+			AgentRole:       common.AgentDev.Role,
+			AgentName:       common.AgentDev.Name,
+			Content:         "项目Story功能已开发",
+			IsMarkdown:      true,
+			MarkdownContent: response.Message,
+			IsExpanded:      true,
+		}
+
+		s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+
+		devProjectStage.SetStatus(common.CommonStatusDone)
+
+		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "项目Story功能已开发")
+		return nil
 	}
 
 	var response = &tasks.TaskResult{}
@@ -581,8 +666,16 @@ func (s *projectStageService) developStories(ctx context.Context,
 
 // fixBugs 修复开发问题
 func (s *projectStageService) fixBugs(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusFixBug, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusFixBug, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.FixBugReq{
@@ -616,8 +709,16 @@ func (s *projectStageService) fixBugs(ctx context.Context,
 
 // runTests 执行自动测试
 func (s *projectStageService) runTests(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusRunTest, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusRunTest, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.RunTestReq{
@@ -650,8 +751,16 @@ func (s *projectStageService) runTests(ctx context.Context,
 
 // packageProject 打包项目
 func (s *projectStageService) packageProject(ctx context.Context,
-	project *models.Project, resultWriter *asynq.ResultWriter, agentClient *client.AgentClient) error {
-	devProjectStage := models.NewDevStage(project, common.DevStatusDeploy, common.CommonStatusInProgress)
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusDeploy, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
 	req := &agent.DeployReq{
