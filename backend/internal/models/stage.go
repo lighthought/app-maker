@@ -74,6 +74,7 @@ func NewDevStage(project *Project, stageName common.DevStatus, status string) *D
 		ProjectGuid: project.GUID,
 		Name:        string(stageName),
 		Status:      status,
+		TaskID:      project.CurrentTaskID,
 		Progress:    common.GetProgressByCommonStatus(status),
 		Description: common.GetDevStageDescription(stageName),
 	}

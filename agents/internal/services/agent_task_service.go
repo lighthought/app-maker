@@ -63,7 +63,10 @@ func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 		return fmt.Errorf("agent execute task failed: %s", result.Error)
 	}
 
-	logger.Info("代理任务执行成功", logger.String("taskID", task.ResultWriter().TaskID()))
+	logger.Info("代理任务执行成功",
+		logger.String("taskID", task.ResultWriter().TaskID()),
+		logger.String("agentType", payload.AgentType),
+		logger.String("message", payload.Message))
 
 	err := h.gitService.CommitAndPush(ctx, payload.ProjectGUID, result.Output)
 	if err != nil {

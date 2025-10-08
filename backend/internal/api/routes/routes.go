@@ -209,10 +209,15 @@ func Register(engine *gin.Engine, container *container.Container) {
 		tasks.Use(authMiddleware) // 应用认证中间件
 		{
 			if taskHandler != nil {
-				tasks.GET("/:id", taskHandler.GetTaskStatus) // 获取任务状
+				tasks.GET("/:id", taskHandler.GetTaskStatus)    // 获取任务状
+				tasks.POST("/:id/retry", taskHandler.RetryTask) // 重试任务
 			} else {
 				tasks.GET("/:id", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Task status endpoint - TODO"})
+				})
+
+				tasks.POST("/:id/retry", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Task retry endpoint - TODO"})
 				})
 			}
 		}

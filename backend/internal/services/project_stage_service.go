@@ -128,8 +128,13 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		if err == nil && devProjectStage.Status == common.CommonStatusDone {
 			tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(stage.status), common.GetDevStageDescription(stage.status)+"已完成")
 			continue
-		} else if err != nil {
+		}
+
+		if err != nil {
 			devProjectStage = nil
+		} else if devProjectStage != nil {
+			devProjectStage.TaskID = project.CurrentTaskID
+			s.stageRepo.Update(ctx, devProjectStage)
 		}
 
 		// 执行阶段
@@ -236,6 +241,9 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 	})
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "agents 项目环境准备失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -280,6 +288,9 @@ func (s *projectStageService) checkRequirement(ctx context.Context,
 	response, err := agentClient.AnalyseProjectBrief(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Analyst Agent 检查需求失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -322,6 +333,9 @@ func (s *projectStageService) generatePRD(ctx context.Context,
 	response, err := agentClient.GetPRD(ctx, generatePrdReq)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 PM Agent 生成 PRD 文档失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -366,6 +380,9 @@ func (s *projectStageService) defineUXStandards(ctx context.Context,
 	response, err := agentClient.GetUXStandard(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 UX Agent 失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -415,6 +432,9 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 	response, err := agentClient.GetArchitecture(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Architect Agent 失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -460,6 +480,9 @@ func (s *projectStageService) defineDataModel(ctx context.Context,
 	response, err := agentClient.GetDatabaseDesign(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Architect Agent 失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -505,6 +528,9 @@ func (s *projectStageService) defineAPIs(ctx context.Context,
 	response, err := agentClient.GetAPIDefinition(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Architect Agent 失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -549,6 +575,9 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 	response, err := agentClient.GetEpicsAndStories(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 PO Agent 失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -602,6 +631,9 @@ func (s *projectStageService) developStories(ctx context.Context,
 		response, err := agentClient.ImplementStory(ctx, req)
 		if err != nil {
 			tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
+			devProjectStage.SetStatus(common.CommonStatusFailed)
+			devProjectStage.FailedReason = err.Error()
+			s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 			return err
 		}
 
@@ -616,9 +648,8 @@ func (s *projectStageService) developStories(ctx context.Context,
 			IsExpanded:      true,
 		}
 
-		s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
-
 		devProjectStage.SetStatus(common.CommonStatusDone)
+		s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
 		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "项目Story功能已开发")
 		return nil
@@ -628,7 +659,7 @@ func (s *projectStageService) developStories(ctx context.Context,
 	developStoryCount := 0
 	bDev := (utils.GetEnvOrDefault("ENVIRONMENT", common.EnvironmentDevelopment) == common.EnvironmentDevelopment)
 	// 获取 stories 下的文件，循环开发每个 Story
-	for _, storyFile := range storyFiles {
+	for index, storyFile := range storyFiles {
 		// development 模式，只开发一个，其他的都直接打印结果就可以了
 		if developStoryCount < 1 || !bDev {
 			req.StoryFile = storyFile
@@ -636,6 +667,9 @@ func (s *projectStageService) developStories(ctx context.Context,
 			response, err = agentClient.ImplementStory(ctx, req)
 			if err != nil {
 				tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
+				devProjectStage.SetStatus(common.CommonStatusFailed)
+				devProjectStage.FailedReason = err.Error()
+				s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 				return err
 			}
 
@@ -644,21 +678,34 @@ func (s *projectStageService) developStories(ctx context.Context,
 			response.Message = "开发需求故事" + storyFile + "已完成"
 		}
 
-		projectMsg := &models.ConversationMessage{
-			ProjectGuid:     project.GUID,
-			Type:            common.ConversationTypeAgent,
-			AgentRole:       common.AgentDev.Role,
-			AgentName:       common.AgentDev.Name,
-			Content:         "项目Story功能已开发",
-			IsMarkdown:      true,
-			MarkdownContent: response.Message,
-			IsExpanded:      true,
-		}
+		if index < len(storyFiles)-1 {
+			projectMsg := &models.ConversationMessage{
+				ProjectGuid:     project.GUID,
+				Type:            common.ConversationTypeAgent,
+				AgentRole:       common.AgentDev.Role,
+				AgentName:       common.AgentDev.Name,
+				Content:         "项目Story功能已开发",
+				IsMarkdown:      true,
+				MarkdownContent: response.Message,
+				IsExpanded:      true,
+			}
 
-		s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+			s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+		}
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
+		Content:         "项目Story功能已开发",
+		IsMarkdown:      true,
+		MarkdownContent: response.Message,
+		IsExpanded:      true,
+	}
+	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "项目Story功能已开发")
 	return nil
@@ -686,6 +733,9 @@ func (s *projectStageService) fixBugs(ctx context.Context,
 	response, err := agentClient.FixBug(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 修复问题失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -728,6 +778,9 @@ func (s *projectStageService) runTests(ctx context.Context,
 	response, err := agentClient.RunTest(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 测试失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 
@@ -772,6 +825,9 @@ func (s *projectStageService) packageProject(ctx context.Context,
 	response, err := agentClient.Deploy(ctx, req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 打包失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 		return err
 	}
 

@@ -24,9 +24,26 @@
     
     <!-- 当前状态信息 -->
     <div v-if="currentStage" class="current-status">
-      <!-- 失败状态时只显示失败原因 -->
+      <!-- 失败状态时显示失败原因和重试按钮 -->
       <div v-if="currentStage.status === 'failed' && getFailedReason(currentStage)" class="failed-reason">
-        <div class="failed-reason-text">失败原因：{{ getFailedReason(currentStage) }}</div>
+        <div class="failed-reason-content">
+          <div class="failed-reason-text">失败原因：{{ getFailedReason(currentStage) }}</div>
+          <n-button 
+            v-if="currentStage.task_id"
+            type="error" 
+            size="small" 
+            :loading="retrying"
+            @click="handleRetry"
+            class="retry-button"
+          >
+            <template #icon>
+              <n-icon>
+                <RefreshIcon />
+              </n-icon>
+            </template>
+            重试
+          </n-button>
+        </div>
       </div>
       
       <!-- 其他状态显示正常状态信息 -->
@@ -46,7 +63,8 @@
 <script setup lang="ts">
 import { computed, h, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NIcon } from 'naive-ui'
+import { NIcon, NButton, useMessage } from 'naive-ui'
+import { useTaskStore } from '@/stores/task'
 import type { DevStage } from '@/types/project'
 
 interface Props {
@@ -58,9 +76,14 @@ const props = withDefaults(defineProps<Props>(), {
   layout: 'vertical'
 })
 const { t } = useI18n()
+const message = useMessage()
+const taskStore = useTaskStore()
 
 // 滚动容器引用
 const stagesContainer = ref<HTMLElement>()
+
+// 重试状态
+const retrying = ref(false)
 
 // 当前阶段
 const currentStage = computed(() => {
@@ -198,6 +221,45 @@ const ClockIcon = () => h('svg', {
   h('path', { d: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z' }),
   h('path', { d: 'M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z' })
 ])
+
+const RefreshIcon = () => h('svg', { 
+  viewBox: '0 0 24 24', 
+  fill: 'currentColor',
+  style: 'width: 1em; height: 1em;'
+}, [
+  h('path', { d: 'M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z' })
+])
+
+// 重试处理函数
+const handleRetry = async () => {
+  if (!currentStage.value?.task_id) {
+    message.error('任务ID不存在，无法重试')
+    return
+  }
+
+  try {
+    retrying.value = true
+    const result = await taskStore.retryTask(currentStage.value.task_id)
+    
+    if (result.success) {
+      message.success(result.message || '重试任务成功')
+      // 触发父组件刷新数据
+      emit('retry-success')
+    } else {
+      message.error(result.message)
+    }
+  } catch (error: any) {
+    console.error('重试任务失败:', error)
+    message.error('重试任务失败')
+  } finally {
+    retrying.value = false
+  }
+}
+
+// 定义事件
+const emit = defineEmits<{
+  'retry-success': []
+}>()
 </script>
 
 <style scoped>
@@ -426,11 +488,23 @@ const ClockIcon = () => h('svg', {
   border-left: 4px solid #E53E3E;
 }
 
+.failed-reason-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .failed-reason-text {
   font-size: 0.9rem;
   color: #742A2A;
   line-height: 1.4;
   font-weight: 500;
+  flex: 1;
+}
+
+.retry-button {
+  flex-shrink: 0;
 }
 
 /* 响应式设计 */

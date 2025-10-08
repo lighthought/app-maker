@@ -950,6 +950,33 @@ paths:
       summary: 获取任务状态
       tags:
       - Task
+  /api/v1/tasks/{id}/retry:
+    post:
+      consumes:
+      - application/json
+      description: 重试任务
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/common.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 重试任务
+      tags:
+      - Task
   /api/v1/users:
     get:
       consumes:

@@ -90,3 +90,26 @@ func (s *TaskHandler) GetTaskStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取任务状态成功", taskResult))
 }
+
+// 重试任务
+// @Summary 重试任务
+// @Description 重试任务
+// @Tags Task
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "任务ID"
+// @Success 200 {object} common.Response "成功响应"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
+// @Router /api/v1/tasks/{id}/retry [post]
+func (s *TaskHandler) RetryTask(c *gin.Context) {
+	taskID := c.Param("id")
+
+	err := s.inspector.RunTask("default", taskID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "重试任务失败: "+err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("重试任务成功", nil))
+}
