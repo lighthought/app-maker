@@ -135,6 +135,7 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		} else if devProjectStage != nil {
 			devProjectStage.TaskID = project.CurrentTaskID
 			s.stageRepo.Update(ctx, devProjectStage)
+			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
 		}
 
 		// 执行阶段
@@ -618,11 +619,11 @@ func (s *projectStageService) developStories(ctx context.Context,
 	req := &agent.ImplementStoryReq{
 		ProjectGuid: project.GUID,
 		PrdPath:     "docs/PRD.md",
-		ArchFolder:  "docs/arch",
-		DbFolder:    "docs/db",
-		ApiFolder:   "docs/api",
+		ArchFolder:  "docs/arch/",
+		DbFolder:    "docs/db/",
+		ApiFolder:   "docs/api/",
 		UxSpecPath:  "docs/ux/ux-spec.md",
-		EpicFile:    "docs/epics-stories.md",
+		EpicFile:    "docs/stories/",
 		StoryFile:   "",
 	}
 
