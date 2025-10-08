@@ -145,30 +145,15 @@ const loadConversations = async () => {
 
 // 同步 WebSocket 数据到本地状态
 const syncWebSocketData = () => {
-  // 智能合并项目阶段数据，避免覆盖丢失
+  // 同步项目阶段数据
   if (wsProjectStages.value.length > 0) {
-    // 如果本地数据为空，直接使用 WebSocket 数据
-    if (devStages.value.length === 0) {
-      devStages.value = [...wsProjectStages.value]
-    } else {
-      // 否则进行智能合并：保留本地数据，用 WebSocket 数据更新对应阶段
-      wsProjectStages.value.forEach(wsStage => {
-        const existingIndex = devStages.value.findIndex(stage => stage.id === wsStage.id)
-        if (existingIndex >= 0) {
-          // 更新现有阶段
-          devStages.value[existingIndex] = { ...wsStage }
-        } else {
-          // 添加新阶段
-          devStages.value.push({ ...wsStage })
-        }
-      })
-      // 按 ID 排序保持顺序
-      devStages.value.sort((a, b) => a.id.localeCompare(b.id))
-    }
+    devStages.value = [...wsProjectStages.value]
   }
   
   // 同步项目消息数据 - 移除长度检查，避免过滤掉消息
-  messages.value = [...wsProjectMessages.value]
+  if (wsProjectMessages.value.length > 0) {
+    messages.value = [...wsProjectMessages.value]
+  }
   if (messages.value.length > 0) {
     scrollToBottom()
   }

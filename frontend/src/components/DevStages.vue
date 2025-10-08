@@ -278,7 +278,6 @@ const emit = defineEmits<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-md);
 }
 
 .stages-header h3 {
@@ -346,6 +345,7 @@ const emit = defineEmits<{
   align-items: center;
   margin-bottom: var(--spacing-lg);
   position: relative;
+  margin-top: var(--spacing-md);
 }
 
 .stage-item.horizontal {
