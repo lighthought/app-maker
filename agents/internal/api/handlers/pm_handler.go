@@ -39,9 +39,10 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/pm.mdc *create-prd*我希望你根据 @docs/analyse目录下的项目简介和市场研究，以及我的需求帮我输出 PRD.md 文档到 docs 目录。\n" +
+	message := "@bmad/pm.mdc 我希望你根据 @docs/analyse目录下的项目简介和市场研究，以及我的需求帮我输出 PRD.md 文档到 docs 目录下，用 UTF-8 格式编码。\n" +
 		"简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n" +
-		"技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。不需要你做额外的调查，直接输出 PRD 文档。\n" +
+		"技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。\n" +
+		"不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
 		"我的需求是：" + req.Requirements
 
 	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePM, message)
