@@ -42,7 +42,7 @@ export default {
     expand: 'Expand',
     collapse: 'Collapse',
     copy: 'Copy',
-    copySuccess: 'Code copied successfully',
+    copySuccess: 'Copied successfully',
     copyFailed: 'Copy failed',
     copyRetry: 'Copy failed, please try again'
   },

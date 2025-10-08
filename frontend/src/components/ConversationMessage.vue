@@ -46,10 +46,10 @@
               >
                 <template #icon>
                   <n-icon>
-                    <component :is="message.is_expanded ? 'ChevronUpIcon' : 'ChevronDownIcon'" />
+                    <ChevronDownIcon v-if="message.is_expanded" />
+                    <ChevronUpIcon v-else />
                   </n-icon>
                 </template>
-                {{ message.is_expanded ? t('common.collapse') : t('common.expand') }}
               </n-button>
               <n-button
                 text
@@ -60,7 +60,6 @@
                 <template #icon>
                   <n-icon><CopyIcon /></n-icon>
                 </template>
-                {{ t('common.copy') }}
               </n-button>
             </div>
           </div>

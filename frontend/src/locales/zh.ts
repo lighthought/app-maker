@@ -42,7 +42,7 @@ export default {
     expand: '展开',
     collapse: '折叠',
     copy: '复制',
-    copySuccess: '代码复制成功',
+    copySuccess: '复制成功',
     copyFailed: '复制失败',
     copyRetry: '复制失败，请重试'
   },
