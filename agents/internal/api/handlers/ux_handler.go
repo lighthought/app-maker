@@ -38,7 +38,8 @@ func (s *UxHandler) GetUXStandard(c *gin.Context) {
 
 	message := "@bmad/ux-expert.mdc 帮我基于PRD文档 @" + req.PrdPath +
 		" 和参考页面设计(如果需求有提及的话)，输出前端的 UX Spec 到 docs/ux/ux-spec.md。" +
-		"关键web页面的文生网站提示词到 docs/ux/page-prompt.md。我的需求是：" + req.Requirements
+		"关键web页面的文生网站提示词到 docs/ux/page-prompt.md。我的需求是：" + req.Requirements +
+		"注意：始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。"
 
 	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeUX, message)
 	if err != nil {

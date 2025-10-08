@@ -37,10 +37,12 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 	}
 
 	message := "@bmad/po.mdc 我希望你基于PRD文档 @" + req.PrdPath + " 和 @" + req.ArchFolder +
-		" 目录下的架构设计，创建 Epics（史诗）和 Stories（用户故事）。\n" +
-		"生成 Epics，输出到 docs/ 目录下，文件名为： epics-stories.md。\n" +
-		"注意：1. 输出分片的 Stories，输出到 docs/stories/ 目录下。文件名用 epic 的名称命名，后缀用 -story.md。\n" +
-		"2. stories 中要包含验收标准。不要考虑安全、合规。每个用户故事都要有自己的编号，方便后续记录、跟踪。"
+		" 目录下的架构设计。首先创建分片的 Epics（史诗）和 Stories（用户故事），输出到 docs/stories/ 目录下。\n" +
+		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"2. 文件名用史诗的名称命名，后缀和扩展名用 -story.md。\n" +
+		"3. 每个用户故事中要包含验收标准。不要考虑安全、合规。\n" +
+		"4. 每个用户故事都要有自己的编号，方便后续记录、跟踪。\n" +
+		"5. 每个用户故事，预留完成情况勾选框，方便后续实现过程中更新进度。"
 
 	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePO, message)
 	if err != nil {

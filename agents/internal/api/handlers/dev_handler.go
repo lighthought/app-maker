@@ -50,9 +50,10 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 	}
 
 	message += "注意：\n1. 数据库的设计在 @" + req.DbFolder + " 目录下。" + "API 的定义在 @" + req.ApiFolder + " 目录下。数据和接口如果在实现过程中需要调整，记得更新数据库设计和 API 定义文档" +
-		"2. 实现完，编译确认下验收的标准是否都达到了，达到了以后，更新用户故事文档，勾上对应的验收标准。  \n" +
+		"2. 实现完，检查是否达成验收标准，更新对应 epic 的文档，勾上对应用户故事的验收标准。再更新 @" + req.EpicFile + " 中的 ReadMe.md 文件中的对应用户故事的完成状态。" +
 		"3. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。\n" +
-		"4. 实现过程中如果遇到问题，请自行尝试解决，解决不了再作为遗留问题输出到最后的总结中。"
+		"4. 实现过程中如果遇到问题，请自行尝试解决，解决不了再作为遗留问题输出到最后的总结中。" +
+		"5. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。"
 
 	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
 	if err != nil {
@@ -85,8 +86,9 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 		"1. 后端 Handler -> service -> repository 分层，引用和依赖关系都在 container 依赖注入容器中维护；\n" +
 		"2. 后端的服务和repository 一般都有接口，供上一层调用。接口的定义和实现放在同一个文件中，不用为了定义服务接口或 repository 接口而单独新建文件。\n" +
 		"3. 后端部分每个文件夹的具体作用可以参考 @backend/ReadMe.md。前端部分参考 @frontend/ReadMe.md。\n" +
-		"4. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程。docs 目录下的架构、API、数据库和UX文档可以帮助你理解\n" +
-		"5. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。" +
+		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"2. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程。docs 目录下的架构、API、数据库和UX文档可以帮助你理解\n" +
+		"3. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。" +
 		"我当前遇到了 " + req.BugDescription + "，请你帮我修复下。"
 
 	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
@@ -118,7 +120,8 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 
 	message := "@bmad/dev.mdc 请你使用项目现有的测试脚本，完成项目的自动测试过程。包括前端的 lint 和后端的测试过程。\n" +
 		"如果有 make test 命令，直接执行即可\n" +
-		"注意：不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
+		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"2. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
 	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
 	if err != nil {
@@ -149,7 +152,8 @@ func (h *DevHandler) Deploy(c *gin.Context) {
 
 	message := "@bmad/dev.mdc 请你使用项目现有的打包脚本，完成项目的打包过程。\n" +
 		"如果有类似 make build-dev 或 make build-prod 命令，直接执行即可。\n" +
-		"注意：不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
+		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"2. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
 	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
 	if err != nil {
