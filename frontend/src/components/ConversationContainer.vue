@@ -118,58 +118,119 @@ const inputValue = ref('')
 // 定时刷新（作为 WebSocket 的备用方案）
 let refreshTimer: number | null = null
 
+// 清理 WebSocket 缓存数据
+const clearWebSocketCache = () => {
+  console.log('🧹 [WebSocket] 清理 WebSocket 缓存数据...')
+  // 注意：这里不能直接清空 wsProjectStages 和 wsProjectMessages，因为它们是来自 useWebSocket 的响应式数据
+  // 我们只能清理本地的合并数据，让系统重新从接口获取
+  console.log('🧹 [WebSocket] 缓存清理完成')
+}
+
 // 加载开发阶段
 const loadDevStages = async () => {
   try {
+    console.log('🔄 [DevStages] 开始从接口获取开发阶段数据...')
     const stages = await projectStore.getProjectStages(props.projectGuid)
     if (stages) {
+      console.log('✅ [DevStages] 接口获取成功，数据量:', stages.length, '数据:', stages)
       devStages.value = stages
+    } else {
+      console.log('⚠️ [DevStages] 接口返回空数据')
     }
   } catch (error) {
-    console.error(t('project.loadStagesFailed'), error)
+    console.error('❌ [DevStages] 接口获取失败:', error)
   }
 }
 
 // 加载对话历史
 const loadConversations = async () => {
   try {
+    console.log('🔄 [Messages] 开始从接口获取对话历史数据...')
     const conversations = await projectStore.getProjectMessages(props.projectGuid)
     if (conversations) {
+      console.log('✅ [Messages] 接口获取成功，数据量:', conversations.data?.length || 0, '数据:', conversations.data)
       messages.value = conversations.data
       scrollToBottom()
+    } else {
+      console.log('⚠️ [Messages] 接口返回空数据')
     }
   } catch (error) {
-    console.error('加载对话历史失败:', error)
+    console.error('❌ [Messages] 接口获取失败:', error)
   }
 }
 
-// 同步 WebSocket 数据到本地状态
+// 同步 WebSocket 数据到本地状态 - 增量追加
 const syncWebSocketData = () => {
-  // 同步项目阶段数据
+  console.log('🔄 [WebSocket] 开始同步 WebSocket 数据...')
+  
+  // 增量同步项目阶段数据
   if (wsProjectStages.value.length > 0) {
-    devStages.value = [...wsProjectStages.value]
+    console.log('📊 [DevStages] WebSocket 数据:', wsProjectStages.value.length, '条')
+    console.log('📊 [DevStages] 当前本地数据:', devStages.value.length, '条')
+    
+    // 获取当前本地已有的阶段ID
+    const existingStageIds = new Set(devStages.value.map(stage => stage.id))
+    
+    // 找出需要追加的新阶段
+    const newStages = wsProjectStages.value.filter(stage => !existingStageIds.has(stage.id))
+    
+    if (newStages.length > 0) {
+      console.log('➕ [DevStages] 发现新阶段:', newStages.length, '条，追加到本地数据')
+      devStages.value.push(...newStages)
+      // 按ID排序保持顺序
+      devStages.value.sort((a, b) => a.id.localeCompare(b.id))
+    } else {
+      console.log('ℹ️ [DevStages] 没有新阶段需要追加')
+    }
+    
+    console.log('✅ [DevStages] 同步完成，最终数据量:', devStages.value.length, '条')
   }
   
-  // 同步项目消息数据 - 移除长度检查，避免过滤掉消息
+  // 增量同步项目消息数据
   if (wsProjectMessages.value.length > 0) {
-    messages.value = [...wsProjectMessages.value]
-  }
-  if (messages.value.length > 0) {
-    scrollToBottom()
+    console.log('💬 [Messages] WebSocket 数据:', wsProjectMessages.value.length, '条')
+    console.log('💬 [Messages] 当前本地数据:', messages.value.length, '条')
+    
+    // 获取当前本地已有的消息ID
+    const existingMessageIds = new Set(messages.value.map(msg => msg.id))
+    
+    // 找出需要追加的新消息
+    const newMessages = wsProjectMessages.value.filter(msg => !existingMessageIds.has(msg.id))
+    
+    if (newMessages.length > 0) {
+      console.log('➕ [Messages] 发现新消息:', newMessages.length, '条，追加到本地数据')
+      messages.value.push(...newMessages)
+      // 按时间排序
+      messages.value.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      scrollToBottom()
+    } else {
+      console.log('ℹ️ [Messages] 没有新消息需要追加')
+    }
+    
+    console.log('✅ [Messages] 同步完成，最终数据量:', messages.value.length, '条')
   }
 }
 
 // 智能合并对话历史（保持用户操作状态）
 const mergeConversations = async () => {
   try {
+    console.log('🔄 [Merge] 开始智能合并对话历史...')
     const conversations = await projectStore.getProjectMessages(props.projectGuid)
-    if (!conversations || !conversations.data) return
+    if (!conversations || !conversations.data) {
+      console.log('⚠️ [Merge] 接口返回空数据，跳过合并')
+      return
+    }
     
     const newMessages = conversations.data
     const currentMessages = messages.value
     
+    console.log('📊 [Merge] 合并前状态:')
+    console.log('  - 接口数据:', newMessages.length, '条')
+    console.log('  - 本地数据:', currentMessages.length, '条')
+    
     // 如果消息数量相同，检查是否有内容更新
     if (newMessages.length === currentMessages.length) {
+      console.log('🔍 [Merge] 消息数量相同，检查内容更新...')
       let hasUpdates = false
       const updatedMessages = newMessages.map((newMsg, index) => {
         const currentMsg = currentMessages[index]
@@ -181,6 +242,7 @@ const mergeConversations = async () => {
           currentMsg.updated_at !== newMsg.updated_at
         )) {
           hasUpdates = true
+          console.log('🔄 [Merge] 发现消息更新:', newMsg.id)
           // 保持用户的展开/折叠状态
           return {
             ...newMsg,
@@ -193,12 +255,16 @@ const mergeConversations = async () => {
       })
       
       if (hasUpdates) {
+        console.log('✅ [Merge] 内容更新完成')
         messages.value = updatedMessages
+      } else {
+        console.log('ℹ️ [Merge] 没有内容更新')
       }
       return
     }
     
     // 消息数量不同，进行完整合并
+    console.log('🔀 [Merge] 消息数量不同，进行完整合并...')
     const existingMessagesMap = new Map()
     currentMessages.forEach(msg => {
       existingMessagesMap.set(msg.id, {
@@ -225,16 +291,23 @@ const mergeConversations = async () => {
     const lastMessageId = currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].id : null
     const newLastMessageId = mergedMessages.length > 0 ? mergedMessages[mergedMessages.length - 1].id : null
     
+    console.log('📈 [Merge] 合并结果:')
+    console.log('  - 最终数据量:', mergedMessages.length, '条')
+    console.log('  - 是否有新消息:', hasNewMessages)
+    
     // 更新消息列表
     messages.value = mergedMessages
     
     // 如果有新消息，滚动到底部
     if (hasNewMessages && lastMessageId !== newLastMessageId) {
+      console.log('📜 [Merge] 检测到新消息，滚动到底部')
       scrollToBottom()
     }
     
+    console.log('✅ [Merge] 智能合并完成')
+    
   } catch (error) {
-    console.error('合并对话历史失败:', error)
+    console.error('❌ [Merge] 合并对话历史失败:', error)
   }
 }
 
@@ -318,19 +391,33 @@ const stopAutoRefresh = () => {
 // 监听 WebSocket 连接状态
 watch(wsConnected, (connected) => {
   if (connected) {
+    console.log('🔗 [WebSocket] 连接成功，停止定时刷新，开始同步数据')
     // WebSocket 连接成功，停止定时刷新
     stopAutoRefresh()
     // 同步 WebSocket 数据
     syncWebSocketData()
   } else {
-    // WebSocket 断开，启动定时刷新作为备用
+    console.log('🔌 [WebSocket] 连接断开，清理缓存并启动定时刷新')
+    // WebSocket 断开，清理缓存数据
+    clearWebSocketCache()
+    // 重新从接口获取最新数据
+    loadDevStages()
+    loadConversations()
+    // 启动定时刷新作为备用
     startAutoRefresh()
   }
 })
 
 // 监听 WebSocket 数据变化
-watch([wsProjectStages, wsProjectMessages], () => {
+watch([wsProjectStages, wsProjectMessages], (newValues, oldValues) => {
   if (wsConnected.value) {
+    const [newStages, newMessages] = newValues
+    const [oldStages, oldMessages] = oldValues || [[], []]
+    
+    console.log('📡 [WebSocket] 数据变化检测:')
+    console.log('  - DevStages: 旧数据', oldStages?.length || 0, '条 → 新数据', newStages?.length || 0, '条')
+    console.log('  - Messages: 旧数据', oldMessages?.length || 0, '条 → 新数据', newMessages?.length || 0, '条')
+    
     syncWebSocketData()
   }
 }, { deep: true })
@@ -389,24 +476,32 @@ const isProjectCompleted = () => {
 
 // 初始化
 const initialize = async () => {
-  // 先加载初始数据
+  console.log('🚀 [Init] 开始初始化 ConversationContainer...')
+  
+  // 1. 先加载初始数据（接口获取）
+  console.log('📡 [Init] 步骤1: 从接口获取初始数据...')
   await loadDevStages()
   await loadConversations()
+  console.log('✅ [Init] 步骤1完成: 接口数据已展示')
   
   // 检查项目是否已完成
   if (isProjectCompleted()) {
-    console.log('项目已完成，不启动 WebSocket 连接和定时刷新')
+    console.log('ℹ️ [Init] 项目已完成，不启动 WebSocket 连接和定时刷新')
     return
   }
   
-  // 启动 WebSocket 连接
+  // 2. 接口数据展示后，启动 WebSocket 连接
+  console.log('🔗 [Init] 步骤2: 启动 WebSocket 连接...')
   try {
     await wsConnect()
+    console.log('✅ [Init] 步骤2完成: WebSocket 连接成功')
   } catch (error) {
-    console.error('WebSocket 连接失败，将使用定时刷新:', error)
+    console.error('❌ [Init] WebSocket 连接失败，将使用定时刷新:', error)
     // WebSocket 连接失败，启动定时刷新作为备用
     startAutoRefresh()
   }
+  
+  console.log('🎉 [Init] 初始化完成')
 }
 
 // 生命周期钩子

@@ -150,47 +150,11 @@ const initMermaid = () => {
   console.log('Mermaid初始化完成')
 }
 
-// 调试函数：检查Mermaid代码块
-const debugMermaidBlocks = (content: string) => {
-  const mermaidRegex = /```mermaid\s*\n([\s\S]*?)\n```/g
-  const matches = content.match(mermaidRegex)
-  console.log('原始Mermaid代码块匹配结果:', matches)
-  if (matches) {
-    matches.forEach((match, index) => {
-      console.log(`原始Mermaid块 ${index + 1}:`, match.substring(0, 200) + '...')
-    })
-  }
-  return matches
-}
-
-// 调试函数：检查Marked解析后的HTML
-const debugMarkedHTML = (html: string) => {
-  // 检查各种可能的Mermaid HTML格式
-  const patterns = [
-    /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
-    /<pre><code>([\s\S]*?)<\/code><\/pre>/g,
-    /<code class="language-mermaid">([\s\S]*?)<\/code>/g
-  ]
-  
-  patterns.forEach((pattern, index) => {
-    const matches = html.match(pattern)
-    console.log(`HTML模式 ${index + 1} 匹配结果:`, matches?.length || 0)
-    if (matches) {
-      matches.forEach((match, matchIndex) => {
-        console.log(`HTML块 ${index + 1}-${matchIndex + 1}:`, match.substring(0, 200) + '...')
-      })
-    }
-  })
-}
-
 // 渲染的Markdown内容
 const renderedMarkdown = computed(() => {
   if (!fileContent.value || !isMarkdownFile.value) return ''
   
-  try {
-    // 调试：检查原始内容中的Mermaid代码块
-    //debugMermaidBlocks(fileContent.value)
-    
+  try {    
     // 配置marked选项
     marked.setOptions({
       breaks: true,
@@ -199,9 +163,6 @@ const renderedMarkdown = computed(() => {
     
     let html = marked.parse(fileContent.value) as string
     console.log('Marked解析后的HTML长度:', html.length)
-    
-    // 调试：检查Marked解析后的HTML格式
-    //debugMarkedHTML(html)
     
     // 处理Mermaid图表 - 匹配Marked解析后的HTML格式
     const beforeReplace = html
@@ -226,8 +187,6 @@ const renderedMarkdown = computed(() => {
       console.log('Mermaid图表已替换到HTML中')
     } else {
       console.log('没有找到Mermaid图表进行替换')
-      // 调试：输出HTML片段来检查格式
-      console.log('HTML片段示例:', html.substring(0, 1000))
     }
     
     return html
