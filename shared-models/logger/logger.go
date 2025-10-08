@@ -28,6 +28,8 @@ func Init(level, filePath string) error {
 
 	// 配置编码器
 	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.TimeKey = "timestamp"
+	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
 	// 创建核心
