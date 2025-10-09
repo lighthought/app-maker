@@ -38,8 +38,9 @@ func (s *AnalyseHandler) ProjectBrief(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/analyst.mdc 请你为我生成项目简介，再执行市场研究。输出对应的文档到 docs/analyse/ 目录下。我的需求是：\n" + req.Requirements +
-		"注意：始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。"
+	message := "@bmad/analyst.mdc 请你为我生成项目简介，再执行市场研究。输出对应的文档到 @docs/analyse/ 目录下。我的需求是：\n" + req.Requirements +
+		"注意：1.始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"2. 如果 docs/analyse/ 目录下已经有完善的项目简介和市场研究文档，直接返回概要信息，不用再尝试各种研究和调查过程，原来的文档保持不变。"
 
 	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeAnalyse, message)
 	if err != nil {

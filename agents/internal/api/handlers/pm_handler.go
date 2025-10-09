@@ -40,11 +40,12 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 	}
 
 	message := "@bmad/pm.mdc 我希望你根据 @docs/analyse目录下的项目简介和市场研究，以及我的需求帮我输出 PRD.md 文档到 docs 目录下，用 UTF-8 格式编码。\n" +
-		"简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n" +
-		"技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论。\n" +
-		"不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
 		"我的需求是：" + req.Requirements +
-		"注意：始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。"
+		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。" +
+		"2. 简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n" +
+		"3. 技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论，不需要你在 PRD 中体现。\n" +
+		"4. 不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
+		"5. 如果 docs/ 目录下已经有完善的 PRD.md 文件，直接返回概要信息，不用再尝试生成 PRD.md，原来的文档保持不变。"
 
 	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePM, message)
 	if err != nil {
