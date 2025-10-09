@@ -25,6 +25,7 @@
       <DevStages 
         :stages="devStages" 
         layout="horizontal"
+        @retry-success="handleRetrySuccess"
       />
     </div>
     
@@ -326,6 +327,13 @@ const toggleMessageExpanded = (messageId: string) => {
   if (message) {
     message.is_expanded = !message.is_expanded
   }
+}
+
+// 处理重试成功事件
+const handleRetrySuccess = async () => {
+  console.log('🔄 [Retry] 收到重试成功事件，重新加载开发阶段数据...')
+  await loadDevStages()
+  console.log('✅ [Retry] 开发阶段数据重新加载完成')
 }
 
 // 发送消息
