@@ -9,15 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"app-maker-agents/internal/api/models"
 	"app-maker-agents/internal/config"
 )
-
-// CommandResult 命令执行结果
-type CommandResult struct {
-	Success bool   `json:"success"`
-	Output  string `json:"output"`
-	Error   string `json:"error,omitempty"`
-}
 
 // CommandService 命令执行服务，负责按项目维护会话执行命令
 type commandService struct {
@@ -26,7 +20,7 @@ type commandService struct {
 }
 
 type CommandService interface {
-	SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult
+	SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) models.CommandResult
 	//GetWorkspacePath() string
 }
 
@@ -44,7 +38,7 @@ func NewCommandService(cfg config.CommandConfig, workspacePath string) CommandSe
 // }
 
 // SimpleExecute 直接执行命令，不使用 session 管理
-func (s *commandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) CommandResult {
+func (s *commandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) models.CommandResult {
 	// 根据操作系统选择 shell 和参数
 	cmd := exec.Command(process, arg...)
 
@@ -84,7 +78,7 @@ func (s *commandService) SimpleExecute(ctx context.Context, subfolder, process s
 		}
 	}
 
-	return CommandResult{
+	return models.CommandResult{
 		Success: success,
 		Output:  outputStr,
 		Error:   errorMsg,

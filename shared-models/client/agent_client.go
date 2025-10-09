@@ -67,7 +67,7 @@ func (c *AgentClient) HealthCheck(ctx context.Context) (*agent.AgentHealthResp, 
 // 等待任务完成或失败
 func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) (*tasks.TaskResult, error) {
 	iRetryTimes := 0
-	iMaxRetryTimes := 200
+	iMaxRetryTimes := 1000
 	for iRetryTimes < iMaxRetryTimes {
 		resp, err := c.httpClient.Get(ctx, "/api/v1/tasks/"+taskID)
 		if err != nil {

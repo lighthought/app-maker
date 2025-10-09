@@ -11,6 +11,7 @@ import (
 	"shared-models/logger"
 
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 )
 
 type Container struct {
@@ -19,6 +20,7 @@ type Container struct {
 	AsyncInspector *asynq.Inspector
 	AsyncServer    *asynq.Server
 	JWTService     *auth.JWTService
+	RedisClient    *redis.Client
 
 	// Internal Services
 	CommandService   services.CommandService
@@ -45,6 +47,13 @@ func NewContainer(cfg *config.Config) *Container {
 		DB:       cfg.Redis.DB,
 	}
 
+	// 创建独立的 Redis 客户端用于缓存
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       2,
+	})
+
 	asyncClient := asynq.NewClient(redisClientOpt)
 	asyncInspector := asynq.NewInspector(redisClientOpt)
 
@@ -52,7 +61,7 @@ func NewContainer(cfg *config.Config) *Container {
 	gitService := services.NewGitService(commandSvc)
 
 	projectSvc := services.NewProjectService(commandSvc, cfg.App.WorkspacePath)
-	agentTaskService := services.NewAgentTaskService(commandSvc, gitService, asyncClient)
+	agentTaskService := services.NewAgentTaskService(commandSvc, gitService, asyncClient, redisClient)
 	asynqServer := initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
 	projectHandler := handlers.NewProjectHandler(agentTaskService, projectSvc)
@@ -71,6 +80,7 @@ func NewContainer(cfg *config.Config) *Container {
 		AsyncServer:      asynqServer,
 		CommandService:   commandSvc,
 		GitService:       gitService,
+		RedisClient:      redisClient,
 		ProjectHandler:   projectHandler,
 		AnalyseHandler:   analyseHandler,
 		PmHandler:        pmHandler,
@@ -119,4 +129,7 @@ func (c *Container) Stop() {
 	c.AsyncServer.Shutdown()
 	c.AsyncClient.Close()
 	c.AsyncInspector.Close()
+	if c.RedisClient != nil {
+		c.RedisClient.Close()
+	}
 }
