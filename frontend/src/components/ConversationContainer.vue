@@ -175,16 +175,47 @@ const syncWebSocketData = () => {
     // 找出需要追加的新阶段
     const newStages = wsProjectStages.value.filter(stage => !existingStageIds.has(stage.id))
     
+    // 找出需要更新的已有阶段（ID相同但状态或其他字段有变化）
+    const updatedStages = wsProjectStages.value.filter(wsStage => {
+      const existingStage = devStages.value.find(stage => stage.id === wsStage.id)
+      if (!existingStage) return false
+      
+      // 检查关键字段是否有变化
+      return (
+        existingStage.status !== wsStage.status ||
+        existingStage.failed_reason !== wsStage.failed_reason ||
+        existingStage.progress !== wsStage.progress ||
+        existingStage.description !== wsStage.description
+      )
+    })
+    
+    // 追加新阶段
     if (newStages.length > 0) {
       console.log('➕ [DevStages] 发现新阶段:', newStages.length, '条，追加到本地数据')
       devStages.value.push(...newStages)
-      // 按ID排序保持顺序
-      devStages.value.sort((a, b) => a.id.localeCompare(b.id))
-    } else {
-      console.log('ℹ️ [DevStages] 没有新阶段需要追加')
     }
     
+    // 更新已有阶段的状态
+    if (updatedStages.length > 0) {
+      console.log('🔄 [DevStages] 发现阶段状态更新:', updatedStages.length, '条')
+      updatedStages.forEach(wsStage => {
+        const existingStageIndex = devStages.value.findIndex(stage => stage.id === wsStage.id)
+        if (existingStageIndex !== -1) {
+          const oldStatus = devStages.value[existingStageIndex].status
+          console.log(`🔄 [DevStages] 更新阶段 ${wsStage.id}: ${oldStatus} → ${wsStage.status}`)
+          // 直接更新阶段数据
+          devStages.value[existingStageIndex] = wsStage
+        }
+      })
+    }
+    
+    // 按ID排序保持顺序
+    devStages.value.sort((a, b) => a.id.localeCompare(b.id))
+    
     console.log('✅ [DevStages] 同步完成，最终数据量:', devStages.value.length, '条')
+    if (newStages.length > 0 || updatedStages.length > 0) {
+      console.log(`📈 [DevStages] 变更统计: 新增 ${newStages.length} 条，更新 ${updatedStages.length} 条`)
+    }
   }
   
   // 增量同步项目消息数据
