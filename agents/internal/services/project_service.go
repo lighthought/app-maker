@@ -52,7 +52,12 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	}
 
 	installBmad := req.SetupBmadMethod
-	bmadCliType := req.BmadCliType
+	// var bmadCliType string
+	// if req.BmadCliType == "claude" {
+	// 	bmadCliType = "claude-code"
+	// } else {
+	// 	bmadCliType = req.BmadCliType
+	// }
 
 	// 检查 workspace 目录下是否有 project 目录，如果有，则删除
 	if s.workspacePath == "" {
@@ -88,23 +93,16 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	}
 
 	if installBmad {
-		var bmadCorePath = filepath.Join(s.GetWorkspacePath(), req.ProjectGuid, ".bmad-core")
-		if !utils.IsDirectoryExists(bmadCorePath) {
-			res := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "npx", "bmad-method", "install", "-f", "-i", bmadCliType, "-d", ".")
-			if !res.Success {
-				logger.Error("bmad-method 安装失败", logger.String("projectPath", projectPath), logger.String("error", res.Error))
-				tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "bmad-method 安装失败: "+res.Error)
-				return fmt.Errorf("bmad-method 安装失败: %s", res.Error)
-			}
-
-			logger.Info("bmad-method 安装成功", logger.String("projectPath", projectPath))
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 60, "bmad-method 安装成功, "+res.Output)
-			markdownResult += "* agents 安装成功：\n"
-		} else {
-			logger.Info("bmad-method 已安装过", logger.String("projectPath", projectPath))
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 60, "bmad-method 已安装过")
-			markdownResult += "* agents 已安装过：\n"
+		res := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "npx", "bmad-method", "install", "-f", "-i", "claude-code", "-d", ".")
+		if !res.Success {
+			logger.Error("bmad-method 安装失败", logger.String("projectPath", projectPath), logger.String("error", res.Error))
+			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "bmad-method 安装失败: "+res.Error)
+			return fmt.Errorf("bmad-method 安装失败: %s", res.Error)
 		}
+
+		logger.Info("bmad-method 安装成功", logger.String("projectPath", projectPath))
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 60, "bmad-method 安装成功, "+res.Output)
+		markdownResult += "* agents 安装成功：\n"
 	}
 
 	var frontendModulePath = filepath.Join(s.GetWorkspacePath(), req.ProjectGuid, "frontend", "node_modules")
@@ -141,6 +139,8 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 95, "backend 安装成功")
 		markdownResult += "* backend 已安装过\n"
 	}
+
+	logger.Info("markdownResult: ", logger.String("markdownResult", markdownResult))
 
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, markdownResult)
 	return nil

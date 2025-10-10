@@ -37,7 +37,7 @@ func NewAgentTaskService(commandService CommandService, gitService GitService, a
 		gitService:     gitService,
 		asyncClient:    asyncClient,
 		redisClient:    redisClient,
-		keyFormat:      "project::sessions:%s:%s",
+		keyFormat:      "project:sessions:%s:%s",
 	}
 }
 
@@ -190,7 +190,7 @@ func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 		logger.String("message", payload.Message),
 		logger.String("claudeResponse", claudeResponse.ToJsonString()))
 
-	err := h.gitService.CommitAndPush(ctx, payload.ProjectGUID, result.Output)
+	err := h.gitService.CommitAndPush(ctx, payload.ProjectGUID, claudeResponse.Result)
 	if err != nil {
 		logger.Error("项目文档、代码提交并推送失败",
 			logger.String("GUID", payload.ProjectGUID),
