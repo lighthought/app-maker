@@ -99,10 +99,10 @@
 
 ### 环境要求
 - **操作系统**: Windows 10/11 (开发环境，8G+显存、16G+内存)
-- **Docker Desktop**: （最新版本，28.4+)
+- **Docker Desktop**: >= 28.4+
+- **Claude Code**: >= 2.0.11 (Agents)
 - **Go**: >= 1.24 (Backend & Agents)
-- **前端**: Node.js >= 18.0.0 (Frontend)
-- **数据库**: PostgreSQL >= 15, Redis >= 7
+- **Node.js**:  >= 18.0.0 (Frontend)
 
 ### 启动过程
 
