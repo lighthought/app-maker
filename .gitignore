@@ -17,6 +17,9 @@
 .VSCodeCounter/
 .trunk/
 .vscode/
+.bmad-core/
+.cursor
+chat/
 
 key
 key.pub
