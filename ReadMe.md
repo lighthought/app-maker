@@ -259,7 +259,8 @@ app-maker/
 - **集成能力**: 标准化接口，支持第三方系统集成
 - **多语言支持**: 支持中英文界面和文档
 
-## 📊 当前状态
+## 📊 项目状态
+[](https://github.com/lighthought/app-maker/projects/1)
 
 ### ✅ 已完成功能
 1. **基础架构**: Go + Vue.js 架构搭建完成
