@@ -178,7 +178,10 @@ export default {
     previewLoadFailed: '预览加载失败',
     projectDataLoaded: '项目数据已加载，开始加载文件',
     projectDataExists: '组件挂载时项目数据已存在，开始加载文件',
-    projectDataNotLoaded: '组件挂载时项目数据尚未加载，等待项目数据...'
+    projectDataNotLoaded: '组件挂载时项目数据尚未加载，等待项目数据...',
+    projectSettings: '项目设置',
+    devConfiguration: '开发配置',
+    devConfigNote: '留空表示使用用户默认设置。这些配置仅在项目环境初始化时生效。'
   },
 
   // 按钮和交互文本
@@ -217,7 +220,19 @@ export default {
     phoneBound: '已绑定手机号',
     saveSuccess: '保存成功',
     saveFailed: '保存失败',
-    networkError: '保存失败，请检查网络连接'
+    networkError: '保存失败，请检查网络连接',
+    developmentSettings: '开发设置',
+    cliTool: 'CLI 工具',
+    cliToolPlaceholder: '选择 CLI 工具',
+    modelProvider: '模型提供商',
+    modelProviderPlaceholder: '选择模型提供商',
+    aiModel: 'AI 模型',
+    aiModelPlaceholder: '输入模型名称，如: glm-4.6',
+    modelApiUrl: 'API 地址',
+    modelApiUrlPlaceholder: '输入 API 地址',
+    apiToken: 'API Token',
+    apiTokenPlaceholder: '输入 API Token (如: sk-...)',
+    devSettingsNote: '这些设置将作为新项目的默认配置。支持本地 Ollama、Zhipu AI、Claude 等多种模型。API Token 为可选项，某些云端 API 厂商需要。'
   },
 
   // 认证相关
@@ -316,5 +331,23 @@ export default {
     deploy: '项目部署',
     done: '完成',
     failed: '失败'
+  },
+
+  // 预览相关
+  preview: {
+    shareLink: '分享预览链接',
+    generatingLink: '正在生成分享链接...',
+    linkGenerated: '分享链接已生成',
+    generateFailed: '生成分享链接失败',
+    generateError: '生成分享链接时发生错误',
+    expiresAt: '过期时间',
+    token: '令牌',
+    shareNote: '此链接将在过期时间后失效，任何拥有此链接的人都可以预览项目。',
+    openLink: '打开链接',
+    desktop: '桌面视图',
+    tablet: '平板视图',
+    mobile: '手机视图',
+    deviceView: '设备视图',
+    sharePreview: '分享预览'
   }
 }

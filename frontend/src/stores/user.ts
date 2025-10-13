@@ -264,6 +264,60 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 获取用户设置
+  const getUserSettings = async () => {
+    try {
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: {
+          default_cli_tool: string
+          default_ai_model: string
+          default_model_provider: string
+          default_model_api_url: string
+          default_api_token: string
+        }
+      }>('/users/settings')
+      
+      if (response.code === 0 && response.data) {
+        return { success: true, data: response.data }
+      } else {
+        return { success: false, message: response.message || '获取设置失败', data: null }
+      }
+    } catch (error: any) {
+      console.error('获取用户设置失败:', error)
+      const message = error.response?.data?.message || '获取设置失败'
+      return { success: false, message, data: null }
+    }
+  }
+
+  // 更新用户设置
+  const updateUserSettings = async (settings: {
+    default_cli_tool?: string
+    default_ai_model?: string
+    default_model_provider?: string
+    default_model_api_url?: string
+    default_api_token?: string
+  }) => {
+    try {
+      const response = await httpService.put<{
+        code: number
+        message: string
+        data?: any
+      }>('/users/settings', settings)
+
+      if (response.code === 0) {
+        return { success: true, message: '设置保存成功' }
+      } else {
+        return { success: false, message: response.message || '设置保存失败' }
+      }
+    } catch (error: any) {
+      console.error('更新用户设置失败:', error)
+      const message = error.response?.data?.message || '设置保存失败'
+      return { success: false, message }
+    }
+  }
+
   // 检查权限
   const hasPermission = (permission: string) => {
     return permissions.value.includes(permission)
@@ -284,6 +338,8 @@ export const useUserStore = defineStore('user', () => {
     refreshAuth,
     updateProfile,
     changePassword,
+    getUserSettings,
+    updateUserSettings,
     hasPermission,
     clearAuth
   }

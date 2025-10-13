@@ -260,6 +260,9 @@
               <n-button type="primary" @click="editProject(currentProject.guid)">
                 {{ t('dashboard.actionEdit') }}
               </n-button>
+              <n-button @click="openProjectSettings(currentProject)">
+                {{ t('project.projectSettings') }}
+              </n-button>
               <n-button 
                 v-if="currentProject.status !== 'pending'"
                 @click="previewProject(currentProject.guid)"
@@ -285,18 +288,26 @@
       :project-guid="currentDownloadProjectGuid"
       @retry="handleTaskRetry"
     />
+    
+    <!-- 项目设置弹窗 -->
+    <ProjectSettingsModal
+      v-model:show="showProjectSettings"
+      :project="selectedProject"
+      @saved="handleProjectSettingsSaved"
+    />
     </div>
   </PageLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, h } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore } from '@/stores/file'
 import TaskProgressModal from '@/components/TaskProgressModal.vue'
+import ProjectSettingsModal from '@/components/ProjectSettingsModal.vue'
 import { formatDateTime, formatDateShort } from '@/utils/time'
 import { httpService } from '@/utils/http'
 import {
@@ -304,72 +315,18 @@ import {
 } from 'naive-ui'
 import PageLayout from '@/components/layout/PageLayout.vue'
 import type { Project, ProjectListRequest } from '@/types/project'
-
-// 图标组件 - 使用 SVG 图标替代 emoji
-const AddIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z' })
-])
-
-const FolderIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z' })
-])
-
-const ClockIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z' }),
-  h('path', { d: 'M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z' })
-])
-
-const CheckIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' })
-])
-
-const TrendingUpIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z' })
-])
-
-const SearchIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' })
-])
-
-const CloseIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z' })
-])
-
-const EmptyIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z' })
-])
+// 导入图标
+import {
+  SettingsIcon,
+  AddIcon,
+  FolderIcon,
+  ClockIcon,
+  CheckIcon,
+  TrendingUpIcon,
+  SearchIcon,
+  CloseIcon,
+  EmptyIcon
+} from '@/components/icon'
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -391,6 +348,10 @@ const backendVersion = ref('')
 const showTaskModal = ref(false)
 const currentTaskId = ref('')
 const currentDownloadProjectGuid = ref('')
+
+// 项目设置模态框
+const showProjectSettings = ref(false)
+const selectedProject = ref<Project | undefined>(undefined)
 
 // 状态选项
 const statusOptions = computed(() => [
@@ -453,6 +414,16 @@ const previewProject = (projectGuid: string) => {
 
 const editProject = (projectGuid: string) => {
   router.push(`/project/${projectGuid}`)
+}
+
+const openProjectSettings = (project: Project) => {
+  selectedProject.value = project
+  showProjectSettings.value = true
+}
+
+const handleProjectSettingsSaved = () => {
+  // 重新加载项目列表
+  fetchProjectsWithFilters()
 }
 
 const downloadProject = async (projectGuid: string) => {
