@@ -220,6 +220,7 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 	mux.Handle(common.TaskTypeProjectBackup, projectTaskHandler)
 	mux.Handle(common.TaskTypeProjectInit, projectService)
 	mux.Handle(common.TaskTypeProjectDevelopment, projectStageService)
+	mux.Handle(common.TaskTypeProjectDeploy, projectStageService)
 	mux.Handle(common.TaskTypeWebSocketBroadcast, webSocketService)
 	// ... 注册其他任务处理器
 

@@ -285,6 +285,49 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.GetSuccessResponse("生成项目压缩任务成功", taskID))
 }
 
+// DeployProject godoc
+// @Summary 部署项目
+// @Description 部署指定项目
+// @Tags 项目管理
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param guid path string true "项目GUID"
+// @Success 200 {object} common.Response "项目部署成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 403 {object} common.ErrorResponse "访问被拒绝"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
+// @Router /api/v1/projects/{guid}/deploy [post]
+func (h *ProjectHandler) DeployProject(c *gin.Context) {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
+		return
+	}
+
+	// 从中间件获取用户ID
+	userID := c.GetString("user_id")
+
+	// 验证用户权限
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
+	if err != nil {
+		if err.Error() == common.MESSAGE_ACCESS_DENIED {
+			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取项目信息失败: "+err.Error()))
+		return
+	}
+
+	taskID, err := h.projectService.CreateDeployProjectTask(c.Request.Context(), project)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "创建部署项目任务失败: "+err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("创建部署项目任务成功", taskID))
+}
+
 // GeneratePreviewLink godoc
 // @Summary 生成预览分享链接
 // @Description 为项目生成可分享的预览链接
@@ -339,11 +382,12 @@ func (h *ProjectHandler) GeneratePreviewLink(c *gin.Context) {
 	baseURL := c.Request.Host
 	shareLink := fmt.Sprintf("http://%s/api/v1/preview/%s", baseURL, token.Token)
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("生成分享链接成功", map[string]interface{}{
-		"token":      token.Token,
-		"share_link": shareLink,
-		"expires_at": token.ExpiresAt,
-	}))
+	shareInfo := models.ProjectShareInfo{
+		Token:     token.Token,
+		ExpiresAt: token.ExpiresAt,
+		ShareLink: shareLink,
+	}
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("生成分享链接成功", shareInfo))
 }
 
 // GetPreviewByToken godoc

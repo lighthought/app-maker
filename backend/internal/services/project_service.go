@@ -9,6 +9,7 @@ import (
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
+	"shared-models/agent"
 	"shared-models/common"
 	"shared-models/logger"
 	"shared-models/tasks"
@@ -34,10 +35,13 @@ type ProjectService interface {
 	// 通过项目ID获取项目（内部使用）
 	GetProjectByID(ctx context.Context, projectID string) (*models.Project, error)
 
-	// CreateDownloadProjectTask 创建项目下载任务
+	// 创建项目下载任务
 	CreateDownloadProjectTask(ctx context.Context, projectID, projectGuid, projectPath string) (string, error)
 
-	// ProcessTask 处理任务
+	// 创建部署项目任务
+	CreateDeployProjectTask(ctx context.Context, project *models.Project) (string, error)
+
+	// 处理任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
@@ -715,6 +719,22 @@ func (s *projectService) CreateDownloadProjectTask(ctx context.Context, projectI
 	info, err := s.asyncClient.Enqueue(tasks.NewProjectDownloadTask(projectID, projectGuid, projectPath))
 	if err != nil {
 		return "", fmt.Errorf("下载项目文件失败: %w", err)
+	}
+
+	return info.ID, nil
+}
+
+// 创建部署项目任务
+func (s *projectService) CreateDeployProjectTask(ctx context.Context, project *models.Project) (string, error) {
+	req := &agent.DeployReq{
+		ProjectGuid:   project.GUID,
+		Environment:   "dev",
+		DeployOptions: map[string]interface{}{},
+	}
+	// 异步方法，返回任务 ID
+	info, err := s.asyncClient.Enqueue(tasks.NewProjectDeployTask(req))
+	if err != nil {
+		return "", fmt.Errorf("创建部署项目任务失败: %w", err)
 	}
 
 	return info.ID, nil

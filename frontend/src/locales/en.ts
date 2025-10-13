@@ -351,6 +351,10 @@ export default {
     sharePreview: 'Share Preview',
     copyUrl: 'Copy URL',
     urlCopied: 'URL copied to clipboard',
-    copyFailed: 'Copy failed, please copy manually'
+    copyFailed: 'Copy failed, please copy manually',
+    deploy: 'Deploy',
+    deploying: 'Deploying project...',
+    deploySuccess: 'Deploy successful!',
+    deployFailed: 'Deploy failed'
   }
 }

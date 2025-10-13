@@ -247,6 +247,27 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // 一键部署项目
+  const deployProject = async (projectGuid: string) => {
+    try {
+      const response = await httpService.post<{
+        code: number
+        message: string
+        data: any
+      }>(`/projects/${projectGuid}/deploy`, {})
+
+      if (response.code === 0) {
+        return response.data
+      } else {
+        console.error('部署项目失败:', response.message)
+        throw new Error(response.message || '部署项目失败')
+      }
+    } catch (error) {
+      console.error('部署项目失败:', error)
+      throw error
+    }
+  }
+
   return {
     projects,
     currentProject,
@@ -260,6 +281,7 @@ export const useProjectStore = defineStore('project', () => {
     getProjectMessages,
     addChatMessage,
     getProjectStages,
-    downloadProject
+    downloadProject,
+    deployProject
   }
 })

@@ -147,6 +147,7 @@ func Register(engine *gin.Engine, container *container.Container) {
 				projects.DELETE("/:guid", projectHandler.DeleteProject)                  // 删除项目
 				projects.GET("/:guid/stages", projectHandler.GetProjectStages)           // 获取项目开发阶段
 				projects.GET("/download/:guid", projectHandler.DownloadProject)          // 下载项目文件
+				projects.POST("/:guid/deploy", projectHandler.DeployProject)             // 部署项目
 				projects.POST("/:guid/preview-link", projectHandler.GeneratePreviewLink) // 生成预览分享链接
 			} else {
 				projects.POST("/", func(c *gin.Context) {
@@ -166,6 +167,12 @@ func Register(engine *gin.Engine, container *container.Container) {
 				})
 				projects.GET("/download/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project download endpoint - TODO"})
+				})
+				projects.POST("/:guid/deploy", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Project deploy endpoint - TODO"})
+				})
+				projects.POST("/:guid/preview-link", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Project preview link endpoint - TODO"})
 				})
 			}
 		}

@@ -117,7 +117,14 @@
             {{ t('editor.openInNewWindow') }}
           </n-tooltip>
         </div>
-      </div>
+
+        <!-- 部署按钮 -->
+        <div class="deploy-button">
+          <n-button type="primary" @click="deployProject">
+            {{ t('preview.deploy') }}
+          </n-button>
+        </div>
+      </div>      
     </div>
 
     <!-- 代码面板 -->
@@ -416,6 +423,27 @@ const refreshPreview = () => {
   iframeKey.value++
 }
 
+// 一键部署项目
+const deployProject = async () => {
+  if (!props.project?.guid) return
+  
+  try {
+    messageApi.loading(t('preview.deploying'), { duration: 0 })
+    const projectStore = useProjectStore()
+    await projectStore.deployProject(props.project.guid)
+    messageApi.destroyAll()
+    messageApi.success(t('preview.deploySuccess'))
+    // 部署成功后刷新预览
+    setTimeout(() => {
+      refreshPreview()
+    }, 2000)
+  } catch (error: any) {
+    messageApi.destroyAll()
+    messageApi.error(error.message || t('preview.deployFailed'))
+    console.error('部署项目失败:', error)
+  }
+}
+
 // 预览加载完成
 const onPreviewLoad = () => {
   previewLoading.value = false
@@ -501,6 +529,10 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
   z-index: 1;
+}
+
+.deploy-button {
+  margin-left: var(--spacing-md);
 }
 
 /* 代码面板样式 */

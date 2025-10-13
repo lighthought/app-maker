@@ -351,6 +351,10 @@ export default {
     sharePreview: '分享预览',
     copyUrl: '复制链接',
     urlCopied: '链接已复制到剪贴板',
-    copyFailed: '复制失败，请手动复制'
+    copyFailed: '复制失败，请手动复制',
+    deploy: '一键部署',
+    deploying: '正在部署项目...',
+    deploySuccess: '部署成功！',
+    deployFailed: '部署失败'
   }
 }

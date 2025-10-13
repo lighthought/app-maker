@@ -20,7 +20,9 @@ import (
 )
 
 type ProjectStageService interface {
+	// 获取项目开发阶段
 	GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error)
+	// 处理项目任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
@@ -69,14 +71,16 @@ func (s *projectStageService) GetProjectStages(ctx context.Context, projectGuid 
 func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
 	case common.TaskTypeProjectDevelopment:
-		return h.HandleProjectDevelopmentTask(ctx, task)
+		return h.handleProjectDevelopmentTask(ctx, task)
+	case common.TaskTypeProjectDeploy:
+		return h.handleProjectDeployTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
 }
 
 // HandleProjectDevelopmentTask 处理项目开发任务
-func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, t *asynq.Task) error {
+func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, t *asynq.Task) error {
 	var payload tasks.ProjectTaskPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
@@ -170,6 +174,62 @@ func (s *projectStageService) HandleProjectDevelopmentTask(ctx context.Context, 
 		logger.String("projectID", project.ID),
 	)
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "项目开发任务完成")
+	return nil
+}
+
+// 处理项目部署任务
+func (s *projectStageService) handleProjectDeployTask(ctx context.Context, t *asynq.Task) error {
+	var req agent.DeployReq
+	if err := json.Unmarshal(t.Payload(), &req); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+	resultWriter := t.ResultWriter()
+	logger.Info("处理项目部署任务", logger.String("taskID", resultWriter.TaskID()))
+
+	project, err := s.projectRepo.GetByGUID(ctx, req.ProjectGuid)
+	if err != nil {
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+
+	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Second)
+	response, err := agentClient.Deploy(ctx, &req)
+	if err != nil {
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 打包失败: "+err.Error())
+		return err
+	}
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
+		Content:         "项目项目已打包部署",
+		IsMarkdown:      true,
+		MarkdownContent: response.Message,
+		IsExpanded:      true,
+	}
+
+	// 设置预览 URL
+	if project.PreviewUrl == "" {
+		project.PreviewUrl = fmt.Sprintf("http://%s.app-maker.localhost", project.GUID)
+		if err := s.projectRepo.Update(ctx, project); err != nil {
+			logger.Error("更新项目预览URL失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
+		} else {
+			logger.Info("项目预览URL已设置",
+				logger.String("projectID", project.ID),
+				logger.String("previewUrl", project.PreviewUrl),
+			)
+			// 通知前端预览URL已设置
+			s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+		}
+	}
+
+	s.notifyProjectStatusChange(ctx, project, projectMsg, nil)
+
+	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "项目项目已打包部署")
 	return nil
 }
 

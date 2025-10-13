@@ -138,3 +138,9 @@ func (p *Project) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+type ProjectShareInfo struct {
+	Token     string    `json:"token" gorm:"size:100;uniqueIndex;not null"`
+	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
+	ShareLink string    `json:"share_link" gorm:"size:500"`
+}
