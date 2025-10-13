@@ -37,12 +37,14 @@ type FileService interface {
 // projectFileService 项目文件服务实现
 type fileService struct {
 	asyncClient *asynq.Client
+	gitService  GitService
 }
 
 // NewProjectFileService 创建项目文件服务
-func NewFileService(asyncClient *asynq.Client) FileService {
+func NewFileService(asyncClient *asynq.Client, gitService GitService) FileService {
 	return &fileService{
 		asyncClient: asyncClient,
+		gitService:  gitService,
 	}
 }
 
@@ -81,15 +83,29 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*Previ
 // GetProjectFiles 获取项目文件列表
 func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, path string) ([]models.FileItem, error) {
 	// 构建项目路径
-	projectPath := utils.GetProjectPath(userID, projectGuid)
+	projectRootPath := utils.GetProjectPath(userID, projectGuid)
+	var projectPath string
 	if path != "" {
-		projectPath = filepath.Join(projectPath, path)
+		projectPath = filepath.Join(projectRootPath, path)
+	} else {
+		projectPath = projectRootPath
 	}
 
 	// 检查路径是否存在
-	if utils.IsDirectoryExists(projectPath) == false {
+	if !utils.IsDirectoryExists(projectPath) {
 		logger.Info("项目的子目录路径不存在", logger.String("projectPath", projectPath))
 		return []models.FileItem{}, fmt.Errorf("项目的子目录路径不存在: %s", projectPath)
+	}
+
+	// 刷新，重新从 git 上拉取最新的文档和代码
+	if path == "" {
+		gitConfig := &GitConfig{
+			UserID:        userID,
+			GUID:          projectGuid,
+			ProjectPath:   projectRootPath,
+			CommitMessage: "Auto commit by App Maker",
+		}
+		s.gitService.Pull(ctx, gitConfig)
 	}
 
 	// 加载预览文件配置
