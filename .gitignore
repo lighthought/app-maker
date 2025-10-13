@@ -35,6 +35,10 @@ go.work.sum
 .env
 .env.backup
 
+
+#stories
+docs/stories/
+
 #backend
 backend/logs/
 backend/bin/

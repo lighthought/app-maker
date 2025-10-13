@@ -335,6 +335,31 @@ golangci-lint run
 
 ---
 
+## 📚 文档
+
+### 配置指南
+- [CLI 工具与 AI 模型配置指南](docs/CLI_CONFIGURATION_GUIDE.md) - 详细介绍如何配置不同的 CLI 工具和 AI 模型
+
+### 架构文档
+- [整体架构设计](docs/architect/Overall_Architecture.md)
+- [后端架构设计](docs/architect/Backend_Architecture.md)
+- [前端架构设计](docs/architect/Frontend_Architecture.md)
+- [API设计](docs/architect/API_Design.md)
+- [数据模型设计](docs/architect/Data_Model_Design.md)
+
+### 设计文档
+- [UX设计系统](docs/design/UX_Design_System.md)
+- [页面设计规范](docs/design/Page_Design_Specifications.md)
+
+### PRD和Stories
+- [产品需求文档](docs/PRD/PRD_多Agent自动实现APP和网站项目.md)
+- [Epic和Story文档](docs/stories/)
+
+### 部署文档
+- [部署指南](docs/deploy/README-DEPLOYMENT.md)
+
+---
+
 ## 📄 许可证
 
 本项目采用 AGPLv3 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。如果您希望在不遵守AGPL条款的项目中集成本代码，需要另行购买商业许可，请联系我。
