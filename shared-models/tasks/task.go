@@ -120,6 +120,15 @@ func NewProjectSetupTask(req *agent.SetupProjEnvReq) *asynq.Task {
 		asynq.Retention(taskRetentionHour))
 }
 
+// 创建部署项目任务
+func NewProjectDeployTask(req *agent.DeployReq) *asynq.Task {
+	return asynq.NewTask(common.TaskTypeProjectDeploy,
+		req.ToBytes(),
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
+}
+
 // updateResult 是一个帮助函数，用于将任务进度更新到Redis。
 // 这里假设使用一个Redis Hash结构，key为`task:progress:<task_id>`。
 func UpdateResult(resultWriter *asynq.ResultWriter, status string, progress int, message string) {

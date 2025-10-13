@@ -101,3 +101,11 @@ type DeployReq struct {
 	Environment   string                 `json:"environment,omitempty" example:"dev"` // dev, staging, prod
 	DeployOptions map[string]interface{} `json:"deploy_options,omitempty"`
 }
+
+func (a *DeployReq) ToBytes() []byte {
+	bytes, err := json.Marshal(a)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}

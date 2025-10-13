@@ -39,7 +39,7 @@ func (h *ProjectHandler) SetupProjectEnvironment(c *gin.Context) {
 		return
 	}
 
-	taskInfo, err := h.agentTaskService.EnqueueReq(&req)
+	taskInfo, err := h.agentTaskService.EnqueueSetupReq(&req)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, err.Error()))
 		return

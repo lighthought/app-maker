@@ -17,9 +17,14 @@ import (
 )
 
 type AgentTaskService interface {
+	// 处理任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
+	// Agent 执行任务
 	Enqueue(projectGuid, agentType, message string) (*asynq.TaskInfo, error)
-	EnqueueReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error)
+	// 项目环境准备
+	EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error)
+	// 部署项目
+	EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskInfo, error)
 }
 
 type agentTaskService struct {
@@ -113,11 +118,25 @@ func (h *agentTaskService) Enqueue(projectGuid, agentType, message string) (*asy
 }
 
 // EnqueueReq 创建项目环境准备任务
-func (h *agentTaskService) EnqueueReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error) {
+func (h *agentTaskService) EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
 		return nil, fmt.Errorf("async client is nil")
 	}
+	if req == nil {
+		return nil, fmt.Errorf("EnqueueSetupReq, req is nil")
+	}
 	return h.asyncClient.Enqueue(tasks.NewProjectSetupTask(req))
+}
+
+// 部署项目
+func (h *agentTaskService) EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskInfo, error) {
+	if h.asyncClient == nil {
+		return nil, fmt.Errorf("async client is nil")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("EnqueueDeployReq, req is nil")
+	}
+	return h.asyncClient.Enqueue(tasks.NewProjectDeployTask(req))
 }
 
 // ProcessTask 处理代理执行任务

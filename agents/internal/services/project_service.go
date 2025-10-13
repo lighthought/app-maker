@@ -34,6 +34,8 @@ func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) erro
 	switch task.Type() {
 	case common.TaskTypeAgentSetup:
 		return s.agentSetupProject(ctx, task)
+	case common.TaskTypeProjectDeploy:
+		return s.projectDeploy(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
@@ -160,6 +162,43 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	logger.Info("markdownResult: ", logger.String("markdownResult", markdownResult))
 
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, markdownResult)
+	return nil
+}
+
+// 部署项目
+func (s *projectService) projectDeploy(ctx context.Context, task *asynq.Task) error {
+	var req agent.DeployReq
+	if err := json.Unmarshal(task.Payload(), &req); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+	logger.Info("开始执行项目部署", logger.String("projectGuid", req.ProjectGuid))
+
+	// 1. 执行 make build-dev 构建项目
+	logger.Info("执行 make build-dev", logger.String("projectGuid", req.ProjectGuid))
+	buildResult := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "make", "build-dev")
+	if !buildResult.Success {
+		logger.Error("项目构建失败",
+			logger.String("projectGuid", req.ProjectGuid),
+			logger.String("error", buildResult.Error),
+			logger.String("output", buildResult.Output),
+		)
+		return fmt.Errorf("项目构建失败: %s", buildResult.Error)
+	}
+	logger.Info("项目构建成功", logger.String("projectGuid", req.ProjectGuid))
+
+	// 2. 执行 make run-dev 启动项目
+	logger.Info("执行 make run-dev", logger.String("projectGuid", req.ProjectGuid))
+	runResult := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "make", "run-dev")
+	if !runResult.Success {
+		logger.Error("项目启动失败",
+			logger.String("projectGuid", req.ProjectGuid),
+			logger.String("error", runResult.Error),
+			logger.String("output", runResult.Output),
+		)
+		return fmt.Errorf("项目启动失败: %s", runResult.Error)
+	}
+
+	logger.Info("项目部署完成", logger.String("projectGuid", req.ProjectGuid))
 	return nil
 }
 

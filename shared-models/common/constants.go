@@ -244,6 +244,7 @@ const (
 	TaskTypeProjectBackup      = "project:backup"      // 备份项目
 	TaskTypeProjectInit        = "project:init"        // 初始化项目
 	TaskTypeProjectDevelopment = "project:development" // 开发项目
+	TaskTypeProjectDeploy      = "project:deploy"      // 部署项目
 	TaskTypeWebSocketBroadcast = "ws:broadcast"        // WebSocket 消息广播
 	TaskTypeAgentExecute       = "agent:execute"       // 代理执行任务
 	TaskTypeAgentSetup         = "agent:setup"         // 项目环境准备任务

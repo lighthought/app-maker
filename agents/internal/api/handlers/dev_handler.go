@@ -12,10 +12,14 @@ import (
 
 type DevHandler struct {
 	agentTaskService services.AgentTaskService
+	commandService   services.CommandService
 }
 
-func NewDevHandler(agentTaskService services.AgentTaskService) *DevHandler {
-	return &DevHandler{agentTaskService: agentTaskService}
+func NewDevHandler(agentTaskService services.AgentTaskService, commandService services.CommandService) *DevHandler {
+	return &DevHandler{
+		agentTaskService: agentTaskService,
+		commandService:   commandService,
+	}
 }
 
 // ImplementStory godoc
@@ -145,22 +149,19 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 // @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/dev/deploy [post]
 func (h *DevHandler) Deploy(c *gin.Context) {
-	var req agent.FixBugReq
+	var req agent.DeployReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "参数校验失败: "+err.Error()))
 		return
 	}
 
-	message := "@bmad/dev.mdc 请你使用项目现有的打包脚本，完成项目的打包过程。\n" +
-		"如果有类似 make build-dev 或 make build-prod 命令，直接执行即可。\n" +
-		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
-		"2. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
-
-	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	// 异步执行部署任务
+	taskInfo, err := h.agentTaskService.EnqueueDeployReq(&req)
 	if err != nil {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "部署项目任务失败: "+err.Error()))
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "部署任务失败: "+err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("部署项目任务创建成功", taskInfo.ID))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("部署任务已启动", taskInfo.ID))
+
 }
