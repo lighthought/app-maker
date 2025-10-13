@@ -31,10 +31,11 @@ type Container struct {
 	CacheInstance  cache.Cache
 
 	// Repositories
-	UserRepository    repositories.UserRepository
-	StageRepository   repositories.StageRepository
-	ProjectRepository repositories.ProjectRepository
-	MessageRepository repositories.MessageRepository
+	UserRepository         repositories.UserRepository
+	StageRepository        repositories.StageRepository
+	ProjectRepository      repositories.ProjectRepository
+	MessageRepository      repositories.MessageRepository
+	PreviewTokenRepository repositories.PreviewTokenRepository
 
 	// Services
 	UserService            services.UserService
@@ -45,6 +46,7 @@ type Container struct {
 	GitService             services.GitService
 	FileService            services.FileService
 	WebSocketService       services.WebSocketService
+	PreviewService         services.PreviewService
 
 	// Handlers
 	UserHandler      *handlers.UserHandler
@@ -104,6 +106,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	stageRepository := repositories.NewStageRepository(db)
 	projectRepository := repositories.NewProjectRepository(db)
 	messageRepository := repositories.NewMessageRepository(db)
+	previewTokenRepository := repositories.NewPreviewTokenRepository(db)
 
 	// services
 	webSocketService := services.NewWebSocketService(asyncClient, stageRepository, messageRepository, projectRepository)
@@ -119,6 +122,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, gitService, webSocketService)
+
+	previewService := services.NewPreviewService(previewTokenRepository)
 
 	var asynqServer *asynq.Server
 	// 有缓存，才处理异步任务
@@ -139,7 +144,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	cacheHandler := handlers.NewCacheHandler(cacheInstance, cachMonitor)
 	chatHandler := handlers.NewChatHandler(messageService, fileService)
 	fileHandler := handlers.NewFileHandler(fileService, projectService)
-	projectHandler := handlers.NewProjectHandler(projectService, projectStageService)
+	projectHandler := handlers.NewProjectHandler(projectService, projectStageService, previewService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
 	userHandler := handlers.NewUserHandler(userService)
 	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, projectService, jwtService)
@@ -155,6 +160,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		StageRepository:        stageRepository,
 		ProjectRepository:      projectRepository,
 		MessageRepository:      messageRepository,
+		PreviewTokenRepository: previewTokenRepository,
 		UserService:            userService,
 		FileService:            fileService,
 		ProjectTemplateService: projectTemplateService,
@@ -163,6 +169,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		MessageService:         messageService,
 		GitService:             gitService,
 		WebSocketService:       webSocketService,
+		PreviewService:         previewService,
 		CacheHandler:           cacheHandler,
 		ChatHandler:            chatHandler,
 		FileHandler:            fileHandler,

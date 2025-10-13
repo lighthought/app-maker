@@ -18,13 +18,15 @@ import (
 type ProjectHandler struct {
 	projectService      services.ProjectService
 	projectStageService services.ProjectStageService
+	previewService      services.PreviewService
 }
 
 // NewProjectHandler 创建项目处理器实例
-func NewProjectHandler(projectService services.ProjectService, projectStageService services.ProjectStageService) *ProjectHandler {
+func NewProjectHandler(projectService services.ProjectService, projectStageService services.ProjectStageService, previewService services.PreviewService) *ProjectHandler {
 	return &ProjectHandler{
 		projectService:      projectService,
 		projectStageService: projectStageService,
+		previewService:      previewService,
 	}
 }
 
@@ -281,4 +283,111 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, utils.GetSuccessResponse("生成项目压缩任务成功", taskID))
+}
+
+// GeneratePreviewLink godoc
+// @Summary 生成预览分享链接
+// @Description 为项目生成可分享的预览链接
+// @Tags 项目管理
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param guid path string true "项目GUID"
+// @Param days query int false "过期天数" default(7)
+// @Success 200 {object} common.Response{data=map[string]interface{}} "成功生成分享链接"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 403 {object} common.ErrorResponse "访问被拒绝"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
+// @Router /api/v1/projects/{guid}/preview-link [post]
+func (h *ProjectHandler) GeneratePreviewLink(c *gin.Context) {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
+		return
+	}
+
+	// 从中间件获取用户ID
+	userID := c.GetString("user_id")
+
+	// 验证用户权限
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
+	if err != nil {
+		if err.Error() == common.MESSAGE_ACCESS_DENIED {
+			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取项目信息失败: "+err.Error()))
+		return
+	}
+
+	// 获取过期天数参数（默认7天）
+	daysStr := c.DefaultQuery("days", "7")
+	days, err := strconv.Atoi(daysStr)
+	if err != nil || days <= 0 {
+		days = 7
+	}
+
+	// 生成预览令牌
+	token, err := h.previewService.GeneratePreviewToken(c.Request.Context(), project.ID, days)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "生成预览令牌失败: "+err.Error()))
+		return
+	}
+
+	// 构建完整的分享链接
+	baseURL := c.Request.Host
+	shareLink := fmt.Sprintf("http://%s/api/v1/preview/%s", baseURL, token.Token)
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("生成分享链接成功", map[string]interface{}{
+		"token":      token.Token,
+		"share_link": shareLink,
+		"expires_at": token.ExpiresAt,
+	}))
+}
+
+// GetPreviewByToken godoc
+// @Summary 通过令牌访问预览
+// @Description 通过分享令牌访问项目预览（无需认证）
+// @Tags 项目管理
+// @Accept json
+// @Produce json
+// @Param token path string true "预览令牌"
+// @Success 302 {string} string "重定向到预览页面"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 404 {object} common.ErrorResponse "令牌不存在或已过期"
+// @Router /api/v1/preview/{token} [get]
+func (h *ProjectHandler) GetPreviewByToken(c *gin.Context) {
+	tokenStr := c.Param("token")
+	if tokenStr == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "预览令牌不能为空"))
+		return
+	}
+
+	// 获取预览令牌和项目信息
+	previewToken, err := h.previewService.GetPreviewByToken(c.Request.Context(), tokenStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, utils.GetErrorResponse(common.NOT_FOUND, "预览令牌无效或已过期"))
+		return
+	}
+
+	// 获取项目信息
+	project, err := h.projectService.GetProjectByID(c.Request.Context(), previewToken.ProjectID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取项目信息失败: "+err.Error()))
+		return
+	}
+
+	// 如果项目有预览URL，重定向到预览页面
+	if project.PreviewUrl != "" {
+		c.Redirect(http.StatusFound, project.PreviewUrl)
+		return
+	}
+
+	// 否则返回项目信息
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取预览信息成功", map[string]interface{}{
+		"project_guid": project.GUID,
+		"project_name": project.Name,
+		"message":      "项目预览暂未部署",
+	}))
 }
