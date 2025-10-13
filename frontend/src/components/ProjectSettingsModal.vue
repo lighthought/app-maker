@@ -179,7 +179,7 @@ const rules: FormRules = {
 }
 
 // 监听显示状态和项目变化，初始化表单数据
-watch(() => [props.show, props.project], ([newShow, newProject]) => {
+watch(() => [props.show, props.project] as const, ([newShow, newProject]) => {
   if (newShow && newProject) {
     formData.value = {
       name: newProject.name || '',

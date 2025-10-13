@@ -22,6 +22,11 @@ export interface Project {
   previewUrl?: string
   userId: string
   user?: UserInfo
+  cli_tool?: string
+  ai_model?: string
+  model_provider?: string
+  model_api_url?: string
+  api_token?: string
   created_at: string
   updated_at: string
 }
