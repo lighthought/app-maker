@@ -348,6 +348,9 @@ export default {
     tablet: '平板视图',
     mobile: '手机视图',
     deviceView: '设备视图',
-    sharePreview: '分享预览'
+    sharePreview: '分享预览',
+    copyUrl: '复制链接',
+    urlCopied: '链接已复制到剪贴板',
+    copyFailed: '复制失败，请手动复制'
   }
 }

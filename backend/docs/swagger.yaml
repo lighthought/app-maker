@@ -95,6 +95,9 @@ definitions:
       name:
         example: 项目名称
         type: string
+      preview_url:
+        example: http://guid.app-maker.localhost
+        type: string
       project_path:
         example: /path/to/project
         type: string

@@ -149,8 +149,8 @@ export const TabletIcon = () => h('svg', {
   'stroke-linejoin': 'round',
   style: 'width: 1em; height: 1em;'
 }, [
-  h('rect', { x: '5', y: '2', width: '14', height: '20', rx: '2' }),
-  h('circle', { cx: '12', cy: '18', r: '1' })
+  h('rect', { x: '2', y: '5', width: '20', height: '14', rx: '2' }),
+  h('circle', { cx: '12', cy: '12', r: '1' })
 ])
 
 export const PhoneIcon = () => h('svg', { 

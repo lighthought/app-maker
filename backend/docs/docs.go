@@ -1927,6 +1927,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "项目名称"
                 },
+                "preview_url": {
+                    "type": "string",
+                    "example": "http://guid.app-maker.localhost"
+                },
                 "project_path": {
                     "type": "string",
                     "example": "/path/to/project"

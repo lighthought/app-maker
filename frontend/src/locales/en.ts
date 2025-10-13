@@ -178,7 +178,10 @@ export default {
     previewLoadFailed: 'Preview load failed',
     projectDataLoaded: 'Project data loaded, loading files',
     projectDataExists: 'Project data exists when component mounted, loading files',
-    projectDataNotLoaded: 'Project data not loaded when component mounted, waiting for project data...'
+    projectDataNotLoaded: 'Project data not loaded when component mounted, waiting for project data...',
+    projectSettings: 'Settings',
+    devConfiguration: 'Dev config',
+    devConfigNote: 'Leave blank to use user default settings. These settings only take effect when the project environment is initialized.'
   },
 
   // Buttons and interactions
@@ -217,7 +220,19 @@ export default {
     phoneBound: 'Phone already bound',
     saveSuccess: 'Saved successfully',
     saveFailed: 'Save failed',
-    networkError: 'Save failed, please check network connection'
+    networkError: 'Save failed, please check network connection',
+    developmentSettings: 'Development Settings',
+    cliTool: 'CLI Tool',
+    cliToolPlaceholder: 'Select CLI tool',
+    modelProvider: 'Model Provider',
+    modelProviderPlaceholder: 'Select model provider',
+    aiModel: 'AI Model',
+    aiModelPlaceholder: 'Enter AI model name, e.g.: glm-4.6',
+    modelApiUrl: 'API URL',
+    modelApiUrlPlaceholder: 'Enter API URL',
+    apiToken: 'API Token',
+    apiTokenPlaceholder: 'Enter API Token (e.g.: sk-...)',
+    devSettingsNote: 'These settings will be used as the default configuration for new projects. Support local Ollama, Zhipu AI, Claude and other models. API Token is optional, some cloud API vendors require it.'
   },
 
   // Authentication related
@@ -316,6 +331,26 @@ export default {
     deploy: 'Project Deployment',
     done: 'Completed',
     failed: 'Failed'
-  }
+  },
 
+  // Preview related
+  preview: {
+    shareLink: 'Share Link',
+    generatingLink: 'Generating share link...',
+    linkGenerated: 'Share link generated',
+    generateFailed: 'Generate share link failed',
+    generateError: 'Generate share link error',
+    expiresAt: 'Expires At',
+    token: 'Token',
+    shareNote: 'This link will expire after the expiration time, anyone with this link can preview the project.',
+    openLink: 'Open Link',
+    desktop: 'Desktop View',
+    tablet: 'Tablet View',
+    mobile: 'Mobile View',
+    deviceView: 'Device View',
+    sharePreview: 'Share Preview',
+    copyUrl: 'Copy URL',
+    urlCopied: 'URL copied to clipboard',
+    copyFailed: 'Copy failed, please copy manually'
+  }
 }

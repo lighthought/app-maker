@@ -38,6 +38,7 @@ type ProjectInfo struct {
 	ProjectPath  string    `json:"project_path" example:"/path/to/project"`
 	BackendPort  int       `json:"backend_port" example:"8080"`
 	FrontendPort int       `json:"frontend_port" example:"3000"`
+	PreviewUrl   string    `json:"preview_url" example:"http://guid.app-maker.localhost"`
 	UserID       string    `json:"user_id" example:"USER_00000000001"`
 	User         UserInfo  `json:"user,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -55,6 +56,7 @@ func ConvertToProjectInfo(project *Project) *ProjectInfo {
 		ProjectPath:  project.ProjectPath,
 		BackendPort:  project.BackendPort,
 		FrontendPort: project.FrontendPort,
+		PreviewUrl:   project.PreviewUrl,
 		UserID:       project.UserID,
 		CreatedAt:    project.CreatedAt,
 		UpdatedAt:    project.UpdatedAt,

@@ -1,6 +1,7 @@
 <template>
   <n-modal
-    v-model:show="show"
+    :show="props.show"
+    @update:show="(val) => emit('update:show', val)"
     preset="card"
     :title="t('preview.shareLink')"
     :style="{ width: '500px' }"

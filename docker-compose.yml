@@ -100,12 +100,19 @@ services:
       # 用于 Traefik 服务发现
       - "traefik.enable=true"
       - "traefik.docker.network=app-maker-network"
-      # HTTP 相关
-      - "traefik.http.routers.backend-http.entrypoints=web"
-      - "traefik.http.routers.backend-http.rule=Host(`api.${DOMAIN_NAME:-app-maker.localhost}`)"
-      - "traefik.http.routers.backend-http.service=app-maker-backend"
-      # 添加处理 WebSocket 升级的中间件
-      - "traefik.http.routers.backend-http.middlewares=websocket-headers@docker"
+      # HTTP 相关 - 支持两种访问方式
+      # 方式1: 通过主域名 + /api 路径访问 (用于前端相对路径请求)
+      - "traefik.http.routers.backend-api-path.entrypoints=web"
+      - "traefik.http.routers.backend-api-path.rule=Host(`${DOMAIN_NAME:-app-maker.localhost}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend-api-path.service=app-maker-backend"
+      - "traefik.http.routers.backend-api-path.priority=100"
+      - "traefik.http.routers.backend-api-path.middlewares=websocket-headers@docker"
+      # 方式2: 通过 api 子域名访问 (用于外部直接访问)
+      - "traefik.http.routers.backend-subdomain.entrypoints=web"
+      - "traefik.http.routers.backend-subdomain.rule=Host(`api.${DOMAIN_NAME:-app-maker.localhost}`)"
+      - "traefik.http.routers.backend-subdomain.service=app-maker-backend"
+      - "traefik.http.routers.backend-subdomain.priority=100"
+      - "traefik.http.routers.backend-subdomain.middlewares=websocket-headers@docker"
       # 声明服务名称为 backend-service，使用 8080 端口提供服务
       - "traefik.http.services.app-maker-backend.loadbalancer.server.scheme=http"
       - "traefik.http.services.app-maker-backend.loadbalancer.server.port=8080"

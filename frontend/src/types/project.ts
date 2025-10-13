@@ -6,7 +6,7 @@ export interface ProjectInfoUpdate {
   name: string
   status: string
   description: string
-  previewUrl?: string
+  preview_url?: string
 }
 
 export interface Project {
@@ -19,7 +19,7 @@ export interface Project {
   projectPath: string
   backendPort: number
   frontendPort: number
-  previewUrl?: string
+  preview_url?: string
   userId: string
   user?: UserInfo
   cli_tool?: string

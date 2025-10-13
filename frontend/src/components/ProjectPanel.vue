@@ -26,6 +26,98 @@
           </n-button>
         </n-button-group>
       </div>
+      
+      <!-- 预览控制按钮 - 只在预览标签激活时显示 -->
+      <div v-if="activeTab === 'preview' && project?.preview_url" class="header-right">
+        <!-- 设备视图切换 - 居中 -->
+        <div class="device-view-controls">
+          <n-button-group size="small">
+            <n-tooltip placement="bottom">
+              <template #trigger>
+                <n-button
+                  :type="deviceView === 'desktop' ? 'primary' : 'default'"
+                  @click="deviceView = 'desktop'"
+                >
+                  <template #icon>
+                    <n-icon><DesktopIcon /></n-icon>
+                  </template>
+                </n-button>
+              </template>
+              {{ t('preview.desktop') }}
+            </n-tooltip>
+            <n-tooltip placement="bottom">
+              <template #trigger>
+                <n-button
+                  :type="deviceView === 'tablet' ? 'primary' : 'default'"
+                  @click="deviceView = 'tablet'"
+                >
+                  <template #icon>
+                    <n-icon><TabletIcon /></n-icon>
+                  </template>
+                </n-button>
+              </template>
+              {{ t('preview.tablet') }}
+            </n-tooltip>
+            <n-tooltip placement="bottom">
+              <template #trigger>
+                <n-button
+                  :type="deviceView === 'mobile' ? 'primary' : 'default'"
+                  @click="deviceView = 'mobile'"
+                >
+                  <template #icon>
+                    <n-icon><PhoneIcon /></n-icon>
+                  </template>
+                </n-button>
+              </template>
+              {{ t('preview.mobile') }}
+            </n-tooltip>
+          </n-button-group>
+        </div>
+        
+        <!-- 操作按钮 - 右侧 -->
+        <div class="preview-actions-header">
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button text size="small" @click="copyPreviewUrl">
+                <template #icon>
+                  <n-icon><CopyIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('preview.copyUrl') }}
+          </n-tooltip>
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button text size="small" @click="showShareModal = true">
+                <template #icon>
+                  <n-icon><ShareIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('preview.sharePreview') }}
+          </n-tooltip>
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button text size="small" @click="refreshPreview">
+                <template #icon>
+                  <n-icon><RefreshIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('common.refresh') }}
+          </n-tooltip>
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button text size="small" @click="openInNewTab">
+                <template #icon>
+                  <n-icon><ExternalLinkIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('editor.openInNewWindow') }}
+          </n-tooltip>
+        </div>
+      </div>
     </div>
 
     <!-- 代码面板 -->
@@ -88,74 +180,26 @@
 
     <!-- 预览面板 -->
     <div v-else-if="activeTab === 'preview'" class="preview-panel">
-      <div v-if="project?.previewUrl" class="preview-content">
-        <div class="preview-header">
-          <div class="preview-info">
-            <n-icon size="16" color="#38A169">
-              <GlobeIcon />
-            </n-icon>
-            <span class="preview-url">{{ project.previewUrl }}</span>
-          </div>
-          <div class="preview-controls">
-            <!-- 设备视图切换 -->
-            <n-button-group size="small">
-              <n-button
-                :type="deviceView === 'desktop' ? 'primary' : 'default'"
-                @click="deviceView = 'desktop'"
-              >
-                <template #icon>
-                  <n-icon><DesktopIcon /></n-icon>
-                </template>
-                {{ t('preview.desktop') }}
-              </n-button>
-              <n-button
-                :type="deviceView === 'tablet' ? 'primary' : 'default'"
-                @click="deviceView = 'tablet'"
-              >
-                <template #icon>
-                  <n-icon><TabletIcon /></n-icon>
-                </template>
-                {{ t('preview.tablet') }}
-              </n-button>
-              <n-button
-                :type="deviceView === 'mobile' ? 'primary' : 'default'"
-                @click="deviceView = 'mobile'"
-              >
-                <template #icon>
-                  <n-icon><PhoneIcon /></n-icon>
-                </template>
-                {{ t('preview.mobile') }}
-              </n-button>
-            </n-button-group>
-
-            <div class="preview-actions">
-              <n-button text size="small" @click="showShareModal = true">
-                <template #icon>
-                  <n-icon><ShareIcon /></n-icon>
-                </template>
-                {{ t('preview.sharePreview') }}
-              </n-button>
-              <n-button text size="small" @click="refreshPreview">
-                <template #icon>
-                  <n-icon><RefreshIcon /></n-icon>
-                </template>
-                {{ t('common.refresh') }}
-              </n-button>
-              <n-button text size="small" @click="openInNewTab">
-                <template #icon>
-                  <n-icon><ExternalLinkIcon /></n-icon>
-                </template>
-                {{ t('editor.openInNewWindow') }}
-              </n-button>
-            </div>
-          </div>
-        </div>
-        
+      <div v-if="project?.preview_url" class="preview-content">
         <div class="preview-frame-container">
           <div class="preview-frame" :class="`device-${deviceView}`">
+            <!-- 移动端手机外框 -->
+            <div v-if="deviceView === 'mobile'" class="phone-frame">
+              <div class="phone-notch"></div>
+              <iframe
+                :key="iframeKey"
+                :src="project.preview_url"
+                frameborder="0"
+                class="preview-iframe"
+                @load="onPreviewLoad"
+                @error="onPreviewError"
+              ></iframe>
+            </div>
+            <!-- 非移动端直接显示 iframe -->
             <iframe
+              v-else
               :key="iframeKey"
-              :src="project.previewUrl"
+              :src="project.preview_url"
               frameborder="0"
               class="preview-iframe"
               @load="onPreviewLoad"
@@ -188,7 +232,7 @@
 <script setup lang="ts">
 import { ref, computed, h, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NIcon, NButton, NButtonGroup, NTag, NSpin, useMessage } from 'naive-ui'
+import { NIcon, NButton, NButtonGroup, NTag, NSpin, NTooltip, useMessage } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
 import { useFilesStore, type FileTreeNode } from '@/stores/file'
 import type { Project } from '@/types/project'
@@ -347,8 +391,21 @@ const refreshFiles = async () => {
 
 // 在新窗口打开预览
 const openInNewTab = () => {
-  if (props.project?.previewUrl) {
-    window.open(props.project.previewUrl, '_blank')
+  if (props.project?.preview_url) {
+    window.open(props.project.preview_url, '_blank')
+  }
+}
+
+// 复制预览 URL
+const copyPreviewUrl = async () => {
+  if (!props.project?.preview_url) return
+  
+  try {
+    await navigator.clipboard.writeText(props.project.preview_url)
+    messageApi.success(t('preview.urlCopied'))
+  } catch (error) {
+    console.error('复制失败:', error)
+    messageApi.error(t('preview.copyFailed'))
   }
 }
 
@@ -407,19 +464,43 @@ onMounted(async () => {
 
 .panel-header {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #e2e8f0;
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   z-index: 10;
+  gap: var(--spacing-md);
 }
 
 .header-left {
   display: flex;
   align-items: center;
   height: var(--height-sm);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  justify-content: flex-end;
+}
+
+.device-view-controls {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+}
+
+.preview-actions-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
 }
 
 /* 代码面板样式 */
@@ -481,42 +562,6 @@ onMounted(async () => {
   flex-direction: column;
 }
 
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  background: var(--background-color);
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.preview-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.preview-url {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  font-family: 'Courier New', monospace;
-}
-
-.preview-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.preview-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
 .preview-frame-container {
   flex: 1;
   display: flex;
@@ -551,9 +596,72 @@ onMounted(async () => {
 
 .preview-frame.device-mobile {
   width: 375px;
-  height: 667px;
+  height: 812px;
   max-width: 100%;
   max-height: 100%;
+  background: #1f1f1f;
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 
+    0 0 0 2px #1f1f1f,
+    0 0 0 4px #3a3a3a,
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    inset 0 0 6px rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+/* 手机外框容器 */
+.phone-frame {
+  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: 32px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* iPhone 刘海 */
+.phone-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 30px;
+  background: #1f1f1f;
+  border-radius: 0 0 20px 20px;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 刘海内的扬声器 */
+.phone-notch::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 6px;
+  background: #2a2a2a;
+  border-radius: 3px;
+}
+
+/* 移动端的 iframe 需要适应刘海 */
+.phone-frame .preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 32px;
+}
+
+/* 非移动端的 iframe */
+.preview-frame:not(.device-mobile) .preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 .preview-iframe {

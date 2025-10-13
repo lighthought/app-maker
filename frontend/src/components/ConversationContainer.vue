@@ -472,7 +472,7 @@ watch(wsProjectInfo, (newInfo) => {
       name: newInfo.name,
       status: newInfo.status,
       description: newInfo.description,
-      previewUrl: newInfo.previewUrl,
+      preview_url: newInfo.preview_url,
     })
   }
 }, { deep: true })

@@ -132,8 +132,8 @@ const handleProjectInfoUpdate = (info: ProjectInfoUpdate) => {
   if (info.description) {
     project.value.description = info.description
   }
-  if (info.previewUrl) {
-    project.value.previewUrl = info.previewUrl
+  if (info.preview_url) {
+    project.value.preview_url = info.preview_url
   }
   
   console.log(t('project.projectInfoUpdated'), info)
