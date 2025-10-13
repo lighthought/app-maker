@@ -234,11 +234,54 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
 
+	// 设置 CLI 工具和模型配置，如果项目没有设置则使用用户的默认设置
+	cliTool := project.CliTool
+	aiModel := project.AiModel
+	modelProvider := project.ModelProvider
+	modelApiUrl := project.ModelApiUrl
+
+	if cliTool == "" {
+		cliTool = project.User.DefaultCliTool
+	}
+	if aiModel == "" {
+		aiModel = project.User.DefaultAiModel
+	}
+	if modelProvider == "" {
+		modelProvider = project.User.DefaultModelProvider
+	}
+	if modelApiUrl == "" {
+		modelApiUrl = project.User.DefaultModelApiUrl
+	}
+
+	// 如果还是空，使用系统默认值
+	if cliTool == "" {
+		cliTool = common.CliToolClaudeCode
+	}
+	if aiModel == "" {
+		aiModel = common.DefaultModelByProvider[common.ModelProviderZhipu]
+	}
+	if modelProvider == "" {
+		modelProvider = common.ModelProviderZhipu
+	}
+	if modelApiUrl == "" {
+		modelApiUrl = common.DefaultAPIUrlByProvider[common.ModelProviderZhipu]
+	}
+
+	// 获取 API Token
+	apiToken := project.ApiToken
+	if apiToken == "" {
+		apiToken = project.User.DefaultApiToken
+	}
+
 	result, err := agentClient.SetupProjectEnvironment(ctx, &agent.SetupProjEnvReq{
 		ProjectGuid:     project.GUID,
 		GitlabRepoUrl:   project.GitlabRepoURL,
 		SetupBmadMethod: true,
-		BmadCliType:     "claude",
+		BmadCliType:     cliTool,
+		AiModel:         aiModel,
+		ModelProvider:   modelProvider,
+		ModelApiUrl:     modelApiUrl,
+		ApiToken:        apiToken,
 	})
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "agents 项目环境准备失败: "+err.Error())
@@ -841,6 +884,24 @@ func (s *projectStageService) packageProject(ctx context.Context,
 		IsMarkdown:      true,
 		MarkdownContent: response.Message,
 		IsExpanded:      true,
+	}
+
+	// 设置预览 URL
+	if project.PreviewUrl == "" {
+		project.PreviewUrl = fmt.Sprintf("http://%s.app-maker.localhost", project.GUID)
+		if err := s.projectRepo.Update(ctx, project); err != nil {
+			logger.Error("更新项目预览URL失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
+		} else {
+			logger.Info("项目预览URL已设置",
+				logger.String("projectID", project.ID),
+				logger.String("previewUrl", project.PreviewUrl),
+			)
+			// 通知前端预览URL已设置
+			s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+		}
 	}
 
 	devProjectStage.SetStatus(common.CommonStatusDone)

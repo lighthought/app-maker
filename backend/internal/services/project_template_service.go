@@ -99,7 +99,7 @@ func (s *projectTemplateService) ExtractTemplate(ctx context.Context, projectID 
 		logger.String("templatePath", templatePath),
 	)
 
-	if !utils.EnsureDirectoryExists(projectPath) {
+	if utils.EnsureDirectoryExists(projectPath) != nil {
 		logger.Error("项目目录创建失败", logger.String("projectPath", projectPath))
 		return fmt.Errorf("failed to create project directory: %s", projectPath)
 	}

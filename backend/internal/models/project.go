@@ -54,6 +54,11 @@ type Project struct {
 	ProjectPath      string         `json:"project_path" gorm:"size:500;not null"`
 	UserID           string         `json:"user_id" gorm:"type:varchar(50);not null"`
 	GitlabRepoURL    string         `json:"gitlab_repo_url" gorm:"size:500"`
+	CliTool          string         `json:"cli_tool" gorm:"size:50"`
+	AiModel          string         `json:"ai_model" gorm:"size:100"`
+	ModelProvider    string         `json:"model_provider" gorm:"size:50"`
+	ModelApiUrl      string         `json:"model_api_url" gorm:"size:500"`
+	ApiToken         string         `json:"api_token,omitempty" gorm:"size:500"` // API Token，敏感信息
 	User             User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
 	CreatedAt        time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time      `json:"updated_at" gorm:"autoUpdateTime"`

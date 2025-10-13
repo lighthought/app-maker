@@ -68,7 +68,7 @@ func NewContainer(cfg *config.Config) *Container {
 	analyseHandler := handlers.NewAnalyseHandler(agentTaskService)
 	pmHandler := handlers.NewPmHandler(agentTaskService)
 	poHandler := handlers.NewPoHandler(agentTaskService)
-	devHandler := handlers.NewDevHandler(agentTaskService)
+	devHandler := handlers.NewDevHandler(agentTaskService, commandSvc)
 	architectHandler := handlers.NewArchitectHandler(agentTaskService)
 	uxHandler := handlers.NewUxHandler(agentTaskService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)

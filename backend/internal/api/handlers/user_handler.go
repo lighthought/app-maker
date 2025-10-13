@@ -329,3 +329,57 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, utils.GetSuccessResponse("令牌刷新成功", response))
 }
+
+// GetUserSettings 获取用户设置
+// @Summary 获取用户设置
+// @Description 获取当前用户的开发设置（CLI工具、模型配置等）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} common.Response{data=models.UserSettingsResponse}
+// @Failure 401 {object} common.ErrorResponse
+// @Router /api/v1/users/settings [get]
+func (h *UserHandler) GetUserSettings(c *gin.Context) {
+	// 从中间件获取用户ID
+	userID := c.GetString("user_id")
+
+	response, err := h.userService.GetUserSettings(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.ERROR_CODE, "获取用户设置失败: "+err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取用户设置成功", response))
+}
+
+// UpdateUserSettings 更新用户设置
+// @Summary 更新用户设置
+// @Description 更新当前用户的开发设置（CLI工具、模型配置等）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body models.UpdateUserSettingsRequest true "更新设置请求"
+// @Success 200 {object} common.Response
+// @Failure 400 {object} common.ErrorResponse
+// @Failure 401 {object} common.ErrorResponse
+// @Router /api/v1/users/settings [put]
+func (h *UserHandler) UpdateUserSettings(c *gin.Context) {
+	var req models.UpdateUserSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "请求参数错误: "+err.Error()))
+		return
+	}
+
+	// 从中间件获取用户ID
+	userID := c.GetString("user_id")
+
+	err := h.userService.UpdateUserSettings(c.Request.Context(), userID, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.ERROR_CODE, "更新用户设置失败: "+err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("更新用户设置成功", nil))
+}

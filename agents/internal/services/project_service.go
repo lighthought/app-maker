@@ -52,12 +52,10 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	}
 
 	installBmad := req.SetupBmadMethod
-	// var bmadCliType string
-	// if req.BmadCliType == "claude" {
-	// 	bmadCliType = "claude-code"
-	// } else {
-	// 	bmadCliType = req.BmadCliType
-	// }
+	bmadCliType := req.BmadCliType
+	if bmadCliType == "" {
+		bmadCliType = common.CliToolClaudeCode // 默认使用 claude-code
+	}
 
 	// 检查 workspace 目录下是否有 project 目录，如果有，则删除
 	if s.workspacePath == "" {
@@ -93,16 +91,35 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	}
 
 	if installBmad {
-		res := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "npx", "bmad-method", "install", "-f", "-i", "claude-code", "-d", ".")
+		// 安装 bmad-method 使用指定的 CLI 工具
+		res := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "npx", "bmad-method", "install", "-f", "-i", bmadCliType, "-d", ".")
 		if !res.Success {
-			logger.Error("bmad-method 安装失败", logger.String("projectPath", projectPath), logger.String("error", res.Error))
+			logger.Error("bmad-method 安装失败",
+				logger.String("projectPath", projectPath),
+				logger.String("cliTool", bmadCliType),
+				logger.String("error", res.Error))
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "bmad-method 安装失败: "+res.Error)
 			return fmt.Errorf("bmad-method 安装失败: %s", res.Error)
 		}
 
-		logger.Info("bmad-method 安装成功", logger.String("projectPath", projectPath))
-		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 60, "bmad-method 安装成功, "+res.Output)
-		markdownResult += "* agents 安装成功：\n"
+		logger.Info("bmad-method 安装成功",
+			logger.String("projectPath", projectPath),
+			logger.String("cliTool", bmadCliType))
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 50, "bmad-method 安装成功, "+res.Output)
+		markdownResult += fmt.Sprintf("* bmad-method (%s) 安装成功\n", bmadCliType)
+
+		// 生成 CLI 工具配置文件
+		if err := s.generateCliConfig(projectPath, &req); err != nil {
+			logger.Error("生成 CLI 配置文件失败",
+				logger.String("projectPath", projectPath),
+				logger.String("error", err.Error()))
+			// 配置文件生成失败不影响主流程，只记录警告
+			markdownResult += fmt.Sprintf("* 警告：CLI 配置文件生成失败: %s\n", err.Error())
+		} else {
+			markdownResult += "* CLI 配置文件已生成\n"
+		}
+
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 60, markdownResult)
 	}
 
 	var frontendModulePath = filepath.Join(s.GetWorkspacePath(), req.ProjectGuid, "frontend", "node_modules")
@@ -144,4 +161,141 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, markdownResult)
 	return nil
+}
+
+// generateCliConfig 生成 CLI 工具配置文件
+func (s *projectService) generateCliConfig(projectPath string, req *agent.SetupProjEnvReq) error {
+	// 根据 CLI 工具类型生成不同的配置文件
+	switch req.BmadCliType {
+	case common.CliToolClaudeCode:
+		return s.generateClaudeConfig(projectPath, req)
+	case common.CliToolQwenCode:
+		return s.generateQwenConfig(projectPath, req)
+	case common.CliToolIFlowCli:
+		return s.generateIFlowConfig(projectPath, req)
+	case common.CliToolAuggieCli:
+		return s.generateAuggieConfig(projectPath, req)
+	case common.CliToolGemini:
+		return s.generateGeminiConfig(projectPath, req)
+	default:
+		// 默认生成 claude 配置
+		return s.generateClaudeConfig(projectPath, req)
+	}
+}
+
+// generateClaudeConfig 生成 Claude 配置文件
+func (s *projectService) generateClaudeConfig(projectPath string, req *agent.SetupProjEnvReq) error {
+	configDir := filepath.Join(projectPath, ".claude")
+	if err := utils.EnsureDirectoryExists(configDir); err != nil {
+		return fmt.Errorf("创建 .claude 目录失败: %w", err)
+	}
+
+	config := map[string]interface{}{
+		"installMethod":          "npm",
+		"autoUpdates":            false,
+		"hasCompletedOnboarding": true,
+		"telemetry":              false,
+		"customApiUrl":           req.ModelApiUrl,
+		"model":                  req.AiModel,
+		"language_preferences": map[string]string{
+			"documentation": "zh-CN",
+			"code_comments": "zh-CN",
+		},
+	}
+
+	configJSON, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	configFile := filepath.Join(configDir, ".claude.json")
+	return utils.WriteFile(configFile, configJSON)
+}
+
+// generateQwenConfig 生成 Qwen 配置文件
+func (s *projectService) generateQwenConfig(projectPath string, req *agent.SetupProjEnvReq) error {
+	configDir := filepath.Join(projectPath, ".qwen")
+	if err := utils.EnsureDirectoryExists(configDir); err != nil {
+		return fmt.Errorf("创建 .qwen 目录失败: %w", err)
+	}
+
+	config := map[string]interface{}{
+		"model":    req.AiModel,
+		"api_url":  req.ModelApiUrl,
+		"language": "zh-CN",
+	}
+
+	configJSON, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	configFile := filepath.Join(configDir, "config.json")
+	return utils.WriteFile(configFile, configJSON)
+}
+
+// generateIFlowConfig 生成 iFlow 配置文件
+func (s *projectService) generateIFlowConfig(projectPath string, req *agent.SetupProjEnvReq) error {
+	configDir := filepath.Join(projectPath, ".iflow")
+	if err := utils.EnsureDirectoryExists(configDir); err != nil {
+		return fmt.Errorf("创建 .iflow 目录失败: %w", err)
+	}
+
+	config := map[string]interface{}{
+		"model":    req.AiModel,
+		"api_url":  req.ModelApiUrl,
+		"language": "zh-CN",
+	}
+
+	configJSON, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	configFile := filepath.Join(configDir, "config.json")
+	return utils.WriteFile(configFile, configJSON)
+}
+
+// generateAuggieConfig 生成 Auggie 配置文件
+func (s *projectService) generateAuggieConfig(projectPath string, req *agent.SetupProjEnvReq) error {
+	configDir := filepath.Join(projectPath, ".auggie")
+	if err := utils.EnsureDirectoryExists(configDir); err != nil {
+		return fmt.Errorf("创建 .auggie 目录失败: %w", err)
+	}
+
+	config := map[string]interface{}{
+		"model":    req.AiModel,
+		"api_url":  req.ModelApiUrl,
+		"language": "zh-CN",
+	}
+
+	configJSON, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	configFile := filepath.Join(configDir, "config.json")
+	return utils.WriteFile(configFile, configJSON)
+}
+
+// generateGeminiConfig 生成 Gemini 配置文件
+func (s *projectService) generateGeminiConfig(projectPath string, req *agent.SetupProjEnvReq) error {
+	configDir := filepath.Join(projectPath, ".gemini")
+	if err := utils.EnsureDirectoryExists(configDir); err != nil {
+		return fmt.Errorf("创建 .gemini 目录失败: %w", err)
+	}
+
+	config := map[string]interface{}{
+		"model":    req.AiModel,
+		"api_url":  req.ModelApiUrl,
+		"language": "zh-CN",
+	}
+
+	configJSON, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化配置失败: %w", err)
+	}
+
+	configFile := filepath.Join(configDir, "config.json")
+	return utils.WriteFile(configFile, configJSON)
 }

@@ -31,6 +31,15 @@ type UpdateProfileRequest struct {
 	Email    string `json:"email" binding:"omitempty,email" example:"newemail@example.com"`
 }
 
+// UpdateUserSettingsRequest 更新用户设置请求
+type UpdateUserSettingsRequest struct {
+	DefaultCliTool       string `json:"default_cli_tool" binding:"omitempty,oneof=claude-code qwen-code iflow-cli auggie-cli gemini" example:"claude-code"`
+	DefaultAiModel       string `json:"default_ai_model" binding:"omitempty" example:"glm-4.6"`
+	DefaultModelProvider string `json:"default_model_provider" binding:"omitempty,oneof=ollama zhipu anthropic openai vllm" example:"zhipu"`
+	DefaultModelApiUrl   string `json:"default_model_api_url" binding:"omitempty,url" example:"https://open.bigmodel.cn/api/anthropic"`
+	DefaultApiToken      string `json:"default_api_token" binding:"omitempty" example:"sk-..."`
+}
+
 // CreateProjectRequest 创建项目请求
 type CreateProjectRequest struct {
 	Requirements string `json:"requirements" binding:"required" example:"项目需求描述"`

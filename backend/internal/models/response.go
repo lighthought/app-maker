@@ -82,3 +82,12 @@ type LoginResponse struct {
 	RefreshToken string   `json:"refresh_token"`
 	ExpiresIn    int64    `json:"expires_in" example:"3600"`
 }
+
+// UserSettingsResponse 用户设置响应
+type UserSettingsResponse struct {
+	DefaultCliTool       string `json:"default_cli_tool" example:"claude-code"`
+	DefaultAiModel       string `json:"default_ai_model" example:"glm-4.6"`
+	DefaultModelProvider string `json:"default_model_provider" example:"zhipu"`
+	DefaultModelApiUrl   string `json:"default_model_api_url" example:"https://open.bigmodel.cn/api/anthropic"`
+	DefaultApiToken      string `json:"default_api_token,omitempty" example:"sk-***"` // 敏感信息，前端可能需要脱敏显示
+}

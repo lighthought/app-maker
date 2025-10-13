@@ -7,7 +7,11 @@ type SetupProjEnvReq struct {
 	ProjectGuid     string `json:"project_guid" binding:"required" example:"1234567890"`
 	GitlabRepoUrl   string `json:"gitlab_repo_url" binding:"required" example:"https://gitlab.lighthought.com/app-maker/project-guid.git"`
 	SetupBmadMethod bool   `json:"setup_bmad_method" binding:"required" example:"true"`
-	BmadCliType     string `json:"bmad_cli_type" binding:"required" example:"claude"`
+	BmadCliType     string `json:"bmad_cli_type" binding:"required" example:"claude-code"`
+	AiModel         string `json:"ai_model" example:"glm-4.6"`
+	ModelProvider   string `json:"model_provider" example:"zhipu"`
+	ModelApiUrl     string `json:"model_api_url" example:"https://open.bigmodel.cn/api/anthropic"`
+	ApiToken        string `json:"api_token" example:"sk-..."`
 }
 
 func (a *SetupProjEnvReq) ToBytes() []byte {

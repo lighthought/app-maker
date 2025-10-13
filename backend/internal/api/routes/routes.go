@@ -39,6 +39,12 @@ func Register(engine *gin.Engine, container *container.Container) {
 		// 0.健康检查
 		routers.GET("/health", handlers.HealthCheck)
 
+		// 预览路由（无需认证）
+		var projectHandler = container.ProjectHandler
+		if projectHandler != nil {
+			routers.GET("/preview/:token", projectHandler.GetPreviewByToken)
+		}
+
 		// 1.缓存相关路由
 		var cacheHandler = container.CacheHandler
 		cache := routers.Group("/cache")
@@ -101,6 +107,10 @@ func Register(engine *gin.Engine, container *container.Container) {
 				users.POST("/change-password", userHandler.ChangePassword)
 				users.POST("/logout", userHandler.Logout)
 
+				// 用户设置管理
+				users.GET("/settings", userHandler.GetUserSettings)
+				users.PUT("/settings", userHandler.UpdateUserSettings)
+
 				// 管理员功能
 				users.GET("", userHandler.GetUserList)
 				users.DELETE("/:user_id", userHandler.DeleteUser)
@@ -126,19 +136,18 @@ func Register(engine *gin.Engine, container *container.Container) {
 			}
 		}
 
-		var projectHandler = container.ProjectHandler
-
 		// 4.项目路由
 		projects := routers.Group("/projects")
 		projects.Use(authMiddleware) // 应用认证中间件
 		{
 			if projectHandler != nil {
-				projects.POST("/", projectHandler.CreateProject)                // 创建项目
-				projects.GET("/", projectHandler.ListProjects)                  // 获取项目列表
-				projects.GET("/:guid", projectHandler.GetProject)               // 获取项目详情
-				projects.DELETE("/:guid", projectHandler.DeleteProject)         // 删除项目
-				projects.GET("/:guid/stages", projectHandler.GetProjectStages)  // 获取项目开发阶段
-				projects.GET("/download/:guid", projectHandler.DownloadProject) // 下载项目文件
+				projects.POST("/", projectHandler.CreateProject)                         // 创建项目
+				projects.GET("/", projectHandler.ListProjects)                           // 获取项目列表
+				projects.GET("/:guid", projectHandler.GetProject)                        // 获取项目详情
+				projects.DELETE("/:guid", projectHandler.DeleteProject)                  // 删除项目
+				projects.GET("/:guid/stages", projectHandler.GetProjectStages)           // 获取项目开发阶段
+				projects.GET("/download/:guid", projectHandler.DownloadProject)          // 下载项目文件
+				projects.POST("/:guid/preview-link", projectHandler.GeneratePreviewLink) // 生成预览分享链接
 			} else {
 				projects.POST("/", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project create endpoint - TODO"})

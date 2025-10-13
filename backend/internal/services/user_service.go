@@ -23,6 +23,8 @@ type UserService interface {
 	GetUserList(ctx context.Context, page, pageSize int) (*models.PaginationResponse, error)
 	DeleteUser(ctx context.Context, userID string) error
 	RefreshToken(ctx context.Context, refreshToken string) (*models.LoginResponse, error)
+	GetUserSettings(ctx context.Context, userID string) (*models.UserSettingsResponse, error)
+	UpdateUserSettings(ctx context.Context, userID string, req *models.UpdateUserSettingsRequest) error
 }
 
 // userService 用户服务实现
@@ -316,4 +318,48 @@ func (s *userService) generateTokens(userID string) (string, string, error) {
 
 	// 使用 JWT 服务生成令牌
 	return s.authJWTService.GenerateTokens(user.ID, user.Email, user.Username)
+}
+
+// GetUserSettings 获取用户设置
+func (s *userService) GetUserSettings(ctx context.Context, userID string) (*models.UserSettingsResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, errors.New(common.MESSAGE_USER_NOT_FOUND)
+	}
+
+	return &models.UserSettingsResponse{
+		DefaultCliTool:       user.DefaultCliTool,
+		DefaultAiModel:       user.DefaultAiModel,
+		DefaultModelProvider: user.DefaultModelProvider,
+		DefaultModelApiUrl:   user.DefaultModelApiUrl,
+		DefaultApiToken:      user.DefaultApiToken,
+	}, nil
+}
+
+// UpdateUserSettings 更新用户设置
+func (s *userService) UpdateUserSettings(ctx context.Context, userID string, req *models.UpdateUserSettingsRequest) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return errors.New(common.MESSAGE_USER_NOT_FOUND)
+	}
+
+	// 更新设置字段
+	if req.DefaultCliTool != "" {
+		user.DefaultCliTool = req.DefaultCliTool
+	}
+	if req.DefaultAiModel != "" {
+		user.DefaultAiModel = req.DefaultAiModel
+	}
+	if req.DefaultModelProvider != "" {
+		user.DefaultModelProvider = req.DefaultModelProvider
+	}
+	if req.DefaultModelApiUrl != "" {
+		user.DefaultModelApiUrl = req.DefaultModelApiUrl
+	}
+	if req.DefaultApiToken != "" {
+		user.DefaultApiToken = req.DefaultApiToken
+	}
+
+	// 保存更新
+	return s.userRepo.Update(ctx, user)
 }

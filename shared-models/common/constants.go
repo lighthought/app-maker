@@ -255,3 +255,57 @@ const (
 	TaskQueueDefault  = 3 // 中优先级
 	TaskQueueLow      = 1 // 低优先级
 )
+
+// CLI 工具类型
+const (
+	CliToolClaudeCode = "claude-code"
+	CliToolQwenCode   = "qwen-code"
+	CliToolIFlowCli   = "iflow-cli"
+	CliToolAuggieCli  = "auggie-cli"
+	CliToolGemini     = "gemini"
+)
+
+// 模型提供商类型
+const (
+	ModelProviderOllama    = "ollama"
+	ModelProviderZhipu     = "zhipu"
+	ModelProviderAnthropic = "anthropic"
+	ModelProviderOpenAI    = "openai"
+	ModelProviderVLLM      = "vllm"
+)
+
+// 默认模型映射
+var DefaultModelByProvider = map[string]string{
+	ModelProviderOllama:    "qwen2.5-coder:14b",
+	ModelProviderZhipu:     "glm-4.6",
+	ModelProviderAnthropic: "claude-sonnet-4",
+	ModelProviderOpenAI:    "gpt-4o",
+	ModelProviderVLLM:      "deepseek-coder:14b",
+}
+
+// 默认 API URL 映射
+var DefaultAPIUrlByProvider = map[string]string{
+	ModelProviderOllama:    "http://localhost:11434",
+	ModelProviderZhipu:     "https://open.bigmodel.cn/api/anthropic",
+	ModelProviderAnthropic: "https://api.anthropic.com",
+	ModelProviderOpenAI:    "https://api.openai.com/v1",
+	ModelProviderVLLM:      "http://localhost:8000",
+}
+
+// 支持的 CLI 工具列表
+var SupportedCliTools = []string{
+	CliToolClaudeCode,
+	CliToolQwenCode,
+	CliToolIFlowCli,
+	CliToolAuggieCli,
+	CliToolGemini,
+}
+
+// 支持的模型提供商列表
+var SupportedModelProviders = []string{
+	ModelProviderOllama,
+	ModelProviderZhipu,
+	ModelProviderAnthropic,
+	ModelProviderOpenAI,
+	ModelProviderVLLM,
+}

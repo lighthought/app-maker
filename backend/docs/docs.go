@@ -741,6 +741,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/preview/{token}": {
+            "get": {
+                "description": "通过分享令牌访问项目预览（无需认证）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "项目管理"
+                ],
+                "summary": "通过令牌访问预览",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "预览令牌",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "重定向到预览页面",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "令牌不存在或已过期",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/projects": {
             "get": {
                 "security": [
@@ -1085,6 +1129,87 @@ const docTemplate = `{
                         "description": "项目删除成功",
                         "schema": {
                             "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "访问被拒绝",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/preview-link": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "为项目生成可分享的预览链接",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "项目管理"
+                ],
+                "summary": "生成预览分享链接",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 7,
+                        "description": "过期天数",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功生成分享链接",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -1522,6 +1647,101 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/users/settings": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "获取当前用户的开发设置（CLI工具、模型配置等）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "获取用户设置",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UserSettingsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "更新当前用户的开发设置（CLI工具、模型配置等）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "用户管理"
+                ],
+                "summary": "更新用户设置",
+                "parameters": [
+                    {
+                        "description": "更新设置请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateUserSettingsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/users/{user_id}": {
             "delete": {
                 "security": [
@@ -1771,6 +1991,45 @@ const docTemplate = `{
                 }
             }
         },
+        "autocodeweb-backend_internal_models.UpdateUserSettingsRequest": {
+            "type": "object",
+            "properties": {
+                "default_ai_model": {
+                    "type": "string",
+                    "example": "glm-4.6"
+                },
+                "default_api_token": {
+                    "type": "string",
+                    "example": "sk-..."
+                },
+                "default_cli_tool": {
+                    "type": "string",
+                    "enum": [
+                        "claude-code",
+                        "qwen-code",
+                        "iflow-cli",
+                        "auggie-cli",
+                        "gemini"
+                    ],
+                    "example": "claude-code"
+                },
+                "default_model_api_url": {
+                    "type": "string",
+                    "example": "https://open.bigmodel.cn/api/anthropic"
+                },
+                "default_model_provider": {
+                    "type": "string",
+                    "enum": [
+                        "ollama",
+                        "zhipu",
+                        "anthropic",
+                        "openai",
+                        "vllm"
+                    ],
+                    "example": "zhipu"
+                }
+            }
+        },
         "autocodeweb-backend_internal_models.UserInfo": {
             "type": "object",
             "properties": {
@@ -1796,6 +2055,32 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "username"
+                }
+            }
+        },
+        "autocodeweb-backend_internal_models.UserSettingsResponse": {
+            "type": "object",
+            "properties": {
+                "default_ai_model": {
+                    "type": "string",
+                    "example": "glm-4.6"
+                },
+                "default_api_token": {
+                    "description": "敏感信息，前端可能需要脱敏显示",
+                    "type": "string",
+                    "example": "sk-***"
+                },
+                "default_cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
+                "default_model_api_url": {
+                    "type": "string",
+                    "example": "https://open.bigmodel.cn/api/anthropic"
+                },
+                "default_model_provider": {
+                    "type": "string",
+                    "example": "zhipu"
                 }
             }
         },

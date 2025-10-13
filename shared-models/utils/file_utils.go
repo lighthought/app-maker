@@ -84,15 +84,27 @@ func GetFileInfo(filePath string) (os.FileInfo, error) {
 }
 
 // 确保目标目录存在
-func EnsureDirectoryExists(filePath string) bool {
+func EnsureDirectoryExists(filePath string) error {
 	if err := os.MkdirAll(filePath, 0755); err != nil {
 		logger.Error("创建目录失败",
 			logger.String("error", err.Error()),
 			logger.String("filePath", filePath),
 		)
-		return false
+		return err
 	}
-	return true
+	return nil
+}
+
+// 写入文件内容
+func WriteFile(filePath string, content []byte) error {
+	if err := os.WriteFile(filePath, content, 0644); err != nil {
+		logger.Error("写入文件失败",
+			logger.String("error", err.Error()),
+			logger.String("filePath", filePath),
+		)
+		return err
+	}
+	return nil
 }
 
 // 解压zip文件到指定目录

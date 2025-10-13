@@ -31,6 +31,9 @@ type ProjectService interface {
 	// 检查项目访问权限
 	CheckProjectAccess(ctx context.Context, projectGuid, userID string) (*models.Project, error)
 
+	// 通过项目ID获取项目（内部使用）
+	GetProjectByID(ctx context.Context, projectID string) (*models.Project, error)
+
 	// CreateDownloadProjectTask 创建项目下载任务
 	CreateDownloadProjectTask(ctx context.Context, projectID, projectGuid, projectPath string) (string, error)
 
@@ -693,6 +696,11 @@ func (s *projectService) CheckProjectAccess(ctx context.Context, projectGuid, us
 		return nil, errors.New(common.MESSAGE_ACCESS_DENIED)
 	}
 	return project, nil
+}
+
+// GetProjectByID 通过项目ID获取项目（内部使用，不做权限检查）
+func (s *projectService) GetProjectByID(ctx context.Context, projectID string) (*models.Project, error) {
+	return s.projectRepo.GetByID(ctx, projectID)
 }
 
 // DownloadProject 下载项目文件
