@@ -89,12 +89,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick, h, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { NIcon, NButton, NTooltip, NSelect, NSpin, useMessage } from 'naive-ui'
 import { useFilesStore } from '@/stores/file'
 import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import mermaid from 'mermaid'
+// 导入图标
+import { CopyIcon, LoadingIcon, FileIcon, WarningIcon, EyeIcon, EditIcon } from '@/components/icon'
 const { t } = useI18n()
 interface Props {
   projectGuid?: string
@@ -664,60 +666,6 @@ onUnmounted(() => {
     editor.dispose()
   }
 })
-
-// 图标组件
-const CopyIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z' })
-])
-
-
-const LoadingIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em; animation: spin 1s linear infinite;'
-}, [
-  h('path', { d: 'M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm0 18a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8z' }),
-  h('path', { 
-    d: 'M12 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8',
-    style: 'opacity: 0.3;'
-  })
-])
-
-const FileIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' })
-])
-
-const WarningIcon = () => h('svg', {
-  viewBox: '0 0 24 24',
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z' })
-])
-
-const EyeIcon = () => h('svg', {
-  viewBox: '0 0 24 24',
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z' })
-])
-
-const EditIcon = () => h('svg', {
-  viewBox: '0 0 24 24',
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z' })
-])
 
 </script>
 

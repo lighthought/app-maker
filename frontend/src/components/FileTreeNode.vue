@@ -56,9 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed } from 'vue'
 import { NIcon } from 'naive-ui'
 import type { FileTreeNode as FileTreeNodeType } from '@/stores/file'
+// 导入图标
+import { FileIcon, FolderIcon, ChevronRightIcon, ChevronDownIcon } from '@/components/icon'
 
 interface Props {
   node: FileTreeNodeType
@@ -104,39 +106,6 @@ const getFileIconColor = (type?: string) => {
   }
   return colorMap[type as keyof typeof colorMap] || '#666'
 }
-
-// 图标组件
-const FileIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' })
-])
-
-const FolderIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z' })
-])
-
-const ChevronRightIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z' })
-])
-
-const ChevronDownIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z' })
-])
 </script>
 
 <style scoped>

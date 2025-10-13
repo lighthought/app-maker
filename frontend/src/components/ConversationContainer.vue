@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, h, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NIcon, NAlert, NButton } from 'naive-ui'
 import ConversationMessage from './ConversationMessage.vue'
@@ -77,6 +77,8 @@ import SmartInput from './common/SmartInput.vue'
 import { useProjectStore } from '@/stores/project'
 import { useWebSocket } from '@/utils/websocket'
 import type { ConversationMessage as ConversationMessageType, DevStage, ProjectInfoUpdate } from '@/types/project'
+// 导入图标
+import { LoadingIcon } from '@/components/icon'
 
 interface Props {
   projectGuid: string
@@ -491,20 +493,6 @@ watch(wsProjectStages, (newStages) => {
     }
   }
 }, { deep: true })
-
-
-// 图标组件
-const LoadingIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm0 18a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8z' }),
-  h('path', { 
-    d: 'M12 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8',
-    style: 'opacity: 0.3;'
-  })
-])
 
 // 检查项目是否已完成
 const isProjectCompleted = () => {

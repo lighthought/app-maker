@@ -61,11 +61,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NIcon, NButton, useMessage } from 'naive-ui'
 import { useTaskStore } from '@/stores/task'
 import type { DevStage } from '@/types/project'
+// 导入图标
+import { CheckIcon, ErrorIcon, ClockIcon, RefreshIcon } from '@/components/icon'
 
 interface Props {
   stages: DevStage[]
@@ -195,40 +197,6 @@ const getFailedReason = (stage: DevStage) => {
   }
   return null
 }
-
-// 图标组件
-const CheckIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z' })
-])
-
-const ErrorIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z' })
-])
-
-const ClockIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z' }),
-  h('path', { d: 'M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z' })
-])
-
-const RefreshIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z' })
-])
 
 // 重试处理函数
 const handleRetry = async () => {

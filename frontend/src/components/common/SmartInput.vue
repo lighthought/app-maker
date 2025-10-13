@@ -27,8 +27,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, h } from 'vue'
+import { ref, watch } from 'vue'
 import { NInputGroup, NInput, NButton, NIcon } from 'naive-ui'
+// 导入图标
+import { SendIcon } from '@/components/icon'
 
 interface Props {
   modelValue?: string
@@ -74,15 +76,6 @@ watch(() => props.modelValue, (newVal) => {
 watch(inputValue, (newVal) => {
   emit('update:modelValue', newVal)
 })
-
-// 发送图标组件
-const SendIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M2.01 21L23 12 2.01 3 2 10l15 2-15 2z' })
-])
 
 // 键盘事件处理
 const handleEnterKey = (event: KeyboardEvent) => {

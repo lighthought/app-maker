@@ -24,6 +24,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NMenu, NIcon } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
+// 导入图标
+import { HomeIcon, DashboardIcon, AddIcon } from '@/components/icon'
 
 interface Props {
   collapsed?: boolean
@@ -38,31 +40,6 @@ const route = useRoute()
 const { t } = useI18n()
 
 const activeKey = computed(() => route.name as string)
-
-// SVG 图标组件
-const HomeIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' })
-])
-
-const DashboardIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' })
-])
-
-const AddIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z' })
-])
 
 const menuOptions = computed((): MenuOption[] => [
   {

@@ -38,26 +38,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMessage, NIcon } from 'naive-ui'
 import PageLayout from '@/components/layout/PageLayout.vue'
 import SmartInput from '@/components/common/SmartInput.vue'
+// 导入图标
+import { LoadingIcon } from '@/components/icon'
 import { useProjectStore } from '@/stores/project'
-
-// 图标组件
-const LoadingIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm0 18a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8z' }),
-  h('path', { 
-    d: 'M12 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8',
-    style: 'opacity: 0.3;'
-  })
-])
 
 const router = useRouter()
 const route = useRoute()

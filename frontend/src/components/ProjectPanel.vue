@@ -96,30 +96,72 @@
             </n-icon>
             <span class="preview-url">{{ project.previewUrl }}</span>
           </div>
-          <div class="preview-actions">
-            <n-button text size="tiny" @click="openInNewTab">
-              <template #icon>
-                <n-icon><ExternalLinkIcon /></n-icon>
-              </template>
-              {{ t('editor.openInNewWindow') }}
-            </n-button>
-            <n-button text size="tiny" @click="refreshPreview">
-              <template #icon>
-                <n-icon><RefreshIcon /></n-icon>
-              </template>
-              {{ t('common.refresh') }}
-            </n-button>
+          <div class="preview-controls">
+            <!-- 设备视图切换 -->
+            <n-button-group size="small">
+              <n-button
+                :type="deviceView === 'desktop' ? 'primary' : 'default'"
+                @click="deviceView = 'desktop'"
+              >
+                <template #icon>
+                  <n-icon><DesktopIcon /></n-icon>
+                </template>
+                {{ t('preview.desktop') }}
+              </n-button>
+              <n-button
+                :type="deviceView === 'tablet' ? 'primary' : 'default'"
+                @click="deviceView = 'tablet'"
+              >
+                <template #icon>
+                  <n-icon><TabletIcon /></n-icon>
+                </template>
+                {{ t('preview.tablet') }}
+              </n-button>
+              <n-button
+                :type="deviceView === 'mobile' ? 'primary' : 'default'"
+                @click="deviceView = 'mobile'"
+              >
+                <template #icon>
+                  <n-icon><PhoneIcon /></n-icon>
+                </template>
+                {{ t('preview.mobile') }}
+              </n-button>
+            </n-button-group>
+
+            <div class="preview-actions">
+              <n-button text size="small" @click="showShareModal = true">
+                <template #icon>
+                  <n-icon><ShareIcon /></n-icon>
+                </template>
+                {{ t('preview.sharePreview') }}
+              </n-button>
+              <n-button text size="small" @click="refreshPreview">
+                <template #icon>
+                  <n-icon><RefreshIcon /></n-icon>
+                </template>
+                {{ t('common.refresh') }}
+              </n-button>
+              <n-button text size="small" @click="openInNewTab">
+                <template #icon>
+                  <n-icon><ExternalLinkIcon /></n-icon>
+                </template>
+                {{ t('editor.openInNewWindow') }}
+              </n-button>
+            </div>
           </div>
         </div>
         
-        <div class="preview-frame">
-          <iframe
-            :src="project.previewUrl"
-            frameborder="0"
-            class="preview-iframe"
-            @load="onPreviewLoad"
-            @error="onPreviewError"
-          ></iframe>
+        <div class="preview-frame-container">
+          <div class="preview-frame" :class="`device-${deviceView}`">
+            <iframe
+              :key="iframeKey"
+              :src="project.previewUrl"
+              frameborder="0"
+              class="preview-iframe"
+              @load="onPreviewLoad"
+              @error="onPreviewError"
+            ></iframe>
+          </div>
         </div>
       </div>
       
@@ -134,6 +176,12 @@
         </n-button>
       </div>
     </div>
+
+    <!-- 分享预览模态框 -->
+    <SharePreviewModal
+      v-model:show="showShareModal"
+      :project-guid="project?.guid || ''"
+    />
   </div>
 </template>
 
@@ -146,6 +194,21 @@ import { useFilesStore, type FileTreeNode } from '@/stores/file'
 import type { Project } from '@/types/project'
 import MonacoEditor from './MonacoEditor.vue'
 import FileTreeNodeComponent from './FileTreeNode.vue'
+import SharePreviewModal from './SharePreviewModal.vue'
+// 导入图标
+import {
+  DesktopIcon,
+  TabletIcon,
+  PhoneIcon,
+  ShareIcon,
+  CodeIcon,
+  PreviewIcon,
+  RefreshIcon,
+  FileIcon,
+  CopyIcon,
+  GlobeIcon,
+  ExternalLinkIcon
+} from '@/components/icon'
 
 interface Props {
   project?: Project
@@ -165,6 +228,11 @@ const selectedFile = ref<FileTreeNode | null>(null)
 const fileTree = ref<FileTreeNode[]>([])
 const previewLoading = ref(false)
 const isLoadingFiles = ref(false)
+
+// 预览相关状态
+const deviceView = ref<'desktop' | 'tablet' | 'mobile'>('desktop')
+const showShareModal = ref(false)
+const iframeKey = ref(0)
 
 
 // 加载项目文件树
@@ -287,7 +355,8 @@ const openInNewTab = () => {
 // 刷新预览
 const refreshPreview = () => {
   previewLoading.value = true
-  // 这里可以重新加载iframe
+  // 通过改变 key 强制重新加载 iframe
+  iframeKey.value++
 }
 
 // 预览加载完成
@@ -300,64 +369,6 @@ const onPreviewError = () => {
   previewLoading.value = false
   console.error(t('project.previewLoadFailed'))
 }
-
-// 图标组件
-const CodeIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z' })
-])
-
-const PreviewIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z' })
-])
-
-const FileIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' })
-])
-
-const RefreshIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z' })
-])
-
-const CopyIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z' })
-])
-
-const GlobeIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z' })
-])
-
-const ExternalLinkIcon = () => h('svg', { 
-  viewBox: '0 0 24 24', 
-  fill: 'currentColor',
-  style: 'width: 1em; height: 1em;'
-}, [
-  h('path', { d: 'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z' })
-])
-
 
 // 监听项目数据变化，当项目加载完成后自动加载文件
 watch(() => props.project, (newProject) => {
@@ -477,6 +488,8 @@ onMounted(async () => {
   padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--border-color);
   background: var(--background-color);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
 }
 
 .preview-info {
@@ -491,14 +504,56 @@ onMounted(async () => {
   font-family: 'Courier New', monospace;
 }
 
+.preview-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+  justify-content: flex-end;
+}
+
 .preview-actions {
   display: flex;
   gap: var(--spacing-sm);
 }
 
-.preview-frame {
+.preview-frame-container {
   flex: 1;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  padding: var(--spacing-lg);
+  overflow: auto;
+}
+
+.preview-frame {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* 设备视图尺寸 */
+.preview-frame.device-desktop {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+.preview-frame.device-tablet {
+  width: 768px;
+  height: 1024px;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.preview-frame.device-mobile {
+  width: 375px;
+  height: 667px;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .preview-iframe {
