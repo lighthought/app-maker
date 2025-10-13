@@ -21,12 +21,19 @@ type ProjectService interface {
 }
 
 type projectService struct {
-	commandService CommandService
-	workspacePath  string
+	commandService   CommandService
+	agentTaskService AgentTaskService
+	workspacePath    string
 }
 
-func NewProjectService(commandService CommandService, workspacePath string) ProjectService {
-	return &projectService{commandService: commandService, workspacePath: workspacePath}
+func NewProjectService(commandService CommandService,
+	agentTaskService AgentTaskService,
+	workspacePath string) ProjectService {
+	return &projectService{
+		commandService:   commandService,
+		agentTaskService: agentTaskService,
+		workspacePath:    workspacePath,
+	}
 }
 
 // ProcessTask 处理任务
@@ -91,6 +98,9 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 		markdownResult += "* git pull 成功：\n"
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 30, "project 目录已存在, git pull 更新代码成功")
 	}
+
+	// 配置不用转换 LF 为 CRLF，避免提交一堆实际没有修改的代码和文档
+	s.commandService.SimpleExecute(ctx, req.ProjectGuid, "git", "config", "core.autocrlf", "false")
 
 	if installBmad {
 		// 安装 bmad-method 使用指定的 CLI 工具
@@ -182,8 +192,21 @@ func (s *projectService) projectDeploy(ctx context.Context, task *asynq.Task) er
 			logger.String("error", buildResult.Error),
 			logger.String("output", buildResult.Output),
 		)
-		return fmt.Errorf("项目构建失败: %s", buildResult.Error)
+		prompt := "项目构建失败了，帮我修复下，最后执行 'make buid-dev' 命令" + buildResult.Error
+		result, err := s.agentTaskService.ChatWithAgent(ctx, req.ProjectGuid, common.AgentTypeDev,
+			prompt)
+		if err != nil {
+			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目构建失败: "+err.Error())
+			return fmt.Errorf("项目构建失败: %s", err.Error())
+		}
+		if !result.Success {
+			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目构建失败: "+result.Error)
+			return fmt.Errorf("项目构建失败: %s", result.Error)
+		}
+		buildResult = *result
 	}
+
+	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 50, buildResult.Output)
 	logger.Info("项目构建成功", logger.String("projectGuid", req.ProjectGuid))
 
 	// 2. 执行 make run-dev 启动项目
@@ -195,10 +218,22 @@ func (s *projectService) projectDeploy(ctx context.Context, task *asynq.Task) er
 			logger.String("error", runResult.Error),
 			logger.String("output", runResult.Output),
 		)
-		return fmt.Errorf("项目启动失败: %s", runResult.Error)
+		prompt := "项目启动失败了，帮我修复下，最后执行 'make run-dev' 命令" + runResult.Error
+		result, err := s.agentTaskService.ChatWithAgent(ctx, req.ProjectGuid, common.AgentTypeDev,
+			prompt)
+		buildResult = *result
+		if err != nil {
+			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目启动失败: "+err.Error())
+			return fmt.Errorf("项目启动失败: %s", err.Error())
+		}
+		if !result.Success {
+			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目启动失败: "+result.Error)
+			return fmt.Errorf("项目启动失败: %s", result.Error)
+		}
 	}
 
 	logger.Info("项目部署完成", logger.String("projectGuid", req.ProjectGuid))
+	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, buildResult.Output)
 	return nil
 }
 

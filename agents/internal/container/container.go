@@ -60,8 +60,9 @@ func NewContainer(cfg *config.Config) *Container {
 	commandSvc := services.NewCommandService(cfg.Command, cfg.App.WorkspacePath)
 	gitService := services.NewGitService(commandSvc)
 
-	projectSvc := services.NewProjectService(commandSvc, cfg.App.WorkspacePath)
 	agentTaskService := services.NewAgentTaskService(commandSvc, gitService, asyncClient, redisClient)
+	projectSvc := services.NewProjectService(commandSvc, agentTaskService, cfg.App.WorkspacePath)
+
 	asynqServer := initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
 	projectHandler := handlers.NewProjectHandler(agentTaskService, projectSvc)
