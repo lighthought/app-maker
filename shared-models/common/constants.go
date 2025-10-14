@@ -261,8 +261,6 @@ const (
 const (
 	CliToolClaudeCode = "claude-code"
 	CliToolQwenCode   = "qwen-code"
-	CliToolIFlowCli   = "iflow-cli"
-	CliToolAuggieCli  = "auggie-cli"
 	CliToolGemini     = "gemini"
 )
 
@@ -297,8 +295,6 @@ var DefaultAPIUrlByProvider = map[string]string{
 var SupportedCliTools = []string{
 	CliToolClaudeCode,
 	CliToolQwenCode,
-	CliToolIFlowCli,
-	CliToolAuggieCli,
 	CliToolGemini,
 }
 

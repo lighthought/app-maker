@@ -57,6 +57,7 @@ type AgentExecuteTaskPayload struct {
 	ProjectGUID string `json:"project_guid"`
 	AgentType   string `json:"agent_type"`
 	Message     string `json:"message"`
+	CliTool     string `json:"cli_tool"`
 }
 
 func (a *AgentExecuteTaskPayload) ToBytes() []byte {

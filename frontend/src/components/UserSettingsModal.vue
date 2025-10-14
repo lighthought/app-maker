@@ -157,8 +157,6 @@ const renderIcon = (icon: any) => {
 const cliToolOptions = [
   { label: 'Claude Code', value: 'claude-code' },
   { label: 'Qwen Code', value: 'qwen-code' },
-  { label: 'iFlow CLI', value: 'iflow-cli' },
-  { label: 'Auggie CLI', value: 'auggie-cli' },
   { label: 'Gemini', value: 'gemini' }
 ]
 
@@ -173,11 +171,11 @@ const modelProviderOptions = [
 
 // 默认模型映射
 const defaultModelByProvider: Record<string, string> = {
-  'ollama': 'qwen2.5-coder:14b',
+  'ollama': 'deepcoder:14b',
   'zhipu': 'glm-4.6',
   'anthropic': 'claude-sonnet-4',
   'openai': 'gpt-4o',
-  'vllm': 'deepseek-coder:14b'
+  'vllm': 'qwen2.5-coder:14b'
 }
 
 // 默认 API URL 映射

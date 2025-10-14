@@ -111,6 +111,21 @@ func NewAgentExecuteTask(projectGUID, agentType, message string) *asynq.Task {
 		asynq.Retention(taskRetentionHour))
 }
 
+// 创建带CLI工具的代理执行任务
+func NewAgentExecuteTaskWithCli(projectGUID, agentType, message, cliTool string) *asynq.Task {
+	payload := AgentExecuteTaskPayload{
+		ProjectGUID: projectGUID,
+		AgentType:   agentType,
+		Message:     message,
+		CliTool:     cliTool,
+	}
+	return asynq.NewTask(common.TaskTypeAgentExecute,
+		payload.ToBytes(),
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
+}
+
 // 创建项目环境准备任务
 func NewProjectSetupTask(req *agent.SetupProjEnvReq) *asynq.Task {
 	return asynq.NewTask(common.TaskTypeAgentSetup,

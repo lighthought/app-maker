@@ -25,6 +25,7 @@ type Container struct {
 	// Internal Services
 	CommandService   services.CommandService
 	GitService       services.GitService
+	FileService      services.FileService
 	AgentTaskService services.AgentTaskService
 	ProjectService   services.ProjectService
 
@@ -60,8 +61,9 @@ func NewContainer(cfg *config.Config) *Container {
 	commandSvc := services.NewCommandService(cfg.Command, cfg.App.WorkspacePath)
 	gitService := services.NewGitService(commandSvc)
 
-	agentTaskService := services.NewAgentTaskService(commandSvc, gitService, asyncClient, redisClient)
-	projectSvc := services.NewProjectService(commandSvc, agentTaskService, cfg.App.WorkspacePath)
+	fileSvc := services.NewFileService(commandSvc, cfg.App.WorkspacePath)
+	agentTaskService := services.NewAgentTaskService(commandSvc, fileSvc, gitService, asyncClient, redisClient)
+	projectSvc := services.NewProjectService(commandSvc, agentTaskService, fileSvc)
 
 	asynqServer := initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 

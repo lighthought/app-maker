@@ -36,13 +36,21 @@ func (s *UxHandler) GetUXStandard(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/ux-expert.mdc 帮我基于PRD文档 @" + req.PrdPath +
+	// 根据 CLI 类型选择不同的 prompt
+	var agentPrompt string
+	if req.CliTool == common.CliToolGemini {
+		agentPrompt = "@.bmad-core/agents/ux-expert.md"
+	} else {
+		agentPrompt = "@bmad/ux-expert.mdc"
+	}
+
+	message := agentPrompt + " 帮我基于PRD文档 @" + req.PrdPath +
 		" 和参考页面设计(如果需求有提及的话)，输出前端的 UX Spec 到 docs/ux/ux-spec.md。" +
-		"关键web页面的文生网站提示词到 docs/ux/page-prompt.md。我的需求是：" + req.Requirements +
-		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"关键web页面的文生网站提示词到 docs/ux/page-prompt.md。\n我的需求是：\n" + req.Requirements +
+		"\n\n注意：\n1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"2. 如果 docs/ux/ 目录下已经有完善的 UX Spec 和页面提示词，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeUX, message)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeUX, message, req.CliTool)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "UX标准生成任务失败: "+err.Error()))
 		return

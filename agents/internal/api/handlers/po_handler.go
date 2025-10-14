@@ -36,7 +36,15 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/po.mdc 我希望你基于PRD文档 @" + req.PrdPath + " 和 @" + req.ArchFolder +
+	// 根据 CLI 类型选择不同的 prompt
+	var agentPrompt string
+	if req.CliTool == common.CliToolGemini {
+		agentPrompt = "@.bmad-core/agents/po.md"
+	} else {
+		agentPrompt = "@bmad/po.mdc"
+	}
+
+	message := agentPrompt + " 我希望你基于PRD文档 @" + req.PrdPath + " 和 @" + req.ArchFolder +
 		" 目录下的架构设计。首先创建分片的 Epics（史诗）和 Stories（用户故事），输出到 docs/stories/ 目录下。\n" +
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"2. 文件名用史诗的名称命名，文件名前缀用 'epic-'，后缀用 'story'，扩展名是 '.md'。\n" +
@@ -45,7 +53,7 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 		"5. 每个用户故事，要有完成情况勾选框，方便后续实现过程中更新进度。\n" +
 		"6. 如果 docs/stories/ 目录下已经有完善的 Epics 和 Stories，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypePO, message)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePO, message, req.CliTool)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "获取史诗和用户故事任务失败: "+err.Error()))
 		return

@@ -21,6 +21,8 @@ type AgentTaskService interface {
 	ProcessTask(ctx context.Context, task *asynq.Task) error
 	// Agent 执行任务
 	Enqueue(projectGuid, agentType, message string) (*asynq.TaskInfo, error)
+	// Agent 执行任务（带CLI工具）
+	EnqueueWithCli(projectGuid, agentType, message, cliTool string) (*asynq.TaskInfo, error)
 	// 项目环境准备
 	EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error)
 	// 部署项目
@@ -32,6 +34,7 @@ type AgentTaskService interface {
 
 type agentTaskService struct {
 	commandService CommandService
+	fileService    FileService
 	gitService     GitService
 	asyncClient    *asynq.Client
 	redisClient    *redis.Client
@@ -39,9 +42,14 @@ type agentTaskService struct {
 	// 缓存 guid,session_id 映射关系
 }
 
-func NewAgentTaskService(commandService CommandService, gitService GitService, asyncClient *asynq.Client, redisClient *redis.Client) AgentTaskService {
+func NewAgentTaskService(commandService CommandService,
+	fileService FileService,
+	gitService GitService,
+	asyncClient *asynq.Client,
+	redisClient *redis.Client) AgentTaskService {
 	return &agentTaskService{
 		commandService: commandService,
+		fileService:    fileService,
 		gitService:     gitService,
 		asyncClient:    asyncClient,
 		redisClient:    redisClient,
@@ -120,6 +128,14 @@ func (h *agentTaskService) Enqueue(projectGuid, agentType, message string) (*asy
 	return h.asyncClient.Enqueue(tasks.NewAgentExecuteTask(projectGuid, agentType, message))
 }
 
+// EnqueueWithCli 创建带CLI工具的代理执行任务
+func (h *agentTaskService) EnqueueWithCli(projectGuid, agentType, message, cliTool string) (*asynq.TaskInfo, error) {
+	if h.asyncClient == nil {
+		return nil, fmt.Errorf("async client is nil")
+	}
+	return h.asyncClient.Enqueue(tasks.NewAgentExecuteTaskWithCli(projectGuid, agentType, message, cliTool))
+}
+
 // EnqueueReq 创建项目环境准备任务
 func (h *agentTaskService) EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
@@ -173,11 +189,48 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 		logger.String("agentType", payload.AgentType),
 		logger.String("message", payload.Message))
 
-	if sessionID == "" {
-		result = h.commandService.SimpleExecute(ctx, payload.ProjectGUID, "claude", "--dangerously-skip-permissions", "--output-format", "json", "-p", "\""+payload.Message+"\"")
-	} else {
-		result = h.commandService.SimpleExecute(ctx, payload.ProjectGUID, "claude", "--dangerously-skip-permissions", "--resume", sessionID, "--output-format", "json", "-p", "\""+payload.Message+"\"")
+	// 从 payload 或项目检测获取 CLI 类型
+	cliTool := payload.CliTool
+	if cliTool == "" {
+		cliTool = h.fileService.DetectCliTool(payload.ProjectGUID)
 	}
+
+	// 根据 CLI 类型构建命令
+	var cliCommand string
+	var args []string
+	var useJsonOutput bool
+
+	switch cliTool {
+	case common.CliToolClaudeCode:
+		cliCommand = "claude"
+		useJsonOutput = true
+		if sessionID == "" {
+			args = []string{"--dangerously-skip-permissions", "--output-format", "json", "-p", "\"" + payload.Message + "\""}
+		} else {
+			args = []string{"--dangerously-skip-permissions", "--resume", sessionID, "--output-format", "json", "-p", "\"" + payload.Message + "\""}
+		}
+
+	case common.CliToolQwenCode:
+		cliCommand = "qwen"
+		useJsonOutput = false
+		args = []string{"-y", "-p", "\"" + payload.Message + "\""}
+
+	case common.CliToolGemini:
+		cliCommand = "gemini"
+		useJsonOutput = false
+		args = []string{"-y", "-p", "\"" + payload.Message + "\""}
+
+	default:
+		cliCommand = "claude"
+		useJsonOutput = true
+		if sessionID == "" {
+			args = []string{"--dangerously-skip-permissions", "--output-format", "json", "-p", "\"" + payload.Message + "\""}
+		} else {
+			args = []string{"--dangerously-skip-permissions", "--resume", sessionID, "--output-format", "json", "-p", "\"" + payload.Message + "\""}
+		}
+	}
+
+	result = h.commandService.SimpleExecute(ctx, payload.ProjectGUID, cliCommand, args...)
 
 	logger.Info("\n===> 代理任务执行完成",
 		logger.String("endTime", utils.GetCurrentTime()),
@@ -214,14 +267,23 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 		IsError:       result.Error != "",
 		Result:        result.Output,
 	}
-	if err := json.Unmarshal([]byte(result.Output), &claudeResponse); err != nil {
-		logger.Error(" ===> CLI 结果解析失败",
-			logger.String("agentType", payload.AgentType),
-			logger.String("message", payload.Message),
-			logger.String("error", result.Error))
+
+	// 根据输出格式处理结果
+	if useJsonOutput {
+		// 处理 JSON 输出（Claude）
+		if err := json.Unmarshal([]byte(result.Output), &claudeResponse); err != nil {
+			logger.Error(" ===> CLI 结果解析失败",
+				logger.String("agentType", payload.AgentType),
+				logger.String("message", payload.Message),
+				logger.String("error", result.Error))
+		} else {
+			// 转换成功了，就可以直接取执行的结果了，去掉外层的 json 包装
+			result.Output = claudeResponse.Result
+		}
 	} else {
-		// 转换成功了，就可以直接取执行的结果了，去掉外层的 json 包装
-		result.Output = claudeResponse.Result
+		// 处理纯文本输出（qwen、gemini）
+		// 直接使用原始输出文本
+		claudeResponse.Result = result.Output
 	}
 
 	if claudeResponse.IsError {

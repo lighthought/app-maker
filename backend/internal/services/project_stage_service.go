@@ -67,6 +67,18 @@ func (s *projectStageService) GetProjectStages(ctx context.Context, projectGuid 
 	return s.stageRepo.GetByProjectGUID(ctx, projectGuid)
 }
 
+// getCliTool 获取项目的 CLI 工具类型
+func (s *projectStageService) getCliTool(project *models.Project) string {
+	cliTool := project.CliTool
+	if cliTool == "" {
+		cliTool = project.User.DefaultCliTool
+	}
+	if cliTool == "" {
+		cliTool = common.CliToolClaudeCode
+	}
+	return cliTool
+}
+
 // ProcessTask 处理项目任务
 func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
@@ -387,6 +399,7 @@ func (s *projectStageService) checkRequirement(ctx context.Context,
 	req := &agent.GetProjBriefReq{
 		ProjectGuid:  project.GUID,
 		Requirements: project.Requirements,
+		CliTool:      s.getCliTool(project),
 	}
 
 	response, err := agentClient.AnalyseProjectBrief(ctx, req)
@@ -432,6 +445,7 @@ func (s *projectStageService) generatePRD(ctx context.Context,
 	generatePrdReq := &agent.GetPRDReq{
 		ProjectGuid:  project.GUID,
 		Requirements: project.Requirements,
+		CliTool:      s.getCliTool(project),
 	}
 	// 调用 agents-server 生成 PRD 文档，并提交到 GitLab
 	response, err := agentClient.GetPRD(ctx, generatePrdReq)
@@ -479,6 +493,7 @@ func (s *projectStageService) defineUXStandards(ctx context.Context,
 		ProjectGuid:  project.GUID,
 		Requirements: project.Requirements,
 		PrdPath:      "docs/PRD.md",
+		CliTool:      s.getCliTool(project),
 	}
 	// 调用 agents-server 定义 UX 标准
 	response, err := agentClient.GetUXStandard(ctx, req)
@@ -531,6 +546,7 @@ func (s *projectStageService) designArchitecture(ctx context.Context,
 			"2. 后端服务和 API： GO + Gin 框架实现 API、数据库用 PostgreSql、缓存用 Redis。\n" +
 			"3. 部署相关的脚本已经有了，用的 docker，前端用一个 nginx ，配置 /api 重定向到 /backend:port ，这样就能在前端项目中访问后端 API 了。" +
 			" 引用关系是：前端依赖后端，后端依赖 Redis 和 PostgreSql。",
+		CliTool: s.getCliTool(project),
 	}
 	// 调用 agents-server 设计系统架构
 	response, err := agentClient.GetArchitecture(ctx, req)
@@ -579,6 +595,7 @@ func (s *projectStageService) defineDataModel(ctx context.Context,
 		PrdPath:       "docs/PRD.md",
 		ArchFolder:    "docs/arch",
 		StoriesFolder: "docs/stories",
+		CliTool:       s.getCliTool(project),
 	}
 	// 调用 agents-server 定义数据模型
 	response, err := agentClient.GetDatabaseDesign(ctx, req)
@@ -627,6 +644,7 @@ func (s *projectStageService) defineAPIs(ctx context.Context,
 		PrdPath:       "docs/PRD.md",
 		DbFolder:      "docs/db",
 		StoriesFolder: "docs/stories",
+		CliTool:       s.getCliTool(project),
 	}
 	// 调用 agents-server 定义 API 接口
 	response, err := agentClient.GetAPIDefinition(ctx, req)
@@ -674,6 +692,7 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 		ProjectGuid: project.GUID,
 		PrdPath:     "docs/PRD.md",
 		ArchFolder:  "docs/arch",
+		CliTool:     s.getCliTool(project),
 	}
 	// 调用 agents-server 划分 Epics 和 Stories
 	response, err := agentClient.GetEpicsAndStories(ctx, req)
@@ -728,6 +747,7 @@ func (s *projectStageService) developStories(ctx context.Context,
 		UxSpecPath:  "docs/ux/ux-spec.md",
 		EpicFile:    "docs/stories/",
 		StoryFile:   "",
+		CliTool:     s.getCliTool(project),
 	}
 
 	storyFiles, err := s.fileService.GetRelativeFiles(project.ProjectPath, "docs/stories")
@@ -832,6 +852,7 @@ func (s *projectStageService) fixBugs(ctx context.Context,
 	req := &agent.FixBugReq{
 		ProjectGuid:    project.GUID,
 		BugDescription: "修复开发问题",
+		CliTool:        s.getCliTool(project),
 	}
 	// 调用 agents-server 修复问题
 	response, err := agentClient.FixBug(ctx, req)
@@ -877,6 +898,7 @@ func (s *projectStageService) runTests(ctx context.Context,
 
 	req := &agent.RunTestReq{
 		ProjectGuid: project.GUID,
+		CliTool:     s.getCliTool(project),
 	}
 	// 调用 agents-server 执行自动测试
 	response, err := agentClient.RunTest(ctx, req)
@@ -924,6 +946,7 @@ func (s *projectStageService) packageProject(ctx context.Context,
 		ProjectGuid:   project.GUID,
 		Environment:   "dev",
 		DeployOptions: map[string]interface{}{},
+		CliTool:       s.getCliTool(project),
 	}
 	// 调用 agents-server 打包部署项目（提交 .gitlab-ci.yml 即可触发 runner）
 	response, err := agentClient.Deploy(ctx, req)

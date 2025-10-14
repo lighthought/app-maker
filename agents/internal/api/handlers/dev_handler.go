@@ -40,7 +40,15 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/dev.mdc 请你基于PRD文档 @" + req.PrdPath + " 和架构师的设计 @" + req.ArchFolder + " ，以及 UX 标准 @" + req.UxSpecPath
+	// 根据 CLI 类型选择不同的 prompt
+	var agentPrompt string
+	if req.CliTool == common.CliToolGemini {
+		agentPrompt = "@.bmad-core/agents/dev.md"
+	} else {
+		agentPrompt = "@bmad/dev.mdc"
+	}
+
+	message := agentPrompt + " 请你基于PRD文档 @" + req.PrdPath + " 和架构师的设计 @" + req.ArchFolder + " ，以及 UX 标准 @" + req.UxSpecPath
 
 	if req.StoryFile == "" {
 		message += " 按照里程碑的顺序，实现 @" + req.EpicFile + " 中的下一个用户故事。\n"
@@ -61,7 +69,7 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 		"6. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"7. 每次实现完，记得修复编译问题，至少要保障项目能够 make build-dev 编译通过。"
 
-	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message, req.CliTool)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "实现用户故事任务失败: "+err.Error()))
 		return
@@ -88,7 +96,15 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 		return
 	}
 
-	message := "@bmad/dev.mdc 我当前遇到了 " + req.BugDescription + "，请你帮我修复下。" +
+	// 根据 CLI 类型选择不同的 prompt
+	var agentPrompt string
+	if req.CliTool == common.CliToolGemini {
+		agentPrompt = "@.bmad-core/agents/dev.md"
+	} else {
+		agentPrompt = "@bmad/dev.mdc"
+	}
+
+	message := agentPrompt + " 我当前遇到了 " + req.BugDescription + "，请你帮我修复下。" +
 		"请你始终记得项目的前后端框架及约束：\n" +
 		"1. 后端 Handler -> service -> repository 分层，引用和依赖关系都在 container 依赖注入容器中维护；\n" +
 		"2. 后端的服务和repository 一般都有接口，供上一层调用。接口的定义和实现放在同一个文件中，不用为了定义服务接口或 repository 接口而单独新建文件。\n" +
@@ -97,7 +113,7 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 		"2. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程。docs 目录下的架构、API、数据库和UX文档可以帮助你理解\n" +
 		"3. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message, req.CliTool)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "修复Bug任务失败: "+err.Error()))
 		return
@@ -118,18 +134,26 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 // @Failure 500 {object} common.ErrorResponse "服务器错误"
 // @Router /api/v1/agent/dev/runtest [post]
 func (h *DevHandler) RunTest(c *gin.Context) {
-	var req agent.FixBugReq
+	var req agent.RunTestReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "参数校验失败: "+err.Error()))
 		return
 	}
 
-	message := "@bmad/dev.mdc 请你使用项目现有的测试脚本，完成项目的自动测试过程。包括前端的 lint 和后端的测试过程。\n" +
+	// 根据 CLI 类型选择不同的 prompt
+	var agentPrompt string
+	if req.CliTool == common.CliToolGemini {
+		agentPrompt = "@.bmad-core/agents/dev.md"
+	} else {
+		agentPrompt = "@bmad/dev.mdc"
+	}
+
+	message := agentPrompt + " 请你使用项目现有的测试脚本，完成项目的自动测试过程。包括前端的 lint 和后端的测试过程。\n" +
 		"如果有 make test 命令，直接执行即可\n" +
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"2. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	taskInfo, err := h.agentTaskService.Enqueue(req.ProjectGuid, common.AgentTypeDev, message)
+	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message, req.CliTool)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "运行测试任务失败: "+err.Error()))
 		return
