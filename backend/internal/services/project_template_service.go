@@ -199,8 +199,8 @@ func (s *projectTemplateService) replaceInFile(filePath string, project *models.
 	// 定义替换映射
 	replacements := map[string]string{
 		"${PRODUCT_NAME}":      project.Name,
-		"${PRODUCT_GUID}":      project.GUID,
 		"${PRODUCT_DESC}":      project.Description,
+		"${PROJECT_GUID}":      project.GUID,
 		"${APP_SECRET_KEY}":    project.AppSecretKey,
 		"${DATABASE_PASSWORD}": project.DatabasePassword,
 		"${REDIS_PASSWORD}":    project.RedisPassword,
