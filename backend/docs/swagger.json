@@ -1087,6 +1087,86 @@
                     }
                 }
             },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "更新指定项目的配置信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "项目管理"
+                ],
+                "summary": "更新项目",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "项目更新请求",
+                        "name": "project",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateProjectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/common.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "项目不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -2045,6 +2125,49 @@
                 }
             }
         },
+        "autocodeweb-backend_internal_models.UpdateProjectRequest": {
+            "type": "object",
+            "properties": {
+                "ai_model": {
+                    "type": "string",
+                    "example": "glm-4.6"
+                },
+                "cli_tool": {
+                    "type": "string",
+                    "enum": [
+                        "claude-code",
+                        "qwen-code",
+                        "gemini"
+                    ],
+                    "example": "claude-code"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "项目描述"
+                },
+                "model_api_url": {
+                    "type": "string",
+                    "example": "https://open.bigmodel.cn/api/anthropic"
+                },
+                "model_provider": {
+                    "type": "string",
+                    "enum": [
+                        "ollama",
+                        "zhipu",
+                        "anthropic",
+                        "openai",
+                        "vllm"
+                    ],
+                    "example": "zhipu"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "example": "项目名称"
+                }
+            }
+        },
         "autocodeweb-backend_internal_models.UpdateUserSettingsRequest": {
             "type": "object",
             "properties": {
@@ -2061,8 +2184,6 @@
                     "enum": [
                         "claude-code",
                         "qwen-code",
-                        "iflow-cli",
-                        "auggie-cli",
                         "gemini"
                     ],
                     "example": "claude-code"

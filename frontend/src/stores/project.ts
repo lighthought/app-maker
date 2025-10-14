@@ -139,6 +139,49 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // 更新项目
+  const updateProject = async (projectGuid: string, updateData: {
+    name?: string
+    description?: string
+    cli_tool?: string | null
+    ai_model?: string | null
+    model_provider?: string | null
+    model_api_url?: string | null
+  }) => {
+    projectStatus.value = 'loading'
+    try {
+      const response = await httpService.put<{
+        code: number
+        message: string
+        data: Project
+      }>(`/projects/${projectGuid}`, updateData)
+
+      if (response.code === 0 && response.data) {
+        // 更新本地项目列表中的项目
+        if (Array.isArray(projects.value)) {
+          const index = projects.value.findIndex(p => p.guid === projectGuid)
+          if (index !== -1) {
+            projects.value[index] = response.data
+          }
+        }
+        // 更新当前项目
+        if (currentProject.value?.guid === projectGuid) {
+          currentProject.value = response.data
+        }
+        projectStatus.value = 'success'
+        return response.data
+      } else {
+        console.error('更新项目失败:', response.message)
+        projectStatus.value = 'error'
+        throw new Error(response.message || '更新项目失败')
+      }
+    } catch (error) {
+      console.error('更新项目失败:', error)
+      projectStatus.value = 'error'
+      throw error
+    }
+  }
+
   // 下载项目
   const downloadProject = async (projectGuid: string) => {
     try {
@@ -275,6 +318,7 @@ export const useProjectStore = defineStore('project', () => {
     pagination,
     fetchProjects,
     createProject,
+    updateProject,
     deleteProject,
     getProject,
     setCurrentProject,

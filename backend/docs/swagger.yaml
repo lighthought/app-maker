@@ -145,6 +145,39 @@ definitions:
         minLength: 3
         type: string
     type: object
+  autocodeweb-backend_internal_models.UpdateProjectRequest:
+    properties:
+      ai_model:
+        example: glm-4.6
+        type: string
+      cli_tool:
+        enum:
+        - claude-code
+        - qwen-code
+        - gemini
+        example: claude-code
+        type: string
+      description:
+        example: 项目描述
+        type: string
+      model_api_url:
+        example: https://open.bigmodel.cn/api/anthropic
+        type: string
+      model_provider:
+        enum:
+        - ollama
+        - zhipu
+        - anthropic
+        - openai
+        - vllm
+        example: zhipu
+        type: string
+      name:
+        example: 项目名称
+        maxLength: 200
+        minLength: 1
+        type: string
+    type: object
   autocodeweb-backend_internal_models.UpdateUserSettingsRequest:
     properties:
       default_ai_model:
@@ -157,8 +190,6 @@ definitions:
         enum:
         - claude-code
         - qwen-code
-        - iflow-cli
-        - auggie-cli
         - gemini
         example: claude-code
         type: string
@@ -919,6 +950,55 @@ paths:
       security:
       - Bearer: []
       summary: 获取项目信息
+      tags:
+      - 项目管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定项目的配置信息
+      parameters:
+      - description: 项目GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: 项目更新请求
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "404":
+          description: 项目不存在
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 更新项目
       tags:
       - 项目管理
   /api/v1/projects/{guid}/deploy:

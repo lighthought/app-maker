@@ -144,6 +144,7 @@ func Register(engine *gin.Engine, container *container.Container) {
 				projects.POST("/", projectHandler.CreateProject)                         // 创建项目
 				projects.GET("/", projectHandler.ListProjects)                           // 获取项目列表
 				projects.GET("/:guid", projectHandler.GetProject)                        // 获取项目详情
+				projects.PUT("/:guid", projectHandler.UpdateProject)                     // 更新项目
 				projects.DELETE("/:guid", projectHandler.DeleteProject)                  // 删除项目
 				projects.GET("/:guid/stages", projectHandler.GetProjectStages)           // 获取项目开发阶段
 				projects.GET("/download/:guid", projectHandler.DownloadProject)          // 下载项目文件
@@ -158,6 +159,9 @@ func Register(engine *gin.Engine, container *container.Container) {
 				})
 				projects.GET("/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project get endpoint - TODO"})
+				})
+				projects.PUT("/:guid", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Project update endpoint - TODO"})
 				})
 				projects.DELETE("/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project delete endpoint - TODO"})

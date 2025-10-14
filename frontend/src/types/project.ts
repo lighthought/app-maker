@@ -44,6 +44,15 @@ export interface CreateProjectData {
   requirements: string
 }
 
+export interface UpdateProjectFormData {
+  name: string
+  description: string
+  cliTool: string
+  aiModel: string
+  modelProvider: string
+  modelApiUrl: string
+}
+
 export interface ProjectListRequest {
   page?: number
   pageSize?: number

@@ -32,47 +32,50 @@
         />
       </n-form-item>
 
-      <n-divider />
+      <!-- 开发配置区域：只在项目未完成时显示 -->
+      <template v-if="!isProjectCompleted">
+        <n-divider />
 
-      <h3 style="margin-bottom: 16px;">{{ t('project.devConfiguration') }}</h3>
-      
-      <n-form-item :label="t('userSettings.cliTool')" path="cliTool">
-        <n-select
-          v-model:value="formData.cliTool"
-          :options="cliToolOptions"
-          :placeholder="t('userSettings.cliToolPlaceholder')"
-          clearable
-        />
-      </n-form-item>
+        <h3 style="margin-bottom: 16px;">{{ t('project.devConfiguration') }}</h3>
+        
+        <n-form-item :label="t('userSettings.cliTool')" path="cliTool">
+          <n-select
+            v-model:value="formData.cliTool"
+            :options="cliToolOptions"
+            :placeholder="t('userSettings.cliToolPlaceholder')"
+            clearable
+          />
+        </n-form-item>
 
-      <n-form-item :label="t('userSettings.modelProvider')" path="modelProvider">
-        <n-select
-          v-model:value="formData.modelProvider"
-          :options="modelProviderOptions"
-          :placeholder="t('userSettings.modelProviderPlaceholder')"
-          clearable
-          @update:value="handleProviderChange"
-        />
-      </n-form-item>
+        <n-form-item :label="t('userSettings.modelProvider')" path="modelProvider">
+          <n-select
+            v-model:value="formData.modelProvider"
+            :options="modelProviderOptions"
+            :placeholder="t('userSettings.modelProviderPlaceholder')"
+            clearable
+            @update:value="handleProviderChange"
+          />
+        </n-form-item>
 
-      <n-form-item :label="t('userSettings.aiModel')" path="aiModel">
-        <n-input
-          v-model:value="formData.aiModel"
-          :placeholder="t('userSettings.aiModelPlaceholder')"
-        />
-      </n-form-item>
+        <n-form-item :label="t('userSettings.aiModel')" path="aiModel">
+          <n-input
+            v-model:value="formData.aiModel"
+            :placeholder="t('userSettings.aiModelPlaceholder')"
+          />
+        </n-form-item>
 
-      <n-form-item :label="t('userSettings.modelApiUrl')" path="modelApiUrl">
-        <n-input
-          v-model:value="formData.modelApiUrl"
-          :placeholder="t('userSettings.modelApiUrlPlaceholder')"
-          type="text"
-        />
-      </n-form-item>
+        <n-form-item :label="t('userSettings.modelApiUrl')" path="modelApiUrl">
+          <n-input
+            v-model:value="formData.modelApiUrl"
+            :placeholder="t('userSettings.modelApiUrlPlaceholder')"
+            type="text"
+          />
+        </n-form-item>
 
-      <n-alert type="info" :show-icon="false" style="margin-top: 8px;">
-        {{ t('project.devConfigNote') }}
-      </n-alert>
+        <n-alert type="info" :show-icon="false" style="margin-top: 8px;">
+          {{ t('project.devConfigNote') }}
+        </n-alert>
+      </template>
     </n-form>
 
     <template #footer>
@@ -94,8 +97,8 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMessage, NModal, NForm, NFormItem, NInput, NSelect, NButton, NAlert, NDivider, type FormRules } from 'naive-ui'
-import type { Project } from '@/types/project'
-import { httpService } from '@/utils/http'
+import type { Project, UpdateProjectFormData } from '@/types/project'
+import { useProjectStore } from '@/stores/project'
 
 interface Props {
   show: boolean
@@ -112,6 +115,7 @@ const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
 const message = useMessage()
+const projectStore = useProjectStore()
 
 // 表单引用
 const formRef = ref()
@@ -125,12 +129,17 @@ const localShow = computed({
   set: (value) => emit('update:show', value)
 })
 
+// 判断项目是否已完成
+const isProjectCompleted = computed(() => {
+  if (!props.project) return false
+  // 项目状态为 done 时视为已完成
+  return props.project.status === 'done'
+})
+
 // CLI 工具选项
 const cliToolOptions = [
   { label: 'Claude Code', value: 'claude-code' },
   { label: 'Qwen Code', value: 'qwen-code' },
-  { label: 'iFlow CLI', value: 'iflow-cli' },
-  { label: 'Auggie CLI', value: 'auggie-cli' },
   { label: 'Gemini', value: 'gemini' }
 ]
 
@@ -162,7 +171,7 @@ const defaultApiUrlByProvider: Record<string, string> = {
 }
 
 // 表单数据
-const formData = ref({
+const formData = ref<UpdateProjectFormData>({
   name: '',
   description: '',
   cliTool: '',
@@ -226,32 +235,38 @@ const handleSave = async () => {
     
     loading.value = true
     
-    // 调用后端接口
-    const response = await httpService.put<{
-      code: number
-      message: string
-      data?: any
-    }>(`/projects/${props.project.guid}`, {
+    // 构建更新数据：已完成的项目只更新基本信息
+    const updateData: {
+      name: string
+      description: string
+      cli_tool?: string | null
+      ai_model?: string | null
+      model_provider?: string | null
+      model_api_url?: string | null
+    } = {
       name: formData.value.name,
-      description: formData.value.description,
-      cli_tool: formData.value.cliTool || null,
-      ai_model: formData.value.aiModel || null,
-      model_provider: formData.value.modelProvider || null,
-      model_api_url: formData.value.modelApiUrl || null
-    })
-
-    if (response.code === 0) {
-      message.success(t('project.projectUpdated'))
-      emit('saved')
-      handleClose()
-    } else {
-      message.error(response.message || t('project.projectUpdateError'))
+      description: formData.value.description
     }
+    
+    // 未完成的项目可以更新开发配置
+    if (!isProjectCompleted.value) {
+      updateData.cli_tool = formData.value.cliTool || null
+      updateData.ai_model = formData.value.aiModel || null
+      updateData.model_provider = formData.value.modelProvider || null
+      updateData.model_api_url = formData.value.modelApiUrl || null
+    }
+    
+    // 使用 project store 更新项目
+    await projectStore.updateProject(props.project.guid, updateData)
+    
+    message.success(t('project.projectUpdated'))
+    emit('saved')
+    handleClose()
   } catch (error: any) {
     console.error('保存项目设置失败:', error)
     
-    if (error.response?.data?.message) {
-      message.error(error.response.data.message)
+    if (error.message) {
+      message.error(error.message)
     } else {
       message.error(t('userSettings.networkError'))
     }

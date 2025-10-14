@@ -21,7 +21,6 @@ type commandService struct {
 
 type CommandService interface {
 	SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) models.CommandResult
-	//GetWorkspacePath() string
 }
 
 // NewCommandService 创建命令执行服务
@@ -31,11 +30,6 @@ func NewCommandService(cfg config.CommandConfig, workspacePath string) CommandSe
 		WorkspacePath: workspacePath,
 	}
 }
-
-// 获取工作空间路径
-// func (s *commandService) GetWorkspacePath() string {
-// 	return s.WorkspacePath
-// }
 
 // SimpleExecute 直接执行命令，不使用 session 管理
 func (s *commandService) SimpleExecute(ctx context.Context, subfolder, process string, arg ...string) models.CommandResult {

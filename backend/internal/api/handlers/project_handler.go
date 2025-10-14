@@ -123,6 +123,63 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.GetSuccessResponse("获取项目成功", project))
 }
 
+// UpdateProject godoc
+// @Summary 更新项目
+// @Description 更新指定项目的配置信息
+// @Tags 项目管理
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param guid path string true "项目GUID"
+// @Param project body models.UpdateProjectRequest true "项目更新请求"
+// @Success 200 {object} common.Response{data=models.ProjectInfo} "更新成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 404 {object} common.ErrorResponse "项目不存在"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
+// @Router /api/v1/projects/{guid} [put]
+func (h *ProjectHandler) UpdateProject(c *gin.Context) {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目 GUID 不能为空"))
+		return
+	}
+
+	var req models.UpdateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("请求参数绑定失败",
+			logger.String("error", err.Error()),
+		)
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "请求参数错误: "+err.Error()))
+		return
+	}
+
+	// 从中间件获取用户ID
+	userID := c.GetString("user_id")
+	logger.Info("更新项目",
+		logger.String("userID", userID),
+		logger.String("projectGuid", projectGuid),
+	)
+
+	project, err := h.projectService.UpdateProject(c.Request.Context(), projectGuid, &req, userID)
+	if err != nil {
+		logger.Error("更新项目失败",
+			logger.String("error", err.Error()),
+			logger.String("userID", userID),
+			logger.String("projectGuid", projectGuid),
+		)
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "更新项目失败: "+err.Error()))
+		return
+	}
+
+	logger.Info("项目更新成功",
+		logger.String("projectGUID", project.GUID),
+		logger.String("projectName", project.Name),
+	)
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("项目更新成功", project))
+}
+
 // DeleteProject godoc
 // @Summary 删除项目
 // @Description 删除指定项目

@@ -33,7 +33,7 @@ type UpdateProfileRequest struct {
 
 // UpdateUserSettingsRequest 更新用户设置请求
 type UpdateUserSettingsRequest struct {
-	DefaultCliTool       string `json:"default_cli_tool" binding:"omitempty,oneof=claude-code qwen-code iflow-cli auggie-cli gemini" example:"claude-code"`
+	DefaultCliTool       string `json:"default_cli_tool" binding:"omitempty,oneof=claude-code qwen-code gemini" example:"claude-code"`
 	DefaultAiModel       string `json:"default_ai_model" binding:"omitempty" example:"glm-4.6"`
 	DefaultModelProvider string `json:"default_model_provider" binding:"omitempty,oneof=ollama zhipu anthropic openai vllm" example:"zhipu"`
 	DefaultModelApiUrl   string `json:"default_model_api_url" binding:"omitempty,url" example:"https://open.bigmodel.cn/api/anthropic"`
@@ -43,6 +43,16 @@ type UpdateUserSettingsRequest struct {
 // CreateProjectRequest 创建项目请求
 type CreateProjectRequest struct {
 	Requirements string `json:"requirements" binding:"required" example:"项目需求描述"`
+}
+
+// UpdateProjectRequest 更新项目请求
+type UpdateProjectRequest struct {
+	Name          *string `json:"name" binding:"omitempty,min=1,max=200" example:"项目名称"`
+	Description   *string `json:"description" binding:"omitempty" example:"项目描述"`
+	CliTool       *string `json:"cli_tool" binding:"omitempty,oneof=claude-code qwen-code gemini" example:"claude-code"`
+	AiModel       *string `json:"ai_model" binding:"omitempty" example:"glm-4.6"`
+	ModelProvider *string `json:"model_provider" binding:"omitempty,oneof=ollama zhipu anthropic openai vllm" example:"zhipu"`
+	ModelApiUrl   *string `json:"model_api_url" binding:"omitempty" example:"https://open.bigmodel.cn/api/anthropic"`
 }
 
 // ProjectListRequest 项目列表请求

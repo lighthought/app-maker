@@ -23,6 +23,7 @@ type ProjectService interface {
 	// 基础CRUD操作
 	CreateProject(ctx context.Context, req *models.CreateProjectRequest, userID string) (*models.ProjectInfo, error)
 	GetProject(ctx context.Context, projectGuid, userID string) (*models.ProjectInfo, error)
+	UpdateProject(ctx context.Context, projectGuid string, req *models.UpdateProjectRequest, userID string) (*models.ProjectInfo, error)
 	DeleteProject(ctx context.Context, projectGuid, userID string) error
 	ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*models.PaginationResponse, error)
 
@@ -582,6 +583,47 @@ func (s *projectService) GetProject(ctx context.Context, projectGuid, userID str
 		return nil, errors.New(common.MESSAGE_ACCESS_DENIED)
 	}
 	return models.ConvertToProjectInfo(project), nil
+}
+
+// UpdateProject 更新项目
+func (s *projectService) UpdateProject(ctx context.Context, projectGuid string, req *models.UpdateProjectRequest, userID string) (*models.ProjectInfo, error) {
+	// 检查项目访问权限
+	project, err := s.CheckProjectAccess(ctx, projectGuid, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 更新项目字段（只更新非 nil 的字段）
+	if req.Name != nil {
+		project.Name = *req.Name
+	}
+	if req.Description != nil {
+		project.Description = *req.Description
+	}
+	if req.CliTool != nil {
+		project.CliTool = *req.CliTool
+	}
+	if req.AiModel != nil {
+		project.AiModel = *req.AiModel
+	}
+	if req.ModelProvider != nil {
+		project.ModelProvider = *req.ModelProvider
+	}
+	if req.ModelApiUrl != nil {
+		project.ModelApiUrl = *req.ModelApiUrl
+	}
+
+	// 保存更新
+	if err := s.projectRepo.Update(ctx, project); err != nil {
+		logger.Error("更新项目失败",
+			logger.String("projectGuid", projectGuid),
+			logger.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("更新项目失败: %w", err)
+	}
+
+	// 返回更新后的项目信息
+	return s.GetProject(ctx, projectGuid, userID)
 }
 
 // DeleteProject 删除项目
