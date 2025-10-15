@@ -9,18 +9,20 @@ import (
 
 // ConversationMessage 对话消息模型
 type ConversationMessage struct {
-	ID              string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('MSG', 'public.project_msgs_id_num_seq')"`
-	ProjectGuid     string         `json:"project_guid" gorm:"type:varchar(50);"`
-	Type            string         `json:"type" gorm:"size:20;not null"` // user, agent, system
-	AgentRole       string         `json:"agent_role" gorm:"size:20"`    // user, dev, pm, arch, ux, qa, ops
-	AgentName       string         `json:"agent_name" gorm:"size:100"`   // Agent名称
-	Content         string         `json:"content" gorm:"type:text"`
-	IsMarkdown      bool           `json:"is_markdown" gorm:"default:false"`
-	MarkdownContent string         `json:"markdown_content" gorm:"type:text"`
-	IsExpanded      bool           `json:"is_expanded" gorm:"default:false"`
-	CreatedAt       time.Time      `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt       time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
+	ID                  string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('MSG', 'public.project_msgs_id_num_seq')"`
+	ProjectGuid         string         `json:"project_guid" gorm:"type:varchar(50);"`
+	Type                string         `json:"type" gorm:"size:20;not null"` // user, agent, system
+	AgentRole           string         `json:"agent_role" gorm:"size:20"`    // user, dev, pm, arch, ux, qa, ops
+	AgentName           string         `json:"agent_name" gorm:"size:100"`   // Agent名称
+	Content             string         `json:"content" gorm:"type:text"`
+	IsMarkdown          bool           `json:"is_markdown" gorm:"default:false"`
+	MarkdownContent     string         `json:"markdown_content" gorm:"type:text"`
+	IsExpanded          bool           `json:"is_expanded" gorm:"default:false"`
+	HasQuestion         bool           `json:"has_question" gorm:"default:false"`          // 是否包含问题
+	WaitingUserResponse bool           `json:"waiting_user_response" gorm:"default:false"` // 是否等待用户回复
+	CreatedAt           time.Time      `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt           time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
+	DeletedAt           gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
 // TableName 指定表名
@@ -39,6 +41,8 @@ func (c *ConversationMessage) Copy(other *ConversationMessage) {
 	c.IsMarkdown = other.IsMarkdown
 	c.MarkdownContent = other.MarkdownContent
 	c.IsExpanded = other.IsExpanded
+	c.HasQuestion = other.HasQuestion
+	c.WaitingUserResponse = other.WaitingUserResponse
 	c.CreatedAt = other.CreatedAt
 	c.UpdatedAt = other.UpdatedAt
 	c.DeletedAt = other.DeletedAt

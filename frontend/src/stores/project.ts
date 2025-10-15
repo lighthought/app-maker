@@ -269,6 +269,30 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // 向指定 Agent 发送消息
+  const sendMessageToAgent = async (projectGuid: string, agentType: string, content: string) => {
+    try {
+      const response = await httpService.post<{
+        code: number
+        message: string
+        data: any
+      }>(`/chat/send-to-agent/${projectGuid}`, {
+        agent_type: agentType,
+        content: content
+      })
+
+      if (response.code === 0) {
+        return response.data
+      } else {
+        console.error('向 Agent 发送消息失败:', response.message)
+        return null
+      }
+    } catch (error) {
+      console.error('向 Agent 发送消息失败:', error)
+      return null
+    }
+  }
+
   // 获取项目开发阶段
   const getProjectStages = async (projectGuid: string) => {
     try {
@@ -324,6 +348,7 @@ export const useProjectStore = defineStore('project', () => {
     setCurrentProject,
     getProjectMessages,
     addChatMessage,
+    sendMessageToAgent,
     getProjectStages,
     downloadProject,
     deployProject

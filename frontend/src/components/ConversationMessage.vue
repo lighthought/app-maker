@@ -14,7 +14,7 @@
     </div>
 
     <!-- Agent/系统消息 - 左侧显示 -->
-    <div v-else class="agent-message">
+    <div v-else class="agent-message" :class="{ 'waiting-response': message.waiting_user_response }">
       <div class="agent-avatar" :class="agentAvatarClass">
         <n-icon size="20" color="white">
           <component :is="agentIcon" />
@@ -24,6 +24,12 @@
         <div v-if="hasAgentInfo" class="agent-header">
           <span class="agent-name">{{ message.agent_name || getAgentName(message.agent_role) }}</span>
           <span class="agent-role">{{ getAgentRoleText(message.agent_role) }}</span>
+          <!-- 问题标识 -->
+          <span v-if="message.has_question" class="question-indicator" title="包含问题，等待回复">
+            <n-icon size="16" color="#f59e0b">
+              <QuestionIcon />
+            </n-icon>
+          </span>
         </div>
         
         <!-- 普通文本消息 -->
@@ -94,7 +100,8 @@ import {
   InfoIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  CopyIcon
+  CopyIcon,
+  QuestionIcon
 } from '@/components/icon'
 
 interface Props {
@@ -307,6 +314,25 @@ const copyMarkdown = async () => {
   margin-bottom: var(--spacing-sm);
 }
 
+.question-indicator {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .agent-name {
   font-weight: bold;
   color: var(--primary-color);
@@ -339,6 +365,12 @@ const copyMarkdown = async () => {
 
 .agent-message .message-time {
   text-align: left;
+}
+
+/* 等待回复的消息样式 */
+.agent-message.waiting-response {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
 }
 
 /* Markdown消息样式 */

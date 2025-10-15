@@ -60,6 +60,9 @@
     <div class="input-section">
       <SmartInput
         v-model="inputValue"
+        v-model:selectedAgent="selectedAgent"
+        :agentOptions="agentOptions"
+        :agentLocked="isAgentLocked"
         :placeholder="t('common.inputRequirements')"
         @send="handleSendMessage"
       />
@@ -117,6 +120,22 @@ const devStages = ref<DevStage[]>([])
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const inputValue = ref('')
+
+// Agent 相关状态
+const lastAgentType = ref<string>('') // 最后一次提问的 Agent
+const isAgentLocked = ref(false) // 是否锁定 Agent 选择
+const selectedAgent = ref<string>('') // 当前选择的 Agent
+
+// Agent 选项列表
+const agentOptions = [
+  { label: '需求分析师', value: 'analyst' },
+  { label: '产品经理', value: 'pm' },
+  { label: '用户体验专家', value: 'ux-expert' },
+  { label: '架构师', value: 'architect' },
+  { label: '产品负责人', value: 'po' },
+  { label: '开发工程师', value: 'dev' },
+  { label: '测试工程师', value: 'qa' },
+]
 
 // 定时刷新（作为 WebSocket 的备用方案）
 let refreshTimer: number | null = null
@@ -370,8 +389,8 @@ const handleRetrySuccess = async () => {
 }
 
 // 发送消息
-const handleSendMessage = async (content: string) => {
-  if (!content.trim()) return
+const handleSendMessage = async (content: string, agentType: string) => {
+  if (!content.trim() || !agentType) return
   
   isLoading.value = true
   
@@ -386,23 +405,17 @@ const handleSendMessage = async (content: string) => {
       }
     }
     
-    // 添加用户消息
-    const userMessage = await projectStore.addChatMessage(props.projectGuid, {
-      type: 'user',
-      content: content.trim(),
-      is_expanded: false
-    })
-    
-    if (userMessage) {
-      messages.value.push(userMessage)
-      scrollToBottom()
-    }
+    // 调用新的 API：向指定 Agent 发送消息
+    await projectStore.sendMessageToAgent(
+      props.projectGuid, 
+      agentType, 
+      content.trim()
+    )
     
     // 清空输入框
     inputValue.value = ''
     
-    // 这里可以添加发送到后端的逻辑
-    // 后端会通过WebSocket推送AI回复
+    // WebSocket 会推送新消息
     
   } catch (error) {
     console.error('发送消息失败:', error)
@@ -460,6 +473,31 @@ watch([wsProjectStages, wsProjectMessages], (newValues, oldValues) => {
     console.log('  - Messages: 旧数据', oldMessages?.length || 0, '条 → 新数据', newMessages?.length || 0, '条')
     
     syncWebSocketData()
+  }
+}, { deep: true })
+
+// 监听消息变化，管理 Agent 锁定状态
+watch(messages, (newMessages) => {
+  // 找到最后一条包含问题且等待回复的 Agent 消息
+  const lastQuestionMsg = [...newMessages]
+    .reverse()
+    .find(msg => msg.type === 'agent' && msg.has_question && msg.waiting_user_response)
+  
+  if (lastQuestionMsg) {
+    lastAgentType.value = lastQuestionMsg.agent_role || ''
+    selectedAgent.value = lastQuestionMsg.agent_role || ''
+    isAgentLocked.value = true
+    console.log('🔒 [Agent] 锁定 Agent 选择:', lastQuestionMsg.agent_role)
+  } else {
+    isAgentLocked.value = false
+    // 默认选择最后一条 Agent 消息的类型
+    const lastAgentMsg = [...newMessages]
+      .reverse()
+      .find(msg => msg.type === 'agent')
+    if (lastAgentMsg && !selectedAgent.value) {
+      selectedAgent.value = lastAgentMsg.agent_role || ''
+      console.log('🔄 [Agent] 默认选择 Agent:', lastAgentMsg.agent_role)
+    }
   }
 }, { deep: true })
 

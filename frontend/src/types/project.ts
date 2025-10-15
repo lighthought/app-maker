@@ -14,7 +14,7 @@ export interface Project {
   guid: string
   name: string
   description: string
-  status: 'pending' | 'in_progress' | 'done' | 'failed'
+  status: 'pending' | 'in_progress' | 'done' | 'failed' | 'paused'
   requirements: string
   projectPath: string
   backendPort: number
@@ -83,6 +83,8 @@ export interface ConversationMessage {
   is_markdown?: boolean
   markdown_content?: string
   is_expanded?: boolean
+  has_question?: boolean
+  waiting_user_response?: boolean
   created_at: string
   updated_at: string
 }
@@ -91,7 +93,7 @@ export interface ConversationMessage {
 export interface DevStage {
   id: string
   name: string
-  status: 'pending' | 'in_progress' | 'done' | 'failed'
+  status: 'pending' | 'in_progress' | 'done' | 'failed' | 'paused'
   progress: number
   description: string
   failed_reason: string

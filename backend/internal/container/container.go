@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"shared-models/auth"
+	"shared-models/client"
 	"shared-models/common"
 	"shared-models/logger"
 	"time"
@@ -140,9 +141,12 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		}
 	}()
 
+	// 创建 AgentClient
+	agentClient := client.NewAgentClient(cfg.Agents.URL, 10*time.Second)
+
 	// handlers
 	cacheHandler := handlers.NewCacheHandler(cacheInstance, cachMonitor)
-	chatHandler := handlers.NewChatHandler(messageService, fileService)
+	chatHandler := handlers.NewChatHandler(messageService, fileService, projectStageService, agentClient)
 	fileHandler := handlers.NewFileHandler(fileService, projectService)
 	projectHandler := handlers.NewProjectHandler(projectService, projectStageService, previewService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)

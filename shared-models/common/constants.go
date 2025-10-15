@@ -71,6 +71,7 @@ const (
 	CommonStatusInProgress = "in_progress"
 	CommonStatusDone       = "done"
 	CommonStatusFailed     = "failed"
+	CommonStatusPaused     = "paused"
 )
 
 func GetProgressByCommonStatus(commandStatus string) int {
@@ -83,6 +84,8 @@ func GetProgressByCommonStatus(commandStatus string) int {
 		return 100
 	case CommonStatusFailed:
 		return 0
+	case CommonStatusPaused:
+		return 50
 	default:
 		return 0
 	}

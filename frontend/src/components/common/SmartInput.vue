@@ -1,6 +1,15 @@
 <template>
   <div class="smart-input">
     <div class="input-container">
+      <n-select 
+        v-model:value="currentAgent"
+        :options="agentOptions"
+        :disabled="agentLocked"
+        class="agent-selector"
+        size="large"
+        :placeholder="t('common.selectAgent')"
+        :theme-overrides="selectThemeOverrides"
+      />
       <n-input
         v-model:value="inputValue"
         :placeholder="placeholder"
@@ -14,7 +23,7 @@
       <n-button
         :type="buttonType"
         :size="size"
-        :disabled="!inputValue.trim()"
+        :disabled="!inputValue.trim() || !currentAgent"
         @click="handleSend"
         class="send-button"
       >
@@ -28,7 +37,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { NInputGroup, NInput, NButton, NIcon } from 'naive-ui'
+import { NInputGroup, NInput, NButton, NIcon, NSelect } from 'naive-ui'
+import { useI18n } from 'vue-i18n'
 // 导入图标
 import { SendIcon } from '@/components/icon'
 
@@ -38,11 +48,15 @@ interface Props {
   size?: 'small' | 'medium' | 'large'
   buttonType?: 'default' | 'primary' | 'info' | 'success' | 'warning' | 'error'
   autosize?: { minRows: number; maxRows: number }
+  agentOptions?: Array<{ label: string; value: string }>
+  selectedAgent?: string
+  agentLocked?: boolean
 }
 
 interface Emits {
   (e: 'update:modelValue', value: string): void
-  (e: 'send', value: string): void
+  (e: 'update:selectedAgent', value: string): void
+  (e: 'send', value: string, agentType: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -50,10 +64,14 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '请输入内容...',
   size: 'large',
   buttonType: 'default',
-  autosize: () => ({ minRows: 3, maxRows: 6 })
+  autosize: () => ({ minRows: 3, maxRows: 6 }),
+  agentOptions: () => [],
+  selectedAgent: '',
+  agentLocked: false
 })
 
 const emit = defineEmits<Emits>()
+const { t } = useI18n()
 
 // 主题覆盖配置
 const inputThemeOverrides = {
@@ -64,17 +82,34 @@ const inputThemeOverrides = {
   textColor: '#2D3748'
 }
 
+const selectThemeOverrides = {
+  borderHover: 'none',
+  borderFocus: 'none',
+  border: '1px solid #E2E8F0',
+  color: 'white',
+  textColor: '#2D3748'
+}
+
 // 内部输入值
 const inputValue = ref(props.modelValue)
+const currentAgent = ref(props.selectedAgent)
 
 // 监听外部值变化
 watch(() => props.modelValue, (newVal) => {
   inputValue.value = newVal
 })
 
+watch(() => props.selectedAgent, (newVal) => {
+  currentAgent.value = newVal
+})
+
 // 监听内部值变化，同步到外部
 watch(inputValue, (newVal) => {
   emit('update:modelValue', newVal)
+})
+
+watch(currentAgent, (newVal) => {
+  emit('update:selectedAgent', newVal)
 })
 
 // 键盘事件处理
@@ -91,9 +126,9 @@ const handleEnterKey = (event: KeyboardEvent) => {
 
 // 发送处理
 const handleSend = () => {
-  if (!inputValue.value.trim()) return
+  if (!inputValue.value.trim() || !currentAgent.value) return
   
-  emit('send', inputValue.value.trim())
+  emit('send', inputValue.value.trim(), currentAgent.value)
   // 发送后清空输入框
   inputValue.value = ''
 }
@@ -110,6 +145,15 @@ const handleSend = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   background: white;
   border-radius: var(--border-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.agent-selector {
+  flex-shrink: 0;
+  width: 100%;
 }
 
 .input-field {
@@ -126,8 +170,8 @@ const handleSend = () => {
 
 .send-button {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
+  bottom: 20px;
+  right: 20px;
   width: 40px;
   height: 40px;
   background: #000000;
@@ -166,12 +210,23 @@ const handleSend = () => {
   color: var(--text-primary);
   font-size: 20px;
   line-height: 1.5;
-  padding: 16px 20px;
+  padding: 12px 16px;
   padding-right: 60px;
   border: none;
   outline: none;
   text-align: left;
   resize: none;
+}
+
+/* 选择器样式优化 */
+:deep(.n-select) {
+  background: transparent;
+}
+
+:deep(.n-base-selection) {
+  background: transparent;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
 }
 
 :deep(.n-input__textarea-el::placeholder) {

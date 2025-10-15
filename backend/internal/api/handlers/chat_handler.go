@@ -3,30 +3,39 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"shared-models/agent"
 	"shared-models/common"
+	"shared-models/logger"
 	"shared-models/utils"
 	"strconv"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
+	"shared-models/client"
 
 	"github.com/gin-gonic/gin"
 )
 
 // ChatHandler 对话消息处理器
 type ChatHandler struct {
-	messageService services.MessageService
-	fileService    services.FileService
+	messageService      services.MessageService
+	fileService         services.FileService
+	projectStageService services.ProjectStageService
+	agentClient         *client.AgentClient
 }
 
 // NewChatHandler 创建对话消息处理器
 func NewChatHandler(
 	messageService services.MessageService,
 	fileService services.FileService,
+	projectStageService services.ProjectStageService,
+	agentClient *client.AgentClient,
 ) *ChatHandler {
 	return &ChatHandler{
-		messageService: messageService,
-		fileService:    fileService,
+		messageService:      messageService,
+		fileService:         fileService,
+		projectStageService: projectStageService,
+		agentClient:         agentClient,
 	}
 }
 
@@ -158,4 +167,69 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, utils.GetSuccessResponse("添加对话消息成功", result))
+}
+
+// SendMessageToAgent 向指定 Agent 发送消息
+// @Summary 向指定 Agent 发送消息
+// @Description 用户向特定 Agent 发送消息，用于回答 Agent 的问题并恢复项目执行
+// @Tags 对话消息
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param guid path string true "项目GUID"
+// @Param message body object true "消息内容" SchemaExample({"agent_type":"dev","content":"确认，继续执行"})
+// @Success 200 {object} map[string]interface{} "成功响应"
+// @Failure 400 {object} map[string]string "请求参数错误"
+// @Failure 500 {object} map[string]string "服务器内部错误"
+// @Router /api/v1/chat/send-to-agent/{guid} [post]
+func (h *ChatHandler) SendMessageToAgent(c *gin.Context) {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
+		return
+	}
+
+	var req struct {
+		AgentType string `json:"agent_type" binding:"required"`
+		Content   string `json:"content" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "请求参数错误"))
+		return
+	}
+
+	// 创建用户消息
+	userMessage := &models.ConversationMessage{
+		ProjectGuid:     projectGuid,
+		Type:            common.ConversationTypeUser,
+		AgentRole:       common.AgentTypeUser,
+		AgentName:       "user",
+		Content:         req.Content,
+		IsMarkdown:      false,
+		MarkdownContent: req.Content,
+		IsExpanded:      false,
+	}
+
+	// 调用 agents 模块的聊天接口
+	chatReq := &agent.ChatReq{
+		ProjectGuid: projectGuid,
+		AgentType:   req.AgentType,
+		Message:     req.Content,
+	}
+
+	// 调用 agents 的 ChatWithAgent 接口
+	response, err := h.agentClient.ChatWithAgent(c.Request.Context(), chatReq)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "与 Agent 对话失败: "+err.Error()))
+		return
+	}
+
+	// 如果项目处于暂停状态，恢复项目执行
+	if err := h.projectStageService.ResumeProjectExecution(c.Request.Context(), projectGuid, userMessage); err != nil {
+		logger.Error("恢复项目执行失败", logger.String("error", err.Error()))
+		// 不返回错误，因为消息已经发送成功
+	}
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("消息发送成功", response))
 }

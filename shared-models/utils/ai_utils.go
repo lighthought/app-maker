@@ -22,6 +22,55 @@ import (
 	api "github.com/ollama/ollama/api"
 )
 
+// ContainsQuestion 检测文本中是否包含问题
+// 支持检测中英文问号、常见问题关键词等
+func ContainsQuestion(text string) bool {
+	if text == "" {
+		return false
+	}
+
+	// 转换为小写以便检测
+	lowerText := strings.ToLower(text)
+
+	// 检测问号（中英文）
+	if strings.Contains(text, "?") || strings.Contains(text, "？") {
+		return true
+	}
+
+	// 检测常见问题关键词
+	questionKeywords := []string{
+		"请确认", "需要确认", "请问", "是否", "能否", "可否", "可以吗", "对吗", "是吗",
+		"请选择", "请决定", "请告诉我", "请说明", "请解释", "请描述",
+		"你觉得", "你认为", "你建议", "你推荐", "你希望", "你要求",
+		"confirm", "please confirm", "please choose", "please select",
+		"please tell", "please explain", "please describe", "do you think",
+		"would you like", "do you want", "do you need", "is it ok",
+		"is that correct", "is this right", "can you", "could you",
+	}
+
+	for _, keyword := range questionKeywords {
+		if strings.Contains(lowerText, keyword) {
+			return true
+		}
+	}
+
+	// 检测疑问句模式
+	questionPatterns := []string{
+		"什么.*？", "怎么.*？", "如何.*？", "为什么.*？", "哪里.*？", "哪个.*？",
+		"what.*\\?", "how.*\\?", "why.*\\?", "where.*\\?", "which.*\\?",
+		"when.*\\?", "who.*\\?", "whose.*\\?",
+	}
+
+	for _, pattern := range questionPatterns {
+		matched, _ := regexp.MatchString(pattern, text)
+		if matched {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ProjectSummaryResponse 项目总结响应结构
 type ProjectSummaryResponse struct {
 	Title   string `json:"title"`

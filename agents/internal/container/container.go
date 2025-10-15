@@ -31,6 +31,7 @@ type Container struct {
 
 	// API Handlers
 	ProjectHandler   *handlers.ProjectHandler
+	ChatHandler      *handlers.ChatHandler
 	AnalyseHandler   *handlers.AnalyseHandler
 	PmHandler        *handlers.PmHandler
 	UxHandler        *handlers.UxHandler
@@ -68,6 +69,7 @@ func NewContainer(cfg *config.Config) *Container {
 	asynqServer := initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
 	projectHandler := handlers.NewProjectHandler(agentTaskService, projectSvc)
+	chatHandler := handlers.NewChatHandler(agentTaskService)
 	analyseHandler := handlers.NewAnalyseHandler(agentTaskService)
 	pmHandler := handlers.NewPmHandler(agentTaskService)
 	poHandler := handlers.NewPoHandler(agentTaskService)
@@ -85,6 +87,7 @@ func NewContainer(cfg *config.Config) *Container {
 		GitService:       gitService,
 		RedisClient:      redisClient,
 		ProjectHandler:   projectHandler,
+		ChatHandler:      chatHandler,
 		AnalyseHandler:   analyseHandler,
 		PmHandler:        pmHandler,
 		PoHandler:        poHandler,

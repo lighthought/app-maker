@@ -24,6 +24,8 @@ type ProjectStageService interface {
 	GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error)
 	// 处理项目任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
+	// 恢复项目执行
+	ResumeProjectExecution(ctx context.Context, projectGuid string, userMessage *models.ConversationMessage) error
 }
 
 // ProjectStageService 任务执行服务
@@ -122,11 +124,11 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 		{common.DevStatusCheckRequirement, "检查需求", s.checkRequirement},
 		{common.DevStatusGeneratePRD, "生成PRD文档", s.generatePRD},
 		{common.DevStatusDefineUXStandard, "定义UX标准", s.defineUXStandards},
-		{common.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
-		{common.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
-		{common.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
-		{common.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
-		{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
+		// TODO: 调试屏蔽，{common.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
+		// TODO: 调试屏蔽，{common.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
+		// TODO: 调试屏蔽，{common.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
+		// TODO: 调试屏蔽，{common.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
+		// TODO: 调试屏蔽，{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
 		//{common.DevStatusFixBug, "修复开发问题", s.fixBugs}, // 这个要用户前端输入，可以提供入口
 		{common.DevStatusRunTest, "执行自动测试", s.runTests},
 		{common.DevStatusDeploy, "打包项目", s.packageProject},
@@ -174,6 +176,8 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 				logger.String("projectID", project.ID),
 			)
 		}
+
+		// TODO: 等待当前阶段变成完成状态、不再是暂停的状态
 	}
 
 	// 开发完成
@@ -249,6 +253,27 @@ func (s *projectStageService) handleProjectDeployTask(ctx context.Context, t *as
 func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 	project *models.Project, message *models.ConversationMessage, stage *models.DevStage) {
 	if message != nil {
+		// 检查是否需要暂停（Agent 消息包含问题）
+		if message.Type == common.ConversationTypeAgent {
+			hasQuestion := utils.ContainsQuestion(message.Content) || utils.ContainsQuestion(message.MarkdownContent)
+			if hasQuestion {
+				message.HasQuestion = true
+				message.WaitingUserResponse = true
+
+				// 暂停项目和当前阶段
+				project.Status = common.CommonStatusPaused
+				if stage != nil {
+					stage.Status = common.CommonStatusPaused
+				}
+
+				logger.Info("检测到 Agent 问题，暂停项目执行",
+					logger.String("projectID", project.ID),
+					logger.String("agentRole", message.AgentRole),
+					logger.String("agentName", message.AgentName),
+				)
+			}
+		}
+
 		// 保存用户消息
 		if err := s.messageRepo.Create(ctx, message); err != nil {
 			logger.Error("保存项目消息失败",
@@ -991,5 +1016,62 @@ func (s *projectStageService) packageProject(ctx context.Context,
 	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 80, "项目项目已打包部署")
+	return nil
+}
+
+// ResumeProjectExecution 恢复项目执行
+func (s *projectStageService) ResumeProjectExecution(ctx context.Context, projectGuid string, userMessage *models.ConversationMessage) error {
+	// 获取项目信息
+	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
+	if err != nil {
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+
+	// 检查项目是否处于暂停状态
+	if project.Status != common.CommonStatusPaused {
+		logger.Info("项目未处于暂停状态，无需恢复", logger.String("projectID", project.ID), logger.String("status", project.Status))
+		return nil
+	}
+
+	// 保存用户消息
+	if userMessage != nil {
+		if err := s.messageRepo.Create(ctx, userMessage); err != nil {
+			logger.Error("保存用户消息失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+			)
+		}
+		s.webSocketService.NotifyProjectMessage(ctx, project.GUID, userMessage)
+	}
+
+	// 恢复项目状态
+	project.Status = common.CommonStatusInProgress
+	if err := s.projectRepo.Update(ctx, project); err != nil {
+		return fmt.Errorf("更新项目状态失败: %w", err)
+	}
+
+	// 恢复当前暂停的阶段
+	currentStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, project.DevStatus)
+	if err == nil && currentStage != nil && currentStage.Status == common.CommonStatusPaused {
+		currentStage.Status = common.CommonStatusInProgress
+		if err := s.stageRepo.Update(ctx, currentStage); err != nil {
+			logger.Error("恢复阶段状态失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+				logger.String("stageID", currentStage.ID),
+			)
+		} else {
+			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, currentStage)
+		}
+	}
+
+	// 通知前端项目状态更新
+	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+
+	logger.Info("项目执行已恢复",
+		logger.String("projectID", project.ID),
+		logger.String("devStatus", project.DevStatus),
+	)
+
 	return nil
 }

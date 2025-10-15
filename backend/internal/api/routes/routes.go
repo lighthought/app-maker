@@ -211,14 +211,18 @@ func Register(engine *gin.Engine, container *container.Container) {
 		conversations.Use(authMiddleware) // 应用认证中间件
 		{
 			if chatHandler != nil {
-				conversations.GET("/messages/:guid", chatHandler.GetProjectMessages) // 获取对话历史
-				conversations.POST("/chat/:guid", chatHandler.AddChatMessage)        // 添加对话消息
+				conversations.GET("/messages/:guid", chatHandler.GetProjectMessages)       // 获取对话历史
+				conversations.POST("/chat/:guid", chatHandler.AddChatMessage)              // 添加对话消息
+				conversations.POST("/send-to-agent/:guid", chatHandler.SendMessageToAgent) // 向指定 Agent 发送消息
 			} else {
 				conversations.GET("/messages/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Chat messages endpoint - TODO"})
 				})
 				conversations.POST("/chat/:guid", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Chat add message endpoint - TODO"})
+				})
+				conversations.POST("/send-to-agent/:guid", func(c *gin.Context) {
+					c.JSON(200, gin.H{"message": "Send message to agent endpoint - TODO"})
 				})
 			}
 		}

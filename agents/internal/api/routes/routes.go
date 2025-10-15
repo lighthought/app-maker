@@ -44,6 +44,19 @@ func Register(
 
 		agent := routers.Group("/agent")
 		{
+			// Chat Handler
+			chat := agent.Group("/chat")
+			{
+				chatHandler := container.ChatHandler
+				if chatHandler != nil {
+					chat.POST("", chatHandler.ChatWithAgent)
+				} else {
+					chat.POST("", func(c *gin.Context) {
+						c.JSON(200, gin.H{"message": "Chat with agent endpoint - TODO"})
+					})
+				}
+			}
+
 			// 各 Agent Handler
 			analyse := agent.Group("/analyse")
 			{

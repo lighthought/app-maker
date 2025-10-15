@@ -120,3 +120,10 @@ func (a *DeployReq) ToBytes() []byte {
 	}
 	return bytes
 }
+
+// 与 Agent 对话请求
+type ChatReq struct {
+	ProjectGuid string `json:"project_guid" binding:"required" example:"1234567890"`
+	AgentType   string `json:"agent_type" binding:"required" example:"dev"`
+	Message     string `json:"message" binding:"required" example:"确认，继续执行"`
+}

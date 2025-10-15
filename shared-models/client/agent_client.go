@@ -291,3 +291,18 @@ func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*tasks.
 	taskID := resp.Data.(string)
 	return c.waitForTaskCompletion(ctx, taskID)
 }
+
+// ChatWithAgent 与 Agent 对话
+func (c *AgentClient) ChatWithAgent(ctx context.Context, req *agent.ChatReq) (*tasks.TaskResult, error) {
+	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/chat", req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
+	}
+
+	taskID := resp.Data.(string)
+	return c.waitForTaskCompletion(ctx, taskID)
+}
