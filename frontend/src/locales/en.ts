@@ -37,6 +37,8 @@ export default {
     reconnecting: 'Reconnecting... ({attempts}/{max})',
     aiThinking: 'AI Agent is thinking...',
     inputRequirements: 'Enter your requirements or questions...',
+    selectAgent: 'Select an Agent to chat with',
+    agentLocked: 'Agent locked, waiting for response',
     manualRefresh: 'Manual Refresh',
     refresh: 'Refresh',
     expand: 'Expand',

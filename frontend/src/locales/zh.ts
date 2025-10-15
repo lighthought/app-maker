@@ -37,6 +37,8 @@ export default {
     reconnecting: '正在重连... ({attempts}/{max})',
     aiThinking: 'AI Agent 正在思考中...',
     inputRequirements: '输入您的需求或问题...',
+    selectAgent: '选择要对话的 Agent',
+    agentLocked: 'Agent 已锁定，正在等待回复',
     manualRefresh: '手动刷新',
     refresh: '刷新',
     expand: '展开',

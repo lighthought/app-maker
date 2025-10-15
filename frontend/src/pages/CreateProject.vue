@@ -59,8 +59,9 @@ const projectDescription = ref('')
 const isCreating = ref(false)
 
 // 方法
-const handleProjectCreate = async () => {
-  if (!projectDescription.value.trim()) {
+const handleProjectCreate = async (content?: string) => {
+  const description = content || projectDescription.value
+  if (!description.trim()) {
     message.warning(t('project.descriptionRequired'))
     return
   }
@@ -71,7 +72,7 @@ const handleProjectCreate = async () => {
     
     // 不再生成项目名称，让后端自动生成
     const projectData = {
-      requirements: projectDescription.value.trim(),
+      requirements: description.trim(),
     }
     
     const createdProject = await projectStore.createProject(projectData)

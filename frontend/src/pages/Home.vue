@@ -255,12 +255,12 @@ const toggleLanguage = () => {
   localStorage.setItem('preferred-language', locale.value)
 }
 
-const handleProjectCreate = async () => {
-  if (!projectDescription.value.trim()) return
+const handleProjectCreate = async (content: string) => {
+  if (!content || !content.trim()) return
   
   if (!isLoggedIn.value) {
     // 未登录用户跳转到登录页面，并保存输入内容
-    localStorage.setItem('pendingProjectDescription', projectDescription.value)
+    localStorage.setItem('pendingProjectDescription', content)
     router.push('/auth')
     return
   }
@@ -268,7 +268,7 @@ const handleProjectCreate = async () => {
   // 已登录用户直接跳转到创建项目页面
   router.push({
     path: '/create-project',
-    query: { description: projectDescription.value }
+    query: { description: content }
   })
 }
 

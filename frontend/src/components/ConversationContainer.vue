@@ -126,16 +126,16 @@ const lastAgentType = ref<string>('') // 最后一次提问的 Agent
 const isAgentLocked = ref(false) // 是否锁定 Agent 选择
 const selectedAgent = ref<string>('') // 当前选择的 Agent
 
-// Agent 选项列表
-const agentOptions = [
-  { label: '需求分析师', value: 'analyst' },
-  { label: '产品经理', value: 'pm' },
-  { label: '用户体验专家', value: 'ux-expert' },
-  { label: '架构师', value: 'architect' },
-  { label: '产品负责人', value: 'po' },
-  { label: '开发工程师', value: 'dev' },
-  { label: '测试工程师', value: 'qa' },
-]
+// Agent 选项列表 - 使用国际化
+const agentOptions = computed(() => [
+  { label: t('agent.analyst'), value: 'analyst' },
+  { label: t('agent.productManager'), value: 'pm' },
+  { label: t('agent.uxExpert'), value: 'ux-expert' },
+  { label: t('agent.architect'), value: 'architect' },
+  { label: t('agent.productOwner'), value: 'po' },
+  { label: t('agent.devEngineer'), value: 'dev' },
+  { label: t('agent.testEngineer'), value: 'qa' },
+])
 
 // 定时刷新（作为 WebSocket 的备用方案）
 let refreshTimer: number | null = null
