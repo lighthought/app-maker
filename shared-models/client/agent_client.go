@@ -65,13 +65,32 @@ func (c *AgentClient) HealthCheck(ctx context.Context) (*agent.AgentHealthResp, 
 }
 
 // 等待任务完成或失败
+// 注意：此方法使用独立的 background context，不受 HTTP 请求超时限制
 func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) (*tasks.TaskResult, error) {
+	// 使用 background context 替代传入的 ctx，避免 HTTP 请求超时导致长时间运行的任务被中断
+	// 原始的 ctx 仅用于检查是否被主动取消
+	bgCtx := context.Background()
+
 	iRetryTimes := 0
-	iMaxRetryTimes := 1000
+	iMaxRetryTimes := 600 // 最多等待约 83 分钟 (600 * 5 秒)
+
 	for iRetryTimes < iMaxRetryTimes {
-		resp, err := c.httpClient.Get(ctx, "/api/v1/tasks/"+taskID)
+		// 检查原始 context 是否被取消（允许主动取消任务）
+		select {
+		case <-ctx.Done():
+			logger.Info("任务等待被取消", logger.String("taskID", taskID))
+			return nil, fmt.Errorf("任务等待被取消: %w", ctx.Err())
+		default:
+			// 继续执行
+		}
+
+		// 使用 background context 进行 HTTP 请求，避免超时
+		resp, err := c.httpClient.Get(bgCtx, "/api/v1/tasks/"+taskID)
 		if err != nil {
-			logger.Info("获取任务状态失败", logger.String("taskID", taskID), logger.String("error", err.Error()))
+			logger.Info("获取任务状态失败",
+				logger.String("taskID", taskID),
+				logger.String("error", err.Error()),
+				logger.Int("retryTimes", iRetryTimes))
 			return nil, err
 		}
 		if resp.Code != common.SUCCESS_CODE {
@@ -80,24 +99,40 @@ func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) 
 
 		result := &tasks.TaskResult{}
 		if err := parseResponseData(resp, result); err != nil {
-			logger.Info("解析任务状态失败", logger.String("taskID", taskID), logger.String("error", err.Error()))
+			logger.Info("解析任务状态失败",
+				logger.String("taskID", taskID),
+				logger.String("error", err.Error()))
 			return nil, err
 		}
 
 		if result.Status == common.CommonStatusDone {
-			logger.Info("任务完成", logger.String("taskID", taskID))
+			logger.Info("任务完成",
+				logger.String("taskID", taskID),
+				logger.Int("totalRetries", iRetryTimes))
 			return result, nil
 		}
 		if result.Status == common.CommonStatusFailed {
-			logger.Info("任务失败", logger.String("taskID", taskID))
+			logger.Info("任务失败",
+				logger.String("taskID", taskID),
+				logger.String("message", result.Message))
 			return result, fmt.Errorf("agent 任务执行失败: %s", result.Message)
 		}
 
+		// 等待 5 秒后重试
 		time.Sleep(5 * time.Second)
 		iRetryTimes++
+
+		// 每 10 次重试记录一次日志
+		if iRetryTimes%10 == 0 {
+			logger.Info("任务仍在执行中",
+				logger.String("taskID", taskID),
+				logger.String("status", result.Status),
+				logger.String("message", result.Message),
+				logger.Int("retryTimes", iRetryTimes))
+		}
 	}
 
-	return nil, fmt.Errorf("任务超时")
+	return nil, fmt.Errorf("任务超时: 已等待 %d 秒", iMaxRetryTimes*5)
 }
 
 // SetupProjectEnvironment 项目环境准备

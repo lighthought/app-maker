@@ -144,6 +144,15 @@ func NewProjectDeployTask(req *agent.DeployReq) *asynq.Task {
 		asynq.Retention(taskRetentionHour))
 }
 
+// 创建与 Agent 对话任务
+func NewAgentChatTask(req *agent.ChatReq) *asynq.Task {
+	return asynq.NewTask(common.TaskTypeAgentChat,
+		req.ToBytes(),
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
+}
+
 // updateResult 是一个帮助函数，用于将任务进度更新到Redis。
 // 这里假设使用一个Redis Hash结构，key为`task:progress:<task_id>`。
 func UpdateResult(resultWriter *asynq.ResultWriter, status string, progress int, message string) {
@@ -160,4 +169,9 @@ func UpdateResult(resultWriter *asynq.ResultWriter, status string, progress int,
 		UpdatedAt: utils.GetCurrentTime(),
 	}
 	resultWriter.Write(data.ToBytes())
+	logger.Info("更新任务进度",
+		logger.String("taskID", resultWriter.TaskID()),
+		logger.String("status", status),
+		logger.Int("progress", progress),
+		logger.String("message", message))
 }

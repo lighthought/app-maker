@@ -219,6 +219,32 @@ var (
 	AgentBMADMaster = agent.Agent{Name: "BMad Master", Role: AgentTypeBMADMaster, ChineseRole: "BMAD管理员"}
 )
 
+// 通过 Agent 类型获取 Agent
+func GetAgentByAgentType(agentType string) *agent.Agent {
+	switch agentType {
+	case AgentTypeAnalyse:
+		return &AgentAnalyst
+	case AgentTypeDev:
+		return &AgentDev
+	case AgentTypePM:
+		return &AgentPM
+	case AgentTypePO:
+		return &AgentPO
+	case AgentTypeArchitect:
+		return &AgentArchitect
+	case AgentTypeUX:
+		return &AgentUXExpert
+	case AgentTypeQA:
+		return &AgentQA
+	case AgentTypeSM:
+		return &AgentSM
+	case AgentTypeBMADMaster:
+		return &AgentBMADMaster
+	default:
+		return nil
+	}
+}
+
 // 会话消息类型
 const (
 	ConversationTypeUser   = "user"
@@ -228,15 +254,15 @@ const (
 
 // WebSocket消息类型
 const (
-	WebSocketMessageTypePing                 = "ping"
-	WebSocketMessageTypePong                 = "pong"
-	WebSocketMessageTypeJoinProject          = "join_project"
-	WebSocketMessageTypeLeaveProject         = "leave_project"
-	WebSocketMessageTypeProjectStageUpdate   = "project_stage_update"
-	WebSocketMessageTypeProjectMessage       = "project_message"
-	WebSocketMessageTypeProjectInfoUpdate    = "project_info_update"
-	WebSocketMessageTypeAgentMessage         = "agent_message"
-	WebSocketMessageTypeUserFeedback         = "user_feedback"
+	WebSocketMessageTypePing               = "ping"
+	WebSocketMessageTypePong               = "pong"
+	WebSocketMessageTypeJoinProject        = "join_project"
+	WebSocketMessageTypeLeaveProject       = "leave_project"
+	WebSocketMessageTypeProjectStageUpdate = "project_stage_update"
+	WebSocketMessageTypeProjectMessage     = "project_message"
+	WebSocketMessageTypeProjectInfoUpdate  = "project_info_update"
+	WebSocketMessageTypeAgentMessage       = "agent_message"
+	//WebSocketMessageTypeUserFeedback         = "user_feedback"
 	WebSocketMessageTypeUserFeedbackResponse = "user_feedback_response"
 	WebSocketMessageTypeError                = "error"
 )
@@ -251,6 +277,7 @@ const (
 	TaskTypeWebSocketBroadcast = "ws:broadcast"        // WebSocket 消息广播
 	TaskTypeAgentExecute       = "agent:execute"       // 代理执行任务
 	TaskTypeAgentSetup         = "agent:setup"         // 项目环境准备任务
+	TaskTypeAgentChat          = "agent:chat"          // 与 Agent 对话任务
 )
 
 // 任务优先级

@@ -127,3 +127,11 @@ type ChatReq struct {
 	AgentType   string `json:"agent_type" binding:"required" example:"dev"`
 	Message     string `json:"message" binding:"required" example:"确认，继续执行"`
 }
+
+func (a *ChatReq) ToBytes() []byte {
+	bytes, err := json.Marshal(a)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}
