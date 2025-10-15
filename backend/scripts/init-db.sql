@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     requirements TEXT NOT NULL,
     user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed')),
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed', 'paused')),
     dev_status VARCHAR(50) DEFAULT 'pending',
     dev_progress INTEGER DEFAULT 0 CHECK (dev_progress >= 0 AND dev_progress <= 100),
     current_task_id VARCHAR(50),
@@ -138,6 +138,8 @@ CREATE TABLE IF NOT EXISTS project_msgs (
     is_markdown BOOLEAN DEFAULT FALSE,
     markdown_content TEXT,
     is_expanded BOOLEAN DEFAULT FALSE,
+    has_question BOOLEAN DEFAULT FALSE,
+    waiting_user_response BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -157,7 +159,7 @@ CREATE TABLE IF NOT EXISTS dev_stages (
     project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     project_guid VARCHAR(50),
     name VARCHAR(100) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done', 'failed', 'paused')),
     progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
     description TEXT,
     failed_reason TEXT,
@@ -212,6 +214,8 @@ CREATE INDEX IF NOT EXISTS idx_projects_api_token ON projects(api_token);
 CREATE INDEX IF NOT EXISTS idx_project_msgs_project_guid ON project_msgs(project_guid);
 CREATE INDEX IF NOT EXISTS idx_project_msgs_type ON project_msgs(type);
 CREATE INDEX IF NOT EXISTS idx_project_msgs_created_at ON project_msgs(created_at);
+CREATE INDEX IF NOT EXISTS idx_project_msgs_has_question ON project_msgs(has_question) WHERE has_question = TRUE;
+CREATE INDEX IF NOT EXISTS idx_project_msgs_waiting_user_response ON project_msgs(waiting_user_response) WHERE waiting_user_response = TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_dev_stages_project_id ON dev_stages(project_id);
 CREATE INDEX IF NOT EXISTS idx_dev_stages_status ON dev_stages(status);
