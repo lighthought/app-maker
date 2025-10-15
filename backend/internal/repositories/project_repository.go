@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"autocodeweb-backend/internal/models"
+	"shared-models/common"
 	"shared-models/logger"
 
 	"gorm.io/gorm"
@@ -33,6 +34,9 @@ type ProjectRepository interface {
 
 	// 项目状态管理
 	UpdateStatus(ctx context.Context, id string, status string) error
+
+	// 暂停的项目恢复执行
+	ResumeProject(ctx context.Context, guid string) error
 
 	// 端口管理
 	IsPortAvailable(ctx context.Context, port int, portType string) (bool, error)
@@ -147,6 +151,13 @@ func (r *projectRepository) UpdateStatus(ctx context.Context, id string, status 
 	return r.db.WithContext(ctx).Model(&models.Project{}).
 		Where("id = ?", id).
 		Update("status", status).Error
+}
+
+// 暂停的项目恢复执行
+func (r *projectRepository) ResumeProject(ctx context.Context, guid string) error {
+	return r.db.WithContext(ctx).
+		Where("guid = ? AND status = ?", guid, common.CommonStatusPaused).
+		Update("status", common.CommonStatusInProgress).Error
 }
 
 // IsOwner 检查用户是否为项目所有者

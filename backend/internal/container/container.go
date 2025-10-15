@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	"shared-models/auth"
-	"shared-models/client"
 	"shared-models/common"
 	"shared-models/logger"
 	"time"
@@ -110,7 +109,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	previewTokenRepository := repositories.NewPreviewTokenRepository(db)
 
 	// services
-	webSocketService := services.NewWebSocketService(asyncClient, stageRepository, messageRepository, projectRepository)
+	webSocketService := services.NewWebSocketService(asyncClient,
+		stageRepository, messageRepository, projectRepository)
 	messageService := services.NewMessageService(messageRepository)
 
 	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)
@@ -119,7 +119,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	fileService := services.NewFileService(asyncClient, gitService)
 	projectTemplateService := services.NewProjectTemplateService(fileService)
 
-	projectStageService := services.NewProjectStageService(projectRepository, stageRepository, messageRepository, webSocketService, gitService, fileService)
+	projectStageService := services.NewProjectStageService(projectRepository,
+		stageRepository, messageRepository, webSocketService, gitService, fileService, asyncClient)
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, gitService, webSocketService)
@@ -141,12 +142,9 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		}
 	}()
 
-	// 创建 AgentClient
-	agentClient := client.NewAgentClient(cfg.Agents.URL, 10*time.Second)
-
 	// handlers
 	cacheHandler := handlers.NewCacheHandler(cacheInstance, cachMonitor)
-	chatHandler := handlers.NewChatHandler(messageService, fileService, projectStageService, agentClient)
+	chatHandler := handlers.NewChatHandler(messageService, fileService, projectService, projectStageService)
 	fileHandler := handlers.NewFileHandler(fileService, projectService)
 	projectHandler := handlers.NewProjectHandler(projectService, projectStageService, previewService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
@@ -225,6 +223,7 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
 	mux.Handle(common.TaskTypeProjectInit, projectService)
 	mux.Handle(common.TaskTypeProjectDevelopment, projectStageService)
 	mux.Handle(common.TaskTypeProjectDeploy, projectStageService)
+	mux.Handle(common.TaskTypeAgentChat, projectStageService)
 	mux.Handle(common.TaskTypeWebSocketBroadcast, webSocketService)
 	// ... 注册其他任务处理器
 

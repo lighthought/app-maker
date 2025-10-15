@@ -202,14 +202,16 @@ func (h *WebSocketHandler) handleMessage(client *models.WebSocketClient, message
 	switch message.Type {
 	case common.WebSocketMessageTypePing:
 		h.handlePing(client)
+		return
 	case common.WebSocketMessageTypeJoinProject:
 		h.handleJoinProject(client, &message)
+		return
 	case common.WebSocketMessageTypeLeaveProject:
 		h.handleLeaveProject(client, &message)
-	case common.WebSocketMessageTypeUserFeedback:
-		h.handleUserFeedback(client, &message)
+		return
 	default:
 		h.sendError(client, "未知消息类型", message.Type)
+		return
 	}
 }
 
@@ -271,30 +273,6 @@ func (h *WebSocketHandler) handleLeaveProject(client *models.WebSocketClient, me
 	h.sendMessage(client, &response)
 
 	logger.Info("客户端离开项目",
-		logger.String("clientID", client.ID),
-		logger.String("userID", client.UserID),
-		logger.String("projectGUID", message.ProjectGUID),
-	)
-}
-
-// handleUserFeedback 处理用户反馈
-func (h *WebSocketHandler) handleUserFeedback(client *models.WebSocketClient, message *models.WebSocketMessage) {
-	// TODO: 实现用户反馈处理逻辑
-	// 这里可以转发给 agents-server 或保存到数据库
-
-	response := models.WebSocketMessage{
-		Type:        common.WebSocketMessageTypeUserFeedbackResponse,
-		ProjectGUID: message.ProjectGUID,
-		Data: map[string]string{
-			"message": "反馈已收到",
-		},
-		Timestamp: utils.GetCurrentTime(),
-		ID:        utils.GenerateUUID(),
-	}
-
-	h.sendMessage(client, &response)
-
-	logger.Info("收到用户反馈",
 		logger.String("clientID", client.ID),
 		logger.String("userID", client.UserID),
 		logger.String("projectGUID", message.ProjectGUID),
@@ -386,7 +364,6 @@ func (h *WebSocketHandler) GetWebSocketDebugInfo(c *gin.Context) {
 			common.WebSocketMessageTypeProjectMessage,
 			common.WebSocketMessageTypeProjectInfoUpdate,
 			common.WebSocketMessageTypeAgentMessage,
-			common.WebSocketMessageTypeUserFeedback,
 			common.WebSocketMessageTypeUserFeedbackResponse,
 			common.WebSocketMessageTypeError,
 		},

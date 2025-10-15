@@ -203,8 +203,18 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 
 	// 从中间件获取用户ID
 	userID := c.GetString("user_id")
+	// 权限检查
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, c.GetString("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "删除项目失败, "+err.Error()))
+		return
+	}
+	if project == nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
+		return
+	}
 
-	err := h.projectService.DeleteProject(c.Request.Context(), projectGuid, userID)
+	err = h.projectService.DeleteProject(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == common.MESSAGE_ACCESS_DENIED {
 			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))

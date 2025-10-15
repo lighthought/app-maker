@@ -1,17 +1,14 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"shared-models/agent"
 	"shared-models/common"
-	"shared-models/logger"
 	"shared-models/utils"
 	"strconv"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/services"
-	"shared-models/client"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,22 +17,22 @@ import (
 type ChatHandler struct {
 	messageService      services.MessageService
 	fileService         services.FileService
+	projectService      services.ProjectService
 	projectStageService services.ProjectStageService
-	agentClient         *client.AgentClient
 }
 
 // NewChatHandler 创建对话消息处理器
 func NewChatHandler(
 	messageService services.MessageService,
 	fileService services.FileService,
+	projectService services.ProjectService,
 	projectStageService services.ProjectStageService,
-	agentClient *client.AgentClient,
 ) *ChatHandler {
 	return &ChatHandler{
 		messageService:      messageService,
 		fileService:         fileService,
+		projectService:      projectService,
 		projectStageService: projectStageService,
-		agentClient:         agentClient,
 	}
 }
 
@@ -73,9 +70,16 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	// 添加调试日志
-	fmt.Printf("DEBUG: ChatHandler - projectGuid=%s, page=%d, pageSize=%d, offset=%d\n",
-		projectGuid, page, pageSize, offset)
+	// 权限检查
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, c.GetString("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取对话历史失败, "+err.Error()))
+		return
+	}
+	if project == nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
+		return
+	}
 
 	// 获取对话消息
 	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectGuid, pageSize, offset)
@@ -138,6 +142,17 @@ func (h *ChatHandler) AddChatMessage(c *gin.Context) {
 		return
 	}
 
+	// 权限检查
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, c.GetString("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取对话历史失败, "+err.Error()))
+		return
+	}
+	if project == nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
+		return
+	}
+
 	if req.Type == "" {
 		req.Type = common.ConversationTypeUser
 	}
@@ -189,26 +204,21 @@ func (h *ChatHandler) SendMessageToAgent(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		AgentType string `json:"agent_type" binding:"required"`
-		Content   string `json:"content" binding:"required"`
-	}
-
+	var req models.ChatWithAgentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "请求参数错误"))
 		return
 	}
 
-	// 创建用户消息
-	userMessage := &models.ConversationMessage{
-		ProjectGuid:     projectGuid,
-		Type:            common.ConversationTypeUser,
-		AgentRole:       common.AgentTypeUser,
-		AgentName:       "user",
-		Content:         req.Content,
-		IsMarkdown:      false,
-		MarkdownContent: req.Content,
-		IsExpanded:      false,
+	// 权限检查
+	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, c.GetString("user_id"))
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "消息发送失败, "+err.Error()))
+		return
+	}
+	if project == nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
+		return
 	}
 
 	// 调用 agents 模块的聊天接口
@@ -218,18 +228,11 @@ func (h *ChatHandler) SendMessageToAgent(c *gin.Context) {
 		Message:     req.Content,
 	}
 
-	// 调用 agents 的 ChatWithAgent 接口
-	response, err := h.agentClient.ChatWithAgent(c.Request.Context(), chatReq)
+	err = h.projectStageService.ChatWithAgent(c.Request.Context(), chatReq)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "与 Agent 对话失败: "+err.Error()))
 		return
 	}
 
-	// 如果项目处于暂停状态，恢复项目执行
-	if err := h.projectStageService.ResumeProjectExecution(c.Request.Context(), projectGuid, userMessage); err != nil {
-		logger.Error("恢复项目执行失败", logger.String("error", err.Error()))
-		// 不返回错误，因为消息已经发送成功
-	}
-
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("消息发送成功", response))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("消息发送成功", nil))
 }

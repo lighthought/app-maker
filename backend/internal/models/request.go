@@ -71,3 +71,9 @@ type JenkinsBuildRequest struct {
 	ProjectPath string `json:"project_path"`
 	BuildType   string `json:"build_type"` // dev 或 prod
 }
+
+// ChatWithAgentRequest 与 Agent 对话请求
+type ChatWithAgentRequest struct {
+	AgentType string `json:"agent_type" binding:"required"`
+	Content   string `json:"content" binding:"required"`
+}

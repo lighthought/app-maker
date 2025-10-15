@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	cfgPkg "autocodeweb-backend/internal/config"
@@ -22,10 +23,12 @@ import (
 type ProjectStageService interface {
 	// 获取项目开发阶段
 	GetProjectStages(ctx context.Context, projectGuid string) ([]*models.DevStage, error)
+
 	// 处理项目任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
-	// 恢复项目执行
-	ResumeProjectExecution(ctx context.Context, projectGuid string, userMessage *models.ConversationMessage) error
+
+	// 与项目中的 Agent 进行对话
+	ChatWithAgent(ctx context.Context, req *agent.ChatReq) error
 }
 
 // ProjectStageService 任务执行服务
@@ -36,6 +39,7 @@ type projectStageService struct {
 	webSocketService WebSocketService
 	gitService       GitService
 	fileService      FileService
+	asyncClient      *asynq.Client
 	agentsURL        string
 }
 
@@ -47,6 +51,7 @@ func NewProjectStageService(
 	webSocketService WebSocketService,
 	gitService GitService,
 	fileService FileService,
+	asyncClient *asynq.Client,
 ) ProjectStageService {
 	// 读取配置
 	var agentsURL string
@@ -60,6 +65,7 @@ func NewProjectStageService(
 		webSocketService: webSocketService,
 		gitService:       gitService,
 		fileService:      fileService,
+		asyncClient:      asyncClient,
 		agentsURL:        agentsURL,
 	}
 }
@@ -88,6 +94,8 @@ func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task)
 		return h.handleProjectDevelopmentTask(ctx, task)
 	case common.TaskTypeProjectDeploy:
 		return h.handleProjectDeployTask(ctx, task)
+	case common.TaskTypeAgentChat:
+		return h.handleAgentChatTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
@@ -110,9 +118,7 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 	if s.agentsURL != "" {
 		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
 	}
-	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Second)
-
-	// TODO: 检查项目是否已有正在进行中（未完成、未失败）的任务，且任务 ID 和当前不同，不同，则直接跳过。
+	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Minute)
 
 	// 2. 执行开发阶段
 	stages := []struct {
@@ -207,7 +213,7 @@ func (s *projectStageService) handleProjectDeployTask(ctx context.Context, t *as
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
-	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Second)
+	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Minute)
 	response, err := agentClient.Deploy(ctx, &req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 打包失败: "+err.Error())
@@ -249,6 +255,167 @@ func (s *projectStageService) handleProjectDeployTask(ctx context.Context, t *as
 	return nil
 }
 
+// 处理与 Agent 对话任务
+func (s *projectStageService) handleAgentChatTask(ctx context.Context, task *asynq.Task) error {
+	var req agent.ChatReq
+	if err := json.Unmarshal(task.Payload(), &req); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+
+	resultWriter := task.ResultWriter()
+	logger.Info("🔵 [AgentChat] 开始处理 Agent 对话任务",
+		logger.String("taskID", resultWriter.TaskID()),
+		logger.String("projectGUID", req.ProjectGuid),
+		logger.String("agentType", req.AgentType),
+		logger.String("message", req.Message),
+	)
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 0, "开始处理对话任务")
+
+	// 创建用户消息
+	userMessage := &models.ConversationMessage{
+		ProjectGuid:     req.ProjectGuid,
+		Type:            common.ConversationTypeUser,
+		AgentRole:       common.AgentTypeUser,
+		AgentName:       "user",
+		Content:         req.Message,
+		IsMarkdown:      false,
+		MarkdownContent: req.Message,
+		IsExpanded:      false,
+	}
+	// 保存用户消息
+	logger.Info("🔵 [AgentChat] 保存用户消息到数据库",
+		logger.String("projectGUID", req.ProjectGuid),
+	)
+	if err := s.messageRepo.Create(ctx, userMessage); err != nil {
+		logger.Error("保存用户消息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectGUID", req.ProjectGuid),
+		)
+	} else {
+		logger.Info("🔵 [AgentChat] 用户消息保存成功",
+			logger.String("messageID", userMessage.ID),
+		)
+	}
+
+	logger.Info("🔵 [AgentChat] 推送用户消息到前端",
+		logger.String("projectGUID", req.ProjectGuid),
+		logger.String("messageID", userMessage.ID),
+	)
+	s.webSocketService.NotifyProjectMessage(ctx, req.ProjectGuid, userMessage)
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "处理对话数据")
+
+	// 获取项目信息
+	logger.Info("🔵 [AgentChat] 获取项目信息",
+		logger.String("projectGUID", req.ProjectGuid),
+	)
+	project, err := s.projectRepo.GetByGUID(ctx, req.ProjectGuid)
+	if err != nil {
+		logger.Error("🔴 [AgentChat] 获取项目信息失败",
+			logger.String("error", err.Error()),
+			logger.String("projectGUID", req.ProjectGuid),
+		)
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "无法获取项目信息")
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+	logger.Info("🔵 [AgentChat] 项目信息获取成功",
+		logger.String("projectID", project.ID),
+		logger.String("projectStatus", project.Status),
+		logger.String("devStatus", project.DevStatus),
+	)
+
+	if project.Status == common.CommonStatusPaused {
+		logger.Info("🔵 [AgentChat] 项目处于暂停状态，恢复为进行中",
+			logger.String("projectID", project.ID),
+		)
+		project.Status = common.CommonStatusInProgress
+		s.projectRepo.Update(ctx, project)
+		s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 20, "处理项目状态")
+	}
+
+	// 恢复当前暂停的阶段
+	logger.Info("🔵 [AgentChat] 检查当前阶段状态",
+		logger.String("projectGUID", req.ProjectGuid),
+		logger.String("devStatus", project.DevStatus),
+	)
+	currentStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, project.DevStatus)
+	if err == nil && currentStage != nil && currentStage.Status == common.CommonStatusPaused {
+		logger.Info("🔵 [AgentChat] 阶段处于暂停状态，恢复为进行中",
+			logger.String("stageID", currentStage.ID),
+			logger.String("stageName", currentStage.Name),
+		)
+		currentStage.Status = common.CommonStatusInProgress
+		if err := s.stageRepo.Update(ctx, currentStage); err != nil {
+			logger.Error("恢复阶段状态失败",
+				logger.String("error", err.Error()),
+				logger.String("projectID", project.ID),
+				logger.String("stageID", currentStage.ID),
+			)
+		} else {
+			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, currentStage)
+			tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "恢复阶段状态")
+		}
+	}
+
+	logger.Info("🟢 [AgentChat] 项目执行已恢复",
+		logger.String("projectID", project.ID),
+		logger.String("devStatus", project.DevStatus),
+	)
+
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 35, "和 Agent 对话中...")
+	logger.Info("🔵 [AgentChat] 开始调用 Agent 模块",
+		logger.String("agentsURL", s.agentsURL),
+		logger.String("agentType", req.AgentType),
+	)
+	// 使用较长的超时时间，因为 Agent 执行可能需要几分钟
+	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Minute)
+	// 使用 background context 避免 HTTP 请求超时，但保留原 context 用于取消信号
+	response, err := agentClient.ChatWithAgent(ctx, &req)
+	if err != nil {
+		logger.Error("🔴 [AgentChat] Agent 对话失败",
+			logger.String("error", err.Error()),
+			logger.String("agentType", req.AgentType),
+		)
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "和 Agent 对话失败: "+err.Error())
+		return err
+	}
+	logger.Info("🟢 [AgentChat] Agent 对话成功",
+		logger.String("agentType", req.AgentType),
+		logger.String("responseLength", fmt.Sprintf("%d", len(response.Message))),
+	)
+
+	agent := common.GetAgentByAgentType(req.AgentType)
+	if agent == nil {
+		agent = &common.AgentDev
+	}
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       agent.Role,
+		AgentName:       agent.Name,
+		Content:         "已完成",
+		IsMarkdown:      true,
+		MarkdownContent: response.Message,
+		IsExpanded:      true,
+	}
+
+	logger.Info("🔵 [AgentChat] 保存并推送 Agent 响应消息",
+		logger.String("projectGUID", project.GUID),
+		logger.String("agentRole", agent.Role),
+		logger.String("agentName", agent.Name),
+	)
+	// 支持多轮对话
+	s.notifyProjectStatusChange(ctx, project, projectMsg, currentStage)
+
+	logger.Info("🟢 [AgentChat] Agent 对话任务执行完成",
+		logger.String("taskID", resultWriter.TaskID()),
+		logger.String("projectGUID", req.ProjectGuid),
+	)
+	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "Agent 对话任务执行完成")
+	return nil
+}
+
 // 统一由这个函数更新项目状态
 func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 	project *models.Project, message *models.ConversationMessage, stage *models.DevStage) {
@@ -259,6 +426,7 @@ func (s *projectStageService) notifyProjectStatusChange(ctx context.Context,
 			if hasQuestion {
 				message.HasQuestion = true
 				message.WaitingUserResponse = true
+				message.Content = strings.Replace(message.Content, "已完成", "需要反馈", 1)
 
 				// 暂停项目和当前阶段
 				project.Status = common.CommonStatusPaused
@@ -1019,59 +1187,12 @@ func (s *projectStageService) packageProject(ctx context.Context,
 	return nil
 }
 
-// ResumeProjectExecution 恢复项目执行
-func (s *projectStageService) ResumeProjectExecution(ctx context.Context, projectGuid string, userMessage *models.ConversationMessage) error {
-	// 获取项目信息
-	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
+// 与项目中的 Agent 进行对话
+func (s *projectStageService) ChatWithAgent(ctx context.Context, req *agent.ChatReq) error {
+	// 异步方式
+	_, err := s.asyncClient.Enqueue(tasks.NewAgentChatTask(req))
 	if err != nil {
-		return fmt.Errorf("获取项目信息失败: %w", err)
+		return fmt.Errorf("创建与 Agent 对话任务失败: %w", err)
 	}
-
-	// 检查项目是否处于暂停状态
-	if project.Status != common.CommonStatusPaused {
-		logger.Info("项目未处于暂停状态，无需恢复", logger.String("projectID", project.ID), logger.String("status", project.Status))
-		return nil
-	}
-
-	// 保存用户消息
-	if userMessage != nil {
-		if err := s.messageRepo.Create(ctx, userMessage); err != nil {
-			logger.Error("保存用户消息失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-			)
-		}
-		s.webSocketService.NotifyProjectMessage(ctx, project.GUID, userMessage)
-	}
-
-	// 恢复项目状态
-	project.Status = common.CommonStatusInProgress
-	if err := s.projectRepo.Update(ctx, project); err != nil {
-		return fmt.Errorf("更新项目状态失败: %w", err)
-	}
-
-	// 恢复当前暂停的阶段
-	currentStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, project.DevStatus)
-	if err == nil && currentStage != nil && currentStage.Status == common.CommonStatusPaused {
-		currentStage.Status = common.CommonStatusInProgress
-		if err := s.stageRepo.Update(ctx, currentStage); err != nil {
-			logger.Error("恢复阶段状态失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-				logger.String("stageID", currentStage.ID),
-			)
-		} else {
-			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, currentStage)
-		}
-	}
-
-	// 通知前端项目状态更新
-	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
-
-	logger.Info("项目执行已恢复",
-		logger.String("projectID", project.ID),
-		logger.String("devStatus", project.DevStatus),
-	)
-
 	return nil
 }
