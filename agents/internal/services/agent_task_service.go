@@ -27,8 +27,9 @@ type AgentTaskService interface {
 	EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error)
 	// 部署项目
 	EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskInfo, error)
-
-	// 与指定代理对话
+	// 与 Agent 对话
+	EnqueueChatWithAgent(req *agent.ChatReq) (*asynq.TaskInfo, error)
+    // 与指定代理对话
 	ChatWithAgent(ctx context.Context, projectGuid, agentType, message string) (*models.CommandResult, error)
 }
 
@@ -158,8 +159,31 @@ func (h *agentTaskService) EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskIn
 	return h.asyncClient.Enqueue(tasks.NewProjectDeployTask(req))
 }
 
+// 与 Agent 对话
+func (h *agentTaskService) EnqueueChatWithAgent(req *agent.ChatReq) (*asynq.TaskInfo, error) {
+	if h.asyncClient == nil {
+		return nil, fmt.Errorf("async client is nil")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("EnqueueDeployReq, req is nil")
+	}
+	return h.asyncClient.Enqueue(tasks.NewAgentChatTask(req))
+}
+
 // ProcessTask 处理代理执行任务
 func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) error {
+	switch task.Type() {
+	case common.TaskTypeAgentExecute:
+		return h.innerProcessAgentExecuteTask(ctx, task)
+	case common.TaskTypeAgentChat:
+		return h.innerProcessAgentChatTask(ctx, task)
+	default:
+		return fmt.Errorf("unexpected task type %s", task.Type())
+	}
+}
+
+// 处理代理执行任务
+func (h *agentTaskService) innerProcessAgentExecuteTask(ctx context.Context, task *asynq.Task) error {
 	if task.Type() != common.TaskTypeAgentExecute {
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
@@ -170,6 +194,28 @@ func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 	}
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 5, "正在执行代理任务...")
 
+	_, err := h.innerProcessTask(ctx, payload, task)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *agentTaskService) innerProcessAgentChatTask(ctx context.Context, task *asynq.Task) error {
+	if task.Type() != common.TaskTypeAgentChat {
+		return fmt.Errorf("unexpected task type %s", task.Type())
+	}
+
+	var req agent.ChatReq
+	if err := json.Unmarshal(task.Payload(), &req); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+
+	payload := tasks.AgentExecuteTaskPayload{
+		ProjectGUID: req.ProjectGuid,
+		AgentType:   req.AgentType,
+		Message:     req.Message,
+	}
 	_, err := h.innerProcessTask(ctx, payload, task)
 	if err != nil {
 		return err

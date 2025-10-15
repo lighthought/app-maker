@@ -116,6 +116,7 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, agen
 	// 注册任务处理器
 	mux := asynq.NewServeMux()
 	mux.Handle(common.TaskTypeAgentExecute, agentTaskService)
+	mux.Handle(common.TaskTypeAgentChat, agentTaskService)
 	mux.Handle(common.TaskTypeAgentSetup, projectSvc)
 	mux.Handle(common.TaskTypeProjectDeploy, projectSvc)
 	// ... 注册其他任务处理器

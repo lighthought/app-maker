@@ -39,11 +39,12 @@ func (h *ChatHandler) ChatWithAgent(c *gin.Context) {
 	}
 
 	// 调用 agentTaskService 的 ChatWithAgent 方法
-	result, err := h.agentTaskService.ChatWithAgent(c.Request.Context(), req.ProjectGuid, req.AgentType, req.Message)
+	taskInfo, err := h.agentTaskService.EnqueueChatWithAgent(&req)
+
 	if err != nil {
-		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "与 Agent 对话失败: "+err.Error()))
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.GetSuccessResponse("与 Agent 对话成功", result))
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("创建 Agent 对话任务成功", taskInfo.ID))
 }
