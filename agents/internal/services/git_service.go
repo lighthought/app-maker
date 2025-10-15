@@ -31,10 +31,10 @@ func (s *gitService) CommitAndPush(ctx context.Context, projectGuid string, comm
 	}
 
 	// 检查是否有变更， 暂时跳过，在大量文件提交的时候，存在直接退出的情况
-	// if !s.hasChanges(ctx, projectGuid) {
-	// 	logger.Info("没有文件变更，跳过提交", logger.String("GUID", projectGuid))
-	// 	return nil
-	// }
+	if !s.hasChanges(ctx, projectGuid) {
+		logger.Info("没有文件变更，跳过提交", logger.String("GUID", projectGuid))
+		return nil
+	}
 
 	// 提交变更
 	if commitMsg == "" {
