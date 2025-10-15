@@ -1,10 +1,5 @@
 <template>
   <div class="sidebar">
-    <div class="sidebar-header" @click="goToHome">
-      <img src="@/assets/logo.svg" alt="App-Maker" class="sidebar-logo" />
-      <h2 v-if="!collapsed">App-Maker</h2>
-      <h2 v-else>AC</h2>
-    </div>
     <div class="sidebar-content">
       <n-menu
         :collapsed="collapsed"
@@ -61,10 +56,6 @@ function renderIcon(icon: any) {
 const handleMenuUpdate = (key: string) => {
   router.push({ name: key })
 }
-
-const goToHome = () => {
-  router.push('/')
-}
 </script>
 
 <style scoped>
@@ -72,40 +63,6 @@ const goToHome = () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.sidebar-header {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--spacing-md);
-  border-bottom: 1px solid var(--border-color);
-  background: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  gap: var(--spacing-sm);
-}
-
-.sidebar-logo {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.sidebar-header:hover {
-  background: var(--background-color);
-  transform: scale(1.02);
-}
-
-.sidebar-header h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: var(--primary-color);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sidebar-content {

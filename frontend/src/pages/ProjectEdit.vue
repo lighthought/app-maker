@@ -1,12 +1,29 @@
 <template>
   <div class="project-edit-page">
+    <!-- 移动端顶部标签切换 -->
+    <div class="mobile-tabs" v-if="isMobile">
+      <n-button text @click="goBack" class="mobile-back-button">
+        <template #icon>
+          <n-icon><ArrowLeftIcon /></n-icon>
+        </template>
+      </n-button>
+      <n-tabs v-model:value="activeTab" type="segment" size="small" class="mobile-tab-nav">
+        <n-tab name="conversation">{{ t('common.conversation') }}</n-tab>
+        <n-tab name="files">{{ t('common.pannel') }}</n-tab>
+      </n-tabs>
+    </div>
+
     <!-- 主内容区域 - 分屏布局 -->
     <div class="main-content">
-      <div class="split-container">
+      <div class="split-container" :class="{ 'mobile-mode': isMobile }">
         <!-- 左侧对话窗口 -->
-        <div class="left-panel" :style="{ width: leftWidth + '%' }">
-          <!-- 左侧顶部导航 -->
-          <div class="left-header">
+        <div 
+          class="left-panel" 
+          :class="{ 'mobile-hidden': isMobile && activeTab !== 'conversation' }"
+          :style="isMobile ? {} : { width: leftWidth + '%' }"
+        >
+          <!-- 桌面端顶部导航 -->
+          <div class="left-header" v-if="!isMobile">
             <n-button text @click="goBack" class="back-button">
               <template #icon>
                 <n-icon><ArrowLeftIcon /></n-icon>
@@ -33,8 +50,9 @@
           </div>
         </div>
         
-        <!-- 分割器 -->
+        <!-- 分割器 (仅桌面端显示) -->
         <div 
+          v-if="!isMobile"
           class="splitter" 
           @mousedown="startResize"
           @touchstart="startResize"
@@ -43,7 +61,11 @@
         </div>
         
         <!-- 右侧项目面板 -->
-        <div class="right-panel" :style="{ width: rightWidth + '%' }">
+        <div 
+          class="right-panel" 
+          :class="{ 'mobile-hidden': isMobile && activeTab !== 'files' }"
+          :style="isMobile ? {} : { width: rightWidth + '%' }"
+        >
           <ProjectPanel ref="projectPanelRef" :project="project" />
         </div>
       </div>
@@ -52,10 +74,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NButton, NIcon, NTag } from 'naive-ui'
+import { NButton, NIcon, NTag, NTabs, NTab } from 'naive-ui'
 import ConversationContainer from '@/components/ConversationContainer.vue'
 import ProjectPanel from '@/components/ProjectPanel.vue'
 // 导入图标
@@ -71,6 +93,15 @@ const { t } = useI18n()
 // 响应式数据
 const project = ref<Project | undefined>(undefined)
 const loading = ref(false)
+
+// 移动端相关
+const isMobile = ref(false)
+const activeTab = ref<'conversation' | 'files'>('conversation')
+
+// 检测是否为移动设备
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 1024
+}
 
 // 分割器相关
 const leftWidth = ref(50)
@@ -213,10 +244,26 @@ const loadProject = async () => {
 // 生命周期
 onMounted(() => {
   loadProject()
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  
+  // 检查 URL hash，如果是 #preview 则切换到预览视图
+  if (route.hash === '#preview') {
+    activeTab.value = 'files'
+    // 等待 DOM 更新后，通知 ProjectPanel 切换到预览
+    setTimeout(() => {
+      if (projectPanelRef.value && projectPanelRef.value.$el) {
+        // 触发 ProjectPanel 切换到预览标签
+        const event = new CustomEvent('switch-to-preview')
+        projectPanelRef.value.$el.dispatchEvent(event)
+      }
+    }, 500)
+  }
 })
 
 onUnmounted(() => {
   // 清理事件监听器
+  window.removeEventListener('resize', checkMobile)
   document.removeEventListener('mousemove', () => {})
   document.removeEventListener('mouseup', () => {})
   document.removeEventListener('touchmove', () => {})
@@ -340,60 +387,97 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .split-container {
-    flex-direction: column;
-  }
-  
-  .left-panel,
-  .right-panel {
-    width: 100% !important;
-    height: 50%;
-  }
-  
-  .splitter {
-    width: 100%;
-    height: 8px;
-    cursor: row-resize;
-  }
-  
-  .splitter-handle {
-    width: 40px;
-    height: 4px;
-  }
+/* 移动端标签导航 */
+.mobile-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
-@media (max-width: 768px) {
-  .top-navbar {
-    padding: 8px 16px;
+.mobile-back-button {
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.mobile-tab-nav {
+  flex: 1;
+}
+
+.mobile-tab-nav :deep(.n-tabs-nav) {
+  width: 100%;
+}
+
+.mobile-tab-nav :deep(.n-tabs-tab) {
+  flex: 1;
+  justify-content: center;
+}
+
+/* 移动端隐藏面板 */
+.mobile-hidden {
+  display: none !important;
+}
+
+/* 移动端模式 */
+.split-container.mobile-mode {
+  flex-direction: row;
+}
+
+.split-container.mobile-mode .left-panel,
+.split-container.mobile-mode .right-panel {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .project-edit-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
   }
   
-  .navbar-left {
-    gap: 12px;
+  .main-content {
+    height: calc(100vh - 60px);
   }
   
   .project-title {
     font-size: 16px;
   }
+}
+
+@media (max-width: 768px) {
+  .mobile-tabs {
+    padding: 10px 12px;
+  }
   
-  .left-panel,
-  .right-panel {
-    height: 50%;
+  .main-content {
+    height: calc(100vh - 56px);
   }
 }
 
 @media (max-width: 480px) {
-  .top-navbar {
-    flex-direction: column;
-    align-items: flex-start;
+  .mobile-tabs {
+    padding: 8px 10px;
     gap: 8px;
-    padding: 12px 16px;
   }
   
-  .navbar-left {
-    width: 100%;
-    justify-content: space-between;
+  .mobile-back-button {
+    font-size: 12px;
+  }
+  
+  .main-content {
+    height: calc(100vh - 52px);
   }
 }
 </style>

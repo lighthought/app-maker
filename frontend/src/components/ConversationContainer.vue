@@ -712,4 +712,66 @@ onUnmounted(() => {
 .conversation-messages::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .conversation-container {
+    height: 100%;
+  }
+  
+  .conversation-messages {
+    padding: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 768px) {
+  .conversation-header {
+    padding: 8px 12px;
+  }
+  
+  .conversation-title {
+    font-size: 1rem;
+  }
+  
+  .conversation-messages {
+    padding: 8px;
+    gap: var(--spacing-sm);
+  }
+  
+  .input-section {
+    padding: 8px;
+  }
+  
+  .loading-container {
+    padding: 12px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .conversation-header {
+    padding: 6px 8px;
+    min-height: 44px;
+  }
+  
+  .conversation-title {
+    font-size: 0.9rem;
+  }
+  
+  .conversation-messages {
+    padding: 6px;
+    gap: 8px;
+  }
+  
+  .input-section {
+    padding: 6px;
+  }
+  
+  .loading-container {
+    padding: 8px 6px;
+  }
+  
+  .loading-text {
+    font-size: 0.85rem;
+  }
+}
 </style>

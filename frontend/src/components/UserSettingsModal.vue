@@ -35,12 +35,12 @@
         />
       </n-form-item>
 
-      <n-form-item :label="t('userSettings.phoneBinding')">
+      <!--n-form-item :label="t('userSettings.phoneBinding')">
          <div class="binding-status">
            <n-tag type="success" size="small">{{ t('userSettings.phoneBound') }}</n-tag>
            <span class="binding-text">138****8888</span>
          </div>
-       </n-form-item>
+       </n-form-item-->
 
       <n-divider />
 
@@ -77,23 +77,6 @@
           :placeholder="t('userSettings.modelApiUrlPlaceholder')"
           type="text"
         />
-      </n-form-item>
-
-      <n-form-item :label="t('userSettings.apiToken')" path="defaultApiToken">
-        <n-input
-          v-model:value="formData.defaultApiToken"
-          :placeholder="t('userSettings.apiTokenPlaceholder')"
-          :type="showApiToken ? 'text' : 'password'"
-          clearable
-        >
-          <template #suffix>
-            <component 
-              :is="renderIcon(showApiToken ? EyeOffIcon : EyeIcon)" 
-              @click="showApiToken = !showApiToken"
-              style="cursor: pointer;"
-            />
-          </template>
-        </n-input>
       </n-form-item>
 
       <n-alert type="info" :show-icon="false" style="margin-top: 8px;">
@@ -144,14 +127,6 @@ const formRef = ref()
 
 // 加载状态
 const loading = ref(false)
-
-// API Token 显示状态
-const showApiToken = ref(false)
-
-// 渲染图标
-const renderIcon = (icon: any) => {
-  return () => h(NIcon, null, { default: icon })
-}
 
 // CLI 工具选项
 const cliToolOptions = [
@@ -223,7 +198,7 @@ watch(() => props.show, async (newVal) => {
       formData.defaultAiModel = result.data.default_ai_model || 'glm-4.6'
       formData.defaultModelProvider = result.data.default_model_provider || 'zhipu'
       formData.defaultModelApiUrl = result.data.default_model_api_url || 'https://open.bigmodel.cn/api/anthropic'
-      formData.defaultApiToken = result.data.default_api_token || ''
+      formData.defaultApiToken = ''
     } else {
       console.error('加载用户设置失败:', result.message)
     }
@@ -267,7 +242,7 @@ const handleSave = async () => {
       default_ai_model: formData.defaultAiModel,
       default_model_provider: formData.defaultModelProvider,
       default_model_api_url: formData.defaultModelApiUrl,
-      default_api_token: formData.defaultApiToken
+      default_api_token: ''
     })
 
     if (settingsResult.success) {

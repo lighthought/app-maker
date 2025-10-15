@@ -76,6 +76,14 @@ class WebSocketManager {
   // 连接 WebSocket
   public async connect(url: string, protocols?: string | string[]): Promise<void> {
     return new Promise((resolve, reject) => {
+      // 检查浏览器是否支持 WebSocket
+      if (typeof WebSocket === 'undefined') {
+        const error = new Error('WebSocket is not supported in this browser')
+        console.error(error)
+        reject(error)
+        return
+      }
+
       // 应用连接拦截器
       let finalUrl = url
       for (const interceptor of this.interceptors) {
@@ -83,6 +91,7 @@ class WebSocketManager {
           try {
             finalUrl = interceptor.onConnect(finalUrl)
           } catch (error) {
+            console.error('WebSocket connection interceptor error:', error)
             reject(error)
             return
           }
@@ -94,6 +103,7 @@ class WebSocketManager {
       this.status = 'connecting'
 
       try {
+        console.log('[WebSocket] Connecting to:', finalUrl)
         this.ws = new WebSocket(finalUrl, protocols)
         
         this.ws.onopen = () => {
@@ -126,18 +136,28 @@ class WebSocketManager {
         }
 
         this.ws.onerror = (event) => {
-          console.error('WebSocket error:', event)
+          console.error('[WebSocket] Connection error:', event)
           this.status = 'error'
           
           // 应用错误拦截器
           for (const interceptor of this.interceptors) {
-            if (interceptor.onError) {
-              interceptor.onError(event)
+            try {
+              if (interceptor.onError) {
+                interceptor.onError(event)
+              }
+            } catch (err) {
+              console.error('[WebSocket] Interceptor error handler failed:', err)
             }
           }
           
-          this.handlers.onError?.(event)
-          reject(event)
+          try {
+            this.handlers.onError?.(event)
+          } catch (err) {
+            console.error('[WebSocket] Error handler failed:', err)
+          }
+          
+          // 不要 reject，让连接继续尝试
+          // reject(event)
         }
 
         this.ws.onclose = (event) => {

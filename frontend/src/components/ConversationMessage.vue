@@ -507,4 +507,125 @@ const copyMarkdown = async () => {
   margin: var(--spacing-sm) 0;
   color: var(--text-secondary);
 }
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .user-message,
+  .agent-message {
+    padding: 10px;
+    font-size: 0.9rem;
+    gap: 8px;
+  }
+  
+  .user-avatar,
+  .agent-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+  
+  .user-avatar :deep(.n-icon),
+  .agent-avatar :deep(.n-icon) {
+    font-size: 16px;
+  }
+  
+  .agent-header {
+    margin-bottom: 6px;
+  }
+  
+  .agent-name {
+    font-size: 0.85rem;
+  }
+  
+  .agent-role {
+    font-size: 0.75rem;
+  }
+  
+  .message-actions {
+    gap: 4px;
+  }
+  
+  .message-actions :deep(.n-button) {
+    padding: 4px;
+  }
+  
+  .markdown-body {
+    font-size: 0.9rem;
+  }
+  
+  .markdown-body :deep(h1) {
+    font-size: 1.5rem;
+  }
+  
+  .markdown-body :deep(h2) {
+    font-size: 1.3rem;
+  }
+  
+  .markdown-body :deep(h3) {
+    font-size: 1.1rem;
+  }
+  
+  .markdown-body :deep(code) {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-message,
+  .agent-message {
+    padding: 8px 6px;
+    font-size: 0.85rem;
+    gap: 6px;
+  }
+  
+  .user-avatar,
+  .agent-avatar {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+  
+  .user-avatar :deep(.n-icon),
+  .agent-avatar :deep(.n-icon) {
+    font-size: 14px;
+  }
+  
+  .agent-name {
+    font-size: 0.8rem;
+  }
+  
+  .agent-role {
+    font-size: 0.7rem;
+  }
+  
+  .question-indicator :deep(.n-icon) {
+    font-size: 14px;
+  }
+  
+  .markdown-body {
+    font-size: 0.85rem;
+  }
+  
+  .markdown-body :deep(h1) {
+    font-size: 1.3rem;
+  }
+  
+  .markdown-body :deep(h2) {
+    font-size: 1.1rem;
+  }
+  
+  .markdown-body :deep(h3) {
+    font-size: 1rem;
+  }
+  
+  .markdown-body :deep(code) {
+    font-size: 0.8rem;
+    padding: 2px 4px;
+  }
+  
+  .markdown-body :deep(pre) {
+    padding: 8px;
+    font-size: 0.75rem;
+  }
+}
 </style>

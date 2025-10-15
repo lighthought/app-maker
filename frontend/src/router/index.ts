@@ -58,7 +58,7 @@ router.beforeEach((to, from, next) => {
   } else if (to.meta.title) {
     document.title = to.meta.title as string
   } else {
-    document.title = 'App-Maker'
+    document.title = 'AppMaker'
   }
   
   console.log('路由守卫检查:', {

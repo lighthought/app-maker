@@ -3,12 +3,13 @@
     <div class="header-left">
       <n-button
         quaternary
-        circle
-        @click="$emit('toggle-sidebar')"
+        @click="goToHome"
+        class="mobile-logo-button"
       >
-        <template #icon>
-          <n-icon><MenuIcon /></n-icon>
-        </template>
+        <div class="desktop-logo">
+          <img src="@/assets/logo.svg" alt="AppMaker" class="header-logo" />
+          <span class="header-title">AppMaker</span>
+        </div>
       </n-button>
     </div>
     <div class="header-right">
@@ -119,14 +120,20 @@ import {
   CloseIcon
 } from '@/components/icon'
 
-interface Props {}
+interface Props {
+  isMobile?: boolean
+  collapsed?: boolean
+}
 
 interface Emits {
   'toggle-sidebar': []
   'open-settings': []
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isMobile: false,
+  collapsed: false
+})
 const emit = defineEmits<Emits>()
 
 const router = useRouter()
@@ -138,6 +145,10 @@ const showNotifications = ref(false)
 const showUserMenu = ref(false)
 
 // 事件处理
+const goToHome = () => {
+  router.push('/')
+}
+
 const handleSettings = () => {
   showUserMenu.value = false
   console.log('open-settings')
@@ -167,10 +178,46 @@ const handleLogout = async () => {
   border-bottom: 1px solid var(--border-color);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
 .header-right {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+}
+
+/* 桌面端产品 Logo */
+.desktop-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: var(--spacing-sm);
+  cursor: default;
+}
+
+/* 移动端产品图标按钮 */
+.mobile-logo-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: auto;
+}
+
+.header-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  white-space: nowrap;
 }
 
 /* 通知面板样式 */
@@ -263,4 +310,69 @@ const handleLogout = async () => {
   background: var(--background-color);
 }
 
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 var(--spacing-md);
+    height: 56px;
+  }
+  
+  .header-logo {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .header-title {
+    font-size: 1rem;
+  }
+  
+  .notification-panel,
+  .user-menu-panel {
+    width: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0 var(--spacing-sm);
+    height: 52px;
+  }
+  
+  .mobile-logo-button {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  
+  .header-logo {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .header-title {
+    font-size: 0.9rem;
+  }
+  
+  .header-right {
+    gap: 4px;
+  }
+  
+  .notification-panel,
+  .user-menu-panel {
+    width: calc(100vw - 32px);
+    max-width: 320px;
+  }
+  
+  .notification-header,
+  .user-info {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .notification-content {
+    padding: var(--spacing-md);
+  }
+  
+  .menu-items {
+    padding: var(--spacing-xs);
+  }
+}
 </style>

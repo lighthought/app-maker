@@ -1,8 +1,54 @@
 <template>
   <div class="project-panel">
-    <!-- 面板头部 -->
+    <!-- 面板头部 - 单行布局 -->
     <div class="panel-header">
-      <div class="header-left">
+      <!-- 左侧：设备视图切换 - 只在预览模式下显示 -->
+      <div v-if="activeTab === 'preview' && project?.preview_url" class="header-left">
+        <n-button-group size="small">
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button
+                :type="deviceView === 'desktop' ? 'primary' : 'default'"
+                @click="deviceView = 'desktop'"
+              >
+                <template #icon>
+                  <n-icon><DesktopIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('preview.desktop') }}
+          </n-tooltip>
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button
+                :type="deviceView === 'tablet' ? 'primary' : 'default'"
+                @click="deviceView = 'tablet'"
+              >
+                <template #icon>
+                  <n-icon><TabletIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('preview.tablet') }}
+          </n-tooltip>
+          <n-tooltip placement="bottom">
+            <template #trigger>
+              <n-button
+                :type="deviceView === 'mobile' ? 'primary' : 'default'"
+                @click="deviceView = 'mobile'"
+              >
+                <template #icon>
+                  <n-icon><PhoneIcon /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ t('preview.mobile') }}
+          </n-tooltip>
+        </n-button-group>
+      </div>
+      
+      <!-- 中间：代码/预览切换（居中） -->
+      <div class="header-center">
         <n-button-group>
           <n-button
             :type="activeTab === 'code' ? 'primary' : 'default'"
@@ -27,75 +73,34 @@
         </n-button-group>
       </div>
       
-      <!-- 预览控制按钮 - 只在预览标签激活时显示 -->
+      <!-- 右侧：操作按钮 + 部署按钮 - 只在预览模式下显示 -->
       <div v-if="activeTab === 'preview' && project?.preview_url" class="header-right">
-        <!-- 设备视图切换 - 居中 -->
-        <div class="device-view-controls">
-          <n-button-group size="small">
+        <div class="preview-actions">
+          <!-- 桌面端显示所有操作按钮 -->
+          <template v-if="!isMobile">
             <n-tooltip placement="bottom">
               <template #trigger>
-                <n-button
-                  :type="deviceView === 'desktop' ? 'primary' : 'default'"
-                  @click="deviceView = 'desktop'"
-                >
+                <n-button text size="small" @click="copyPreviewUrl">
                   <template #icon>
-                    <n-icon><DesktopIcon /></n-icon>
+                    <n-icon><CopyIcon /></n-icon>
                   </template>
                 </n-button>
               </template>
-              {{ t('preview.desktop') }}
+              {{ t('preview.copyUrl') }}
             </n-tooltip>
             <n-tooltip placement="bottom">
               <template #trigger>
-                <n-button
-                  :type="deviceView === 'tablet' ? 'primary' : 'default'"
-                  @click="deviceView = 'tablet'"
-                >
+                <n-button text size="small" @click="showShareModal = true">
                   <template #icon>
-                    <n-icon><TabletIcon /></n-icon>
+                    <n-icon><ShareIcon /></n-icon>
                   </template>
                 </n-button>
               </template>
-              {{ t('preview.tablet') }}
+              {{ t('preview.sharePreview') }}
             </n-tooltip>
-            <n-tooltip placement="bottom">
-              <template #trigger>
-                <n-button
-                  :type="deviceView === 'mobile' ? 'primary' : 'default'"
-                  @click="deviceView = 'mobile'"
-                >
-                  <template #icon>
-                    <n-icon><PhoneIcon /></n-icon>
-                  </template>
-                </n-button>
-              </template>
-              {{ t('preview.mobile') }}
-            </n-tooltip>
-          </n-button-group>
-        </div>
-        
-        <!-- 操作按钮 - 右侧 -->
-        <div class="preview-actions-header">
-          <n-tooltip placement="bottom">
-            <template #trigger>
-              <n-button text size="small" @click="copyPreviewUrl">
-                <template #icon>
-                  <n-icon><CopyIcon /></n-icon>
-                </template>
-              </n-button>
-            </template>
-            {{ t('preview.copyUrl') }}
-          </n-tooltip>
-          <n-tooltip placement="bottom">
-            <template #trigger>
-              <n-button text size="small" @click="showShareModal = true">
-                <template #icon>
-                  <n-icon><ShareIcon /></n-icon>
-                </template>
-              </n-button>
-            </template>
-            {{ t('preview.sharePreview') }}
-          </n-tooltip>
+          </template>
+          
+          <!-- 刷新按钮：桌面和移动端都显示 -->
           <n-tooltip placement="bottom">
             <template #trigger>
               <n-button text size="small" @click="refreshPreview">
@@ -106,7 +111,9 @@
             </template>
             {{ t('common.refresh') }}
           </n-tooltip>
-          <n-tooltip placement="bottom">
+          
+          <!-- 桌面端显示新标签页打开按钮 -->
+          <n-tooltip v-if="!isMobile" placement="bottom">
             <template #trigger>
               <n-button text size="small" @click="openInNewTab">
                 <template #icon>
@@ -119,25 +126,39 @@
         </div>
 
         <!-- 部署按钮 -->
-        <div class="deploy-button">
-          <n-button type="primary" @click="deployProject">
-            {{ t('preview.deploy') }}
-          </n-button>
-        </div>
-      </div>      
+        <n-button type="primary" size="small" @click="deployProject">
+          {{ t('preview.deploy') }}
+        </n-button>
+      </div>
     </div>
 
     <!-- 代码面板 -->
     <div v-if="activeTab === 'code'" class="code-panel">
+      <!-- 文件树展开按钮（当树被收起时显示） -->
+      <div v-if="isFileTreeCollapsed" class="expand-file-tree-btn">
+        <n-button text @click="toggleFileTree" class="expand-btn">
+          <template #icon>
+            <n-icon><ChevronRightIcon /></n-icon>
+          </template>
+        </n-button>
+      </div>
+      
       <!-- 文件树 -->
-      <div class="file-tree">
+      <div class="file-tree" :class="{ 'collapsed': isFileTreeCollapsed }">
         <div class="tree-header">
           <h4>{{ t('project.projectFiles') }}</h4>
-          <n-button text size="tiny" @click="refreshFiles">
-            <template #icon>
-              <n-icon><RefreshIcon /></n-icon>
-            </template>
-          </n-button>
+          <div class="tree-header-actions">
+            <n-button text size="tiny" @click="refreshFiles">
+              <template #icon>
+                <n-icon><RefreshIcon /></n-icon>
+              </template>
+            </n-button>
+            <n-button text size="tiny" @click="toggleFileTree" class="toggle-tree-btn">
+              <template #icon>
+                <n-icon><ChevronLeftIcon /></n-icon>
+              </template>
+            </n-button>
+          </div>
         </div>
         
         <div class="tree-content">
@@ -237,7 +258,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, onMounted, watch } from 'vue'
+import { ref, computed, h, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NIcon, NButton, NButtonGroup, NTag, NSpin, NTooltip, useMessage } from 'naive-ui'
 import { useProjectStore } from '@/stores/project'
@@ -258,7 +279,10 @@ import {
   FileIcon,
   CopyIcon,
   GlobeIcon,
-  ExternalLinkIcon
+  ExternalLinkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  FolderIcon
 } from '@/components/icon'
 
 interface Props {
@@ -279,11 +303,19 @@ const selectedFile = ref<FileTreeNode | null>(null)
 const fileTree = ref<FileTreeNode[]>([])
 const previewLoading = ref(false)
 const isLoadingFiles = ref(false)
+const isFileTreeCollapsed = ref(false)
 
 // 预览相关状态
 const deviceView = ref<'desktop' | 'tablet' | 'mobile'>('desktop')
 const showShareModal = ref(false)
 const iframeKey = ref(0)
+
+// 移动端检测
+const isMobile = ref(false)
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
 
 
 // 加载项目文件树
@@ -423,6 +455,11 @@ const refreshPreview = () => {
   iframeKey.value++
 }
 
+// 切换文件树折叠状态
+const toggleFileTree = () => {
+  isFileTreeCollapsed.value = !isFileTreeCollapsed.value
+}
+
 // 一键部署项目
 const deployProject = async () => {
   if (!props.project?.guid) return
@@ -468,14 +505,41 @@ defineExpose({
   refreshFiles
 })
 
+// 监听外部触发的预览切换事件
+const handleSwitchToPreview = () => {
+  activeTab.value = 'preview'
+  console.log('自动切换到预览视图')
+}
+
 // 初始化
 onMounted(async () => {
+  // 检测移动端
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  
+  // 监听切换到预览的自定义事件
+  const el = document.querySelector('.project-panel')
+  if (el) {
+    el.addEventListener('switch-to-preview', handleSwitchToPreview as EventListener)
+  }
+  
   // 如果项目数据已经存在，直接加载文件
   if (props.project?.guid) {
     console.log(t('project.projectDataExists'), props.project.guid)
     await loadProjectFiles()
   } else {
     console.log(t('project.projectDataNotLoaded'))
+  }
+})
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+  
+  // 移除自定义事件监听
+  const el = document.querySelector('.project-panel')
+  if (el) {
+    el.removeEventListener('switch-to-preview', handleSwitchToPreview as EventListener)
   }
 })
 </script>
@@ -492,47 +556,47 @@ onMounted(async () => {
 
 .panel-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;  /* 居中对齐 */
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid #e2e8f0;
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   z-index: 10;
   gap: var(--spacing-md);
+  position: relative;
 }
 
+/* 左侧（预览模式）：设备切换 */
 .header-left {
   display: flex;
   align-items: center;
-  height: var(--height-sm);
+  flex-shrink: 0;
+  position: absolute;
+  left: 20px;
 }
 
+/* 中间：代码/预览切换（居中） */
+.header-center {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 右侧：操作按钮 + 部署按钮 */
 .header-right {
   display: flex;
   align-items: center;
-  flex: 1;
-  position: relative;
-  justify-content: flex-end;
-}
-
-.device-view-controls {
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
+  right: 20px;
 }
 
-.preview-actions-header {
+.preview-actions {
   display: flex;
   align-items: center;
   gap: 4px;
-  z-index: 1;
-}
-
-.deploy-button {
-  margin-left: var(--spacing-md);
 }
 
 /* 代码面板样式 */
@@ -540,13 +604,49 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
+}
+
+/* 文件树展开按钮 */
+.expand-file-tree-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.expand-btn {
+  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expand-btn :deep(.n-icon) {
+  font-size: 20px;
+  color: var(--primary-color);
 }
 
 .file-tree {
   width: 250px;
+  min-width: 200px;
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.file-tree.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+  overflow: hidden;
 }
 
 .tree-header {
@@ -557,6 +657,16 @@ onMounted(async () => {
   border-bottom: 1px solid var(--border-color);
   background: var(--background-color);
   height: var(--height-md);
+}
+
+.tree-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toggle-tree-btn {
+  transition: transform 0.3s ease;
 }
 
 .tree-header h4 {
@@ -600,8 +710,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   background: #f5f5f5;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-lg);  /* 上下左右相同边距 */
   overflow: auto;
+  box-sizing: border-box;  /* 包含 padding 在内的盒模型 */
 }
 
 .preview-frame {
@@ -628,9 +739,10 @@ onMounted(async () => {
 
 .preview-frame.device-mobile {
   width: 375px;
-  height: 812px;
+  height: calc(100% - var(--spacing-lg) * 2);  /* ✨ 自适应高度，上下留边距 */
   max-width: 100%;
-  max-height: 100%;
+  max-height: 900px;  /* ✨ 最大高度限制 */
+  min-height: 600px;  /* ✨ 最小高度保证 */
   background: #1f1f1f;
   border-radius: 40px;
   padding: 12px;
@@ -648,24 +760,47 @@ onMounted(async () => {
   height: 100%;
   background: white;
   border-radius: 32px;
-  overflow: hidden;
+  overflow-y: auto;  /* ✨ 允许垂直滚动 */
+  overflow-x: hidden;  /* 隐藏横向滚动 */
   position: relative;
   display: flex;
   flex-direction: column;
+  -webkit-overflow-scrolling: touch;  /* ✨ iOS 平滑滚动 */
+  scroll-behavior: smooth;  /* ✨ 平滑滚动 */
+}
+
+/* 手机外框的滚动条样式 */
+.phone-frame::-webkit-scrollbar {
+  width: 4px;
+}
+
+.phone-frame::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 32px;
+}
+
+.phone-frame::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 32px;
+}
+
+.phone-frame::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* iPhone 刘海 */
 .phone-notch {
-  position: absolute;
+  position: sticky;  /* ✨ sticky 定位，滚动时固定在顶部 */
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
   width: 180px;
   height: 30px;
   background: #1f1f1f;
   border-radius: 0 0 20px 20px;
   z-index: 10;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;  /* ✨ 不收缩 */
+  margin: 0 auto;  /* ✨ 水平居中 */
+  align-self: center;  /* ✨ flex 容器中居中 */
 }
 
 /* 刘海内的扬声器 */
@@ -684,9 +819,11 @@ onMounted(async () => {
 /* 移动端的 iframe 需要适应刘海 */
 .phone-frame .preview-iframe {
   width: 100%;
-  height: 100%;
+  flex: 1;  /* ✨ 占据剩余空间 */
+  min-height: 100%;  /* ✨ 最小高度100%，允许内容更长 */
   border: none;
-  border-radius: 32px;
+  border-radius: 0 0 32px 32px;  /* 只圆角底部 */
+  display: block;
 }
 
 /* 非移动端的 iframe */
@@ -768,5 +905,214 @@ onMounted(async () => {
 
 .empty-state .n-button {
   margin-top: var(--spacing-sm);
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .project-panel {
+    height: 100%;
+  }
+  
+  .panel-header {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+  
+  /* 移动端文件树优化 */
+  .file-tree {
+    width: 180px;
+    min-width: 150px;
+  }
+  
+  .tree-header {
+    padding: var(--spacing-sm);
+  }
+  
+  .tree-header h4 {
+    font-size: 0.85rem;
+  }
+  
+  /* 展开按钮优化 */
+  .expand-btn {
+    padding: 6px 3px;
+  }
+  
+  .expand-btn :deep(.n-icon) {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .panel-header {
+    padding: 8px 12px;
+    gap: 6px;
+    justify-content: center;  /* 居中对齐 */
+    flex-wrap: nowrap;  /* 不换行 */
+    min-height: 48px;  /* 保证最小高度 */
+  }
+  
+  .header-left {
+    position: absolute;  /* 绝对定位到左侧 */
+    left: 12px;
+  }
+  
+  .header-center {
+    position: static;  /* 静态定位，居中显示 */
+    /* 移除 absolute 定位，让它自然居中 */
+  }
+  
+  .header-right {
+    position: absolute;  /* 绝对定位到右侧 */
+    right: 12px;
+  }
+  
+  .panel-header :deep(.n-button) {
+    font-size: 0.85rem;
+    padding: 0 8px;
+  }
+  
+  .panel-header :deep(.n-button-group .n-button) {
+    padding: 0 6px;  /* 按钮组更紧凑 */
+  }
+  
+  .preview-actions {
+    gap: 4px;
+  }
+  
+  .preview-actions :deep(.n-button) {
+    padding: 0 4px;  /* 操作按钮更紧凑 */
+  }
+  
+  /* 文件树更紧凑 */
+  .file-tree {
+    width: 150px;
+    min-width: 120px;
+  }
+  
+  .tree-header {
+    padding: 8px;
+  }
+  
+  .tree-header h4 {
+    font-size: 0.8rem;
+  }
+  
+  .tree-content {
+    padding: 4px;
+  }
+  
+  /* 展开按钮 */
+  .expand-btn {
+    padding: 4px 2px;
+  }
+  
+  .expand-btn :deep(.n-icon) {
+    font-size: 16px;
+  }
+  
+  .code-editor,
+  .preview-container {
+    font-size: 0.85rem;
+  }
+  
+  .empty-state {
+    padding: var(--spacing-lg);
+  }
+  
+  .empty-state h3 {
+    font-size: 1rem;
+  }
+  
+  .empty-state p {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-header {
+    padding: 6px 8px;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: nowrap;
+    min-height: 44px;  /* 保证最小高度 */
+  }
+  
+  .header-left {
+    position: absolute;
+    left: 8px;
+  }
+  
+  .header-center {
+    position: static;  /* 静态定位，自然居中 */
+  }
+  
+  .header-right {
+    position: absolute;
+    right: 8px;
+  }
+  
+  .panel-header :deep(.n-button) {
+    font-size: 0.75rem;
+    padding: 0 4px;
+    min-width: auto;
+  }
+  
+  .panel-header :deep(.n-button-group .n-button) {
+    padding: 0 4px;
+  }
+  
+  .panel-header :deep(.n-button .n-icon) {
+    font-size: 14px;
+  }
+  
+  .preview-actions {
+    gap: 2px;
+  }
+  
+  .preview-actions :deep(.n-button) {
+    padding: 0 3px;
+  }
+  
+  /* 部署按钮文字可能需要隐藏，只显示图标 */
+  .header-right :deep(.n-button:not(.n-button--text)) {
+    padding: 0 8px;
+  }
+  
+  /* 小手机文件树默认折叠 */
+  .file-tree {
+    width: 0;
+    min-width: 0;
+    border-right: none;
+  }
+  
+  .file-tree:not(.collapsed) {
+    width: 200px;
+    min-width: 180px;
+    border-right: 1px solid var(--border-color);
+  }
+  
+  .tree-header {
+    padding: 6px 8px;
+  }
+  
+  .tree-header h4 {
+    font-size: 0.75rem;
+  }
+  
+  .tree-content {
+    padding: 2px;
+  }
+  
+  .empty-state {
+    padding: var(--spacing-md);
+  }
+  
+  .empty-state h3 {
+    font-size: 0.95rem;
+  }
+  
+  .empty-state p {
+    font-size: 0.8rem;
+  }
 }
 </style>

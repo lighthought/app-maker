@@ -39,6 +39,8 @@ export default {
     inputRequirements: 'Enter your requirements or questions...',
     selectAgent: 'Select an Agent to chat with',
     agentLocked: 'Agent locked, waiting for response',
+    conversation: 'Conversation',
+    pannel: 'Pannel',
     manualRefresh: 'Manual Refresh',
     refresh: 'Refresh',
     expand: 'Expand',
@@ -175,6 +177,8 @@ export default {
     projectFiles: 'Project Files',
     loadingFiles: 'Loading file list...',
     noFileData: 'No file data available',
+    fileContentEmpty: 'File content is empty',
+    copyFileFailed: 'Failed to copy file',
     previewUnavailable: 'Preview unavailable',
     previewDevelopingNote: 'The project is under development, preview will be available after deployment',
     previewLoadFailed: 'Preview load failed',
@@ -234,7 +238,7 @@ export default {
     modelApiUrlPlaceholder: 'Enter API URL',
     apiToken: 'API Token',
     apiTokenPlaceholder: 'Enter API Token (e.g.: sk-...)',
-    devSettingsNote: 'These settings will be used as the default configuration for new projects. Support local Ollama, Zhipu AI, Claude and other models. API Token is optional, some cloud API vendors require it.'
+    devSettingsNote: 'These settings will be used as the default configuration for new projects. '
   },
 
   // Authentication related
@@ -256,8 +260,8 @@ export default {
     agreeTerms: 'By registering, you agree to our',
     userAgreement: 'User Agreement',
     privacyPolicy: 'Privacy Policy',
-    welcomeToAppMaker: 'Welcome to App-Maker!',
-    termsDescription: 'This agreement is a legal agreement between you and the App-Maker platform. Please read it carefully.',
+    welcomeToAppMaker: 'Welcome to AppMaker!',
+    termsDescription: 'This agreement is a legal agreement between you and the AppMaker platform. Please read it carefully.',
     privacyImportance: 'We take your privacy protection very seriously.',
     privacyDescription: 'This policy explains how we collect, use and protect your personal information.',
     

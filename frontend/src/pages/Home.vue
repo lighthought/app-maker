@@ -4,8 +4,8 @@
     <header class="header" :class="{ 'header-scrolled': isScrolled }">
       <div class="header-container">
         <div class="logo">
-          <img src="@/assets/logo.svg" alt="App-Maker" class="logo-icon" />
-          <h1>App-Maker</h1>
+          <img src="@/assets/logo.svg" alt="AppMaker" class="logo-icon" />
+          <h1>AppMaker</h1>
         </div>
         <nav class="nav">
           <a href="#process" class="nav-link">{{ t('process.title') }}</a>
@@ -115,7 +115,7 @@
       <div class="container">
         <div class="footer-content">
           <div class="footer-section">
-            <h3>App-Maker</h3>
+            <h3>AppMaker</h3>
             <p>{{ t('footer.description') }}</p>
           </div>
           <div class="footer-section">

@@ -39,6 +39,8 @@ export default {
     inputRequirements: '输入您的需求或问题...',
     selectAgent: '选择要对话的 Agent',
     agentLocked: 'Agent 已锁定，正在等待回复',
+    conversation: '对话',
+    pannel: '面板',
     manualRefresh: '手动刷新',
     refresh: '刷新',
     expand: '展开',
@@ -175,13 +177,15 @@ export default {
     projectFiles: '项目文件',
     loadingFiles: '加载文件列表中...',
     noFileData: '暂无文件数据',
+    fileContentEmpty: '文件内容为空',
+    copyFileFailed: '复制文件失败',
     previewUnavailable: '预览暂不可用',
     previewDevelopingNote: '项目正在开发中，预览功能将在部署完成后可用',
     previewLoadFailed: '预览加载失败',
     projectDataLoaded: '项目数据已加载，开始加载文件',
     projectDataExists: '组件挂载时项目数据已存在，开始加载文件',
     projectDataNotLoaded: '组件挂载时项目数据尚未加载，等待项目数据...',
-    projectSettings: '项目设置',
+    projectSettings: '设置',
     devConfiguration: '开发配置',
     devConfigNote: '留空表示使用用户默认设置。这些配置仅在项目环境初始化时生效。'
   },
@@ -234,7 +238,7 @@ export default {
     modelApiUrlPlaceholder: '输入 API 地址',
     apiToken: 'API Token',
     apiTokenPlaceholder: '输入 API Token (如: sk-...)',
-    devSettingsNote: '这些设置将作为新项目的默认配置。支持本地 Ollama、Zhipu AI、Claude 等多种模型。API Token 为可选项，某些云端 API 厂商需要。'
+    devSettingsNote: '这些设置将作为新项目的默认配置。'
   },
 
   // 认证相关
@@ -256,8 +260,8 @@ export default {
     agreeTerms: '注册即表示您同意我们的',
     userAgreement: '《用户协议》',
     privacyPolicy: '《隐私政策》',
-    welcomeToAppMaker: '欢迎使用 App-Maker！',
-    termsDescription: '本协议是您与 App-Maker 平台之间的法律协议，请您仔细阅读。',
+    welcomeToAppMaker: '欢迎使用 AppMaker！',
+    termsDescription: '本协议是您与 AppMaker 平台之间的法律协议，请您仔细阅读。',
     privacyImportance: '我们非常重视您的隐私保护。',
     privacyDescription: '本政策说明了我们如何收集、使用和保护您的个人信息。',
     

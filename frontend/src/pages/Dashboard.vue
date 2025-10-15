@@ -344,6 +344,14 @@ const updateInterval = ref<number | null>(null)
 const backendStatus = ref<'ok' | 'error' | 'checking'>('checking')
 const backendVersion = ref('')
 
+// 统计数据（全部项目，不受过滤影响）
+const allProjectsStats = ref({
+  total: 0,
+  inProgress: 0,
+  completed: 0,
+  newThisMonth: 0
+})
+
 // 任务轮询相关状态
 const showTaskModal = ref(false)
 const currentTaskId = ref('')
@@ -373,23 +381,14 @@ const currentDate = computed(() => {
   })
 })
 
-const totalProjects = computed(() => projectStore.projects.length)
+// 统计数据使用独立的 allProjectsStats，不受过滤影响
+const totalProjects = computed(() => allProjectsStats.value.total)
 
-const inProgressProjects = computed(() => 
-  projectStore.projects.filter(p => p.status === 'in_progress').length
-)
+const inProgressProjects = computed(() => allProjectsStats.value.inProgress)
 
-const completedProjects = computed(() => 
-  projectStore.projects.filter(p => p.status === 'done').length
-)
+const completedProjects = computed(() => allProjectsStats.value.completed)
 
-const newThisMonth = computed(() => {
-  const now = new Date()
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  return projectStore.projects.filter(p => 
-    new Date(p.created_at) >= thisMonth
-  ).length
-})
+const newThisMonth = computed(() => allProjectsStats.value.newThisMonth)
 
 const filteredProjects = computed(() => {
   return projectStore.projects
@@ -409,7 +408,8 @@ const selectProject = (project: Project) => {
 }
 
 const previewProject = (projectGuid: string) => {
-  router.push(`/preview/${projectGuid}`)
+  // 跳转到编辑界面，URL hash 传递预览标识
+  router.push(`/project/${projectGuid}#preview`)
 }
 
 const editProject = (projectGuid: string) => {
@@ -528,7 +528,10 @@ const truncateDescription = (description: string) => {
 const startRealTimeUpdates = () => {
   updateInterval.value = window.setInterval(async () => {
     try {
-      // 使用实际的API获取最新数据
+      // 更新统计数据（全部项目）
+      await fetchAllProjectsStats()
+      
+      // 使用实际的API获取最新数据（带过滤）
       const params: ProjectListRequest = {
         page: currentPage.value,
         pageSize: pageSize.value,
@@ -543,7 +546,7 @@ const startRealTimeUpdates = () => {
     } catch (error) {
       console.error('实时更新项目数据失败:', error)
     }
-  }, 45000) // 30秒更新一次
+  }, 45000) // 45秒更新一次
 }
 
 const stopRealTimeUpdates = () => {
@@ -558,12 +561,51 @@ onMounted(async () => {
   // 初始健康检查
   await checkBackendHealth()
   
-  // 加载项目数据
+  // 获取统计数据（全部项目）
+  await fetchAllProjectsStats()
+  
+  // 加载项目数据（带过滤）
   fetchProjectsWithFilters()
   
   // 启动实时更新
   startRealTimeUpdates()
 })
+
+// 获取全部项目的统计数据（不受过滤影响）
+const fetchAllProjectsStats = async () => {
+  try {
+    // 获取所有项目（不分页，不过滤）用于统计
+    const response = await httpService.get<{
+      code: number
+      message: string
+      total: number
+      data: Project[]
+    }>('/projects', { 
+      params: { 
+        page: 1, 
+        pageSize: 9999  // 获取所有项目
+      } 
+    })
+
+    if (response.code === 0 && response.data) {
+      const allProjects = response.data || []
+      
+      // 计算统计数据
+      allProjectsStats.value = {
+        total: allProjects.length,
+        inProgress: allProjects.filter(p => p.status === 'in_progress').length,
+        completed: allProjects.filter(p => p.status === 'done').length,
+        newThisMonth: (() => {
+          const now = new Date()
+          const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+          return allProjects.filter(p => new Date(p.created_at) >= thisMonth).length
+        })()
+      }
+    }
+  } catch (error) {
+    console.error('获取统计数据失败:', error)
+  }
+}
 
 // 获取项目数据（带筛选和分页）
 const fetchProjectsWithFilters = async () => {
@@ -941,8 +983,14 @@ onUnmounted(() => {
 }
 
 .project-actions .n-button {
-  flex: 1;
+  /* 前4个按钮每行2个，各占约50%宽度 */
+  flex: 0 0 calc(50% - var(--spacing-sm) / 2);
   min-width: 60px;
+}
+
+/* 删除按钮单独占一行 */
+.project-actions .n-button:last-child {
+  flex: 0 0 100%;
 }
 
 .status-list {
@@ -968,33 +1016,82 @@ onUnmounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
+  .dashboard {
+    padding: var(--spacing-md);
+    min-height: auto;
+  }
+  
   .dashboard-content {
     grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
   }
   
   .sidebar-panel {
     order: -1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+  
+  .projects-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
   .dashboard {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
+  }
+  
+  .dashboard-header {
+    margin-bottom: var(--spacing-md);
   }
   
   .header-content {
     flex-direction: column;
     gap: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+  
+  .welcome-section {
     text-align: center;
+    width: 100%;
+  }
+  
+  .welcome-section h1 {
+    font-size: 1.25rem;
+  }
+  
+  .welcome-section p {
+    font-size: 0.85rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+  }
+  
+  .create-btn {
+    width: 100%;
   }
   
   .section-header {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+  
+  .section-header h2 {
+    font-size: 1.1rem;
   }
   
   .filter-controls {
     flex-direction: column;
+    width: 100%;
   }
   
   .search-input,
@@ -1002,20 +1099,190 @@ onUnmounted(() => {
     width: 100%;
   }
   
+  .projects-section {
+    padding: var(--spacing-md);
+  }
+  
   .projects-grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .project-card {
+    font-size: 0.9rem;
+  }
+  
+  .project-header h3 {
+    font-size: 1rem;
+  }
+  
+  /* 移动端隐藏双击提示 */
+  .project-card:hover::after {
+    display: none;
+  }
+  
+  .pagination-wrapper {
+    overflow-x: auto;
+    padding: var(--spacing-sm) 0;
+  }
+  
+  .pagination-wrapper :deep(.n-pagination) {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+  
+  /* 平板模式下的按钮优化 */
+  .project-actions .n-button {
+    flex: 0 0 calc(50% - var(--spacing-sm) / 2);  /* 保持每行2个 */
+    min-height: 40px;  /* ✨ 平板模式最小高度 40px */
+    height: auto;  /* ✨ 自动高度，适应内容 */
+    padding: 10px 16px;  /* ✨ 增加内边距 */
+  }
+  
+  .project-actions .n-button:last-child {
+    flex: 0 0 100%;  /* 删除按钮单独一行 */
   }
 }
 
 @media (max-width: 480px) {
+  .dashboard {
+    padding: 0;
+  }
+  
+  .dashboard-header {
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .header-content {
+    border-radius: 0;
+    padding: var(--spacing-sm);
+  }
+  
+  .welcome-section h1 {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+  }
+  
+  .welcome-section p {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+  
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);  /* ✨ 2列布局 */
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .stat-card {
+    padding: var(--spacing-sm);
+  }
+  
+  .stat-card :deep(.n-statistic-label) {
+    font-size: 0.8rem;
+  }
+  
+  .stat-card :deep(.n-statistic-value) {
+    font-size: 1.5rem !important;
+  }
+  
+  .projects-section {
+    border-radius: 0;
+    padding: var(--spacing-sm);
+  }
+  
+  .section-header {
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .projects-grid {
+    gap: var(--spacing-sm);
+  }
+  
+  .project-card {
+    padding: var(--spacing-sm);
+  }
+  
+  .project-description {
+    font-size: 0.85rem;
+    -webkit-line-clamp: 1;
   }
   
   .project-meta {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--spacing-sm);
+    gap: 4px;
+  }
+  
+  .created-time {
+    font-size: 0.7rem;
+  }
+  
+  .sidebar-panel {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .current-project-card,
+  .system-status-card {
+    border-radius: var(--border-radius-md);
+  }
+  
+  .card-header h3 {
+    font-size: 1rem;
+  }
+  
+  .project-detail h4 {
+    font-size: 1rem;
+  }
+  
+  .project-detail p {
+    font-size: 0.85rem;
+  }
+  
+  .project-actions {
+    gap: var(--spacing-sm);  /* 增加按钮间距 */
+  }
+  
+  .project-actions .n-button {
+    flex: 0 0 calc(50% - var(--spacing-sm) / 2);  /* 每行2个 */
+    min-height: 44px;  /* ✨ 移动端最小触摸高度 44px */
+    height: 44px;  /* ✨ 固定高度，易于点击 */
+    font-size: 0.9rem;  /* ✨ 适当字体大小 */
+  }
+  
+  .project-actions .n-button:last-child {
+    flex: 0 0 100%;  /* 删除按钮单独一行 */
+  }
+  
+  .status-item {
+    font-size: 0.85rem;
+  }
+  
+  .empty-state {
+    padding: var(--spacing-lg) var(--spacing-sm);
+    margin: var(--spacing-sm) 0;
+  }
+  
+  .empty-state h3 {
+    font-size: 1.1rem;
+  }
+  
+  .empty-state p {
+    font-size: 0.9rem;
+  }
+  
+  .create-first-project-btn {
+    width: 100%;
+  }
+  
+  /* 分页优化 */
+  .pagination-wrapper :deep(.n-pagination) {
+    font-size: 0.75rem;
+  }
+  
+  .pagination-wrapper :deep(.n-pagination-item) {
+    min-width: 28px;
+    height: 28px;
   }
 }
 </style>
