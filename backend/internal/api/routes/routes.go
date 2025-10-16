@@ -140,6 +140,7 @@ func Register(engine *gin.Engine, container *container.Container) {
 		projects := routers.Group("/projects")
 		projects.Use(authMiddleware) // 应用认证中间件
 		{
+			var epicHandler = container.EpicHandler
 			if projectHandler != nil {
 				projects.POST("/", projectHandler.CreateProject)                         // 创建项目
 				projects.GET("/", projectHandler.ListProjects)                           // 获取项目列表
@@ -150,6 +151,19 @@ func Register(engine *gin.Engine, container *container.Container) {
 				projects.GET("/download/:guid", projectHandler.DownloadProject)          // 下载项目文件
 				projects.POST("/:guid/deploy", projectHandler.DeployProject)             // 部署项目
 				projects.POST("/:guid/preview-link", projectHandler.GeneratePreviewLink) // 生成预览分享链接
+
+				// Epic 相关路由
+				if epicHandler != nil {
+					projects.GET("/:guid/epics", epicHandler.GetProjectEpics)        // 获取项目 Epics
+					projects.GET("/:guid/mvp-epics", epicHandler.GetProjectMvpEpics) // 获取项目 MVP Epics
+				} else {
+					projects.GET("/:guid/epics", func(c *gin.Context) {
+						c.JSON(200, gin.H{"message": "Project epics endpoint - TODO"})
+					})
+					projects.GET("/:guid/mvp-epics", func(c *gin.Context) {
+						c.JSON(200, gin.H{"message": "Project mvp epics endpoint - TODO"})
+					})
+				}
 			} else {
 				projects.POST("/", func(c *gin.Context) {
 					c.JSON(200, gin.H{"message": "Project create endpoint - TODO"})

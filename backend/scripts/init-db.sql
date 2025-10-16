@@ -189,6 +189,61 @@ CREATE TABLE IF NOT EXISTS preview_tokens (
     deleted_at TIMESTAMP
 );
 
+-- 创建项目EpicID序列
+CREATE SEQUENCE IF NOT EXISTS public.project_epics_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+
+-- 创建项目Epic表
+CREATE TABLE IF NOT EXISTS project_epics (
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('EPIC', 'public.project_epics_id_num_seq'),
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    project_guid VARCHAR(50) NOT NULL,
+    epic_number INT NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    priority VARCHAR(20) NOT NULL,
+    estimated_days INT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    file_path VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    UNIQUE(project_id, epic_number)
+);
+
+-- 创建Epic StoryID序列
+CREATE SEQUENCE IF NOT EXISTS public.epic_stories_id_num_seq
+    INCREMENT BY 1            -- 步长
+    START 1                   -- 起始值    
+    MINVALUE 1
+    MAXVALUE 99999999999      -- 11位数字容量
+    CACHE 1;
+
+-- 创建Story表
+CREATE TABLE IF NOT EXISTS epic_stories (
+    id VARCHAR(50) PRIMARY KEY DEFAULT public.generate_table_id('STORY', 'public.epic_stories_id_num_seq'),
+    epic_id VARCHAR(50) NOT NULL REFERENCES project_epics(id) ON DELETE CASCADE,
+    story_number VARCHAR(20) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    priority VARCHAR(20) NOT NULL,
+    estimated_days INT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    file_path VARCHAR(500),
+    depends TEXT,
+    techs TEXT,
+    content TEXT,
+    acceptance_criteria TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+    UNIQUE(epic_id, story_number)
+);
+
 -- 插入默认管理员用户
 -- 密码: Admin123!@# (使用 pgcrypto 加密)
 INSERT INTO users (email, username, password, role, status) VALUES 
@@ -226,6 +281,12 @@ CREATE INDEX IF NOT EXISTS idx_preview_tokens_project_id ON preview_tokens(proje
 CREATE INDEX IF NOT EXISTS idx_preview_tokens_expires_at ON preview_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_preview_tokens_created_at ON preview_tokens(created_at);
 
+CREATE INDEX IF NOT EXISTS idx_project_epics_project_id ON project_epics(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_epics_project_guid ON project_epics(project_guid);
+CREATE INDEX IF NOT EXISTS idx_project_epics_status ON project_epics(status);
+CREATE INDEX IF NOT EXISTS idx_epic_stories_epic_id ON epic_stories(epic_id);
+CREATE INDEX IF NOT EXISTS idx_epic_stories_status ON epic_stories(status);
+
 
 -- 创建更新时间触发器函数
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -241,6 +302,8 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_project_msgs_updated_at BEFORE UPDATE ON project_msgs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dev_stages_updated_at BEFORE UPDATE ON dev_stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_project_epics_updated_at BEFORE UPDATE ON project_epics FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_epic_stories_updated_at BEFORE UPDATE ON epic_stories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- Note: preview_tokens 表没有 updated_at 字段，所以不需要触发器
 
 -- 显示创建的表

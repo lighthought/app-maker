@@ -36,6 +36,8 @@ type Container struct {
 	ProjectRepository      repositories.ProjectRepository
 	MessageRepository      repositories.MessageRepository
 	PreviewTokenRepository repositories.PreviewTokenRepository
+	EpicRepository         repositories.EpicRepository
+	StoryRepository        repositories.StoryRepository
 
 	// Services
 	UserService            services.UserService
@@ -47,6 +49,7 @@ type Container struct {
 	FileService            services.FileService
 	WebSocketService       services.WebSocketService
 	PreviewService         services.PreviewService
+	EpicService            services.EpicService
 
 	// Handlers
 	UserHandler      *handlers.UserHandler
@@ -56,6 +59,7 @@ type Container struct {
 	ChatHandler      *handlers.ChatHandler
 	CacheHandler     *handlers.CacheHandler
 	WebSocketHandler *handlers.WebSocketHandler
+	EpicHandler      *handlers.EpicHandler
 }
 
 func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Container {
@@ -107,6 +111,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	projectRepository := repositories.NewProjectRepository(db)
 	messageRepository := repositories.NewMessageRepository(db)
 	previewTokenRepository := repositories.NewPreviewTokenRepository(db)
+	epicRepository := repositories.NewEpicRepository(db)
+	storyRepository := repositories.NewStoryRepository(db)
 
 	// services
 	webSocketService := services.NewWebSocketService(asyncClient,
@@ -120,12 +126,14 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	projectTemplateService := services.NewProjectTemplateService(fileService)
 
 	projectStageService := services.NewProjectStageService(projectRepository,
-		stageRepository, messageRepository, webSocketService, gitService, fileService, asyncClient)
+		stageRepository, messageRepository, webSocketService, gitService, fileService, asyncClient,
+		epicRepository, storyRepository)
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, gitService, webSocketService)
 
 	previewService := services.NewPreviewService(previewTokenRepository)
+	epicService := services.NewEpicService(epicRepository, storyRepository, projectRepository)
 
 	var asynqServer *asynq.Server
 	// 有缓存，才处理异步任务
@@ -150,6 +158,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
 	userHandler := handlers.NewUserHandler(userService)
 	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, projectService, jwtService)
+	epicHandler := handlers.NewEpicHandler(epicService)
 
 	return &Container{
 		AsyncClient:            asyncClient,
@@ -163,6 +172,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		ProjectRepository:      projectRepository,
 		MessageRepository:      messageRepository,
 		PreviewTokenRepository: previewTokenRepository,
+		EpicRepository:         epicRepository,
+		StoryRepository:        storyRepository,
 		UserService:            userService,
 		FileService:            fileService,
 		ProjectTemplateService: projectTemplateService,
@@ -172,6 +183,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		GitService:             gitService,
 		WebSocketService:       webSocketService,
 		PreviewService:         previewService,
+		EpicService:            epicService,
 		CacheHandler:           cacheHandler,
 		ChatHandler:            chatHandler,
 		FileHandler:            fileHandler,
@@ -179,6 +191,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		TaskHandler:            taskHandler,
 		UserHandler:            userHandler,
 		WebSocketHandler:       webSocketHandler,
+		EpicHandler:            epicHandler,
 	}
 }
 

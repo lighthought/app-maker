@@ -105,6 +105,7 @@ const (
 	DevStatusPlanEpicAndStory   = DevStatus("plan_epic_and_story") // Epic和Story划分中
 	DevStatusDefineDataModel    = DevStatus("define_data_model")   // 数据模型定义中
 	DevStatusDefineAPI          = DevStatus("define_api")          // API接口定义中
+	DevStatusGeneratePages      = DevStatus("generate_pages")      // 生成前端页面
 	DevStatusDevelopStory       = DevStatus("develop_story")       // Story开发中
 	DevStatusFixBug             = DevStatus("fix_bug")             // 问题修复中
 	DevStatusRunTest            = DevStatus("run_test")            // 自动测试中
@@ -138,6 +139,8 @@ func GetDevStageDescription(devStage DevStatus) string {
 		return "正在划分Epic和Story"
 	case DevStatusDevelopStory:
 		return "正在开发Story功能"
+	case DevStatusGeneratePages:
+		return "正在生成前端页面"
 	case DevStatusFixBug:
 		return "正在修复开发问题"
 	case DevStatusRunTest:
@@ -178,6 +181,8 @@ func GetDevStageProgress(devStage DevStatus) int {
 		return 45
 	case DevStatusDevelopStory:
 		return 60
+	case DevStatusGeneratePages:
+		return 65
 	case DevStatusFixBug:
 		return 75
 	case DevStatusRunTest:

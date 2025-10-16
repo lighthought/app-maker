@@ -1353,6 +1353,94 @@
                 }
             }
         },
+        "/api/v1/projects/{guid}/epics": {
+            "get": {
+                "description": "根据项目 GUID 获取所有 Epics 和 Stories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "获取项目的 Epics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/mvp-epics": {
+            "get": {
+                "description": "根据项目 GUID 获取 MVP 阶段的 Epics 和 Stories (P0 优先级)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "获取项目的 MVP Epics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/projects/{guid}/preview-link": {
             "post": {
                 "security": [

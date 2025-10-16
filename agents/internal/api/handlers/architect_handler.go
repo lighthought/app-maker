@@ -49,9 +49,10 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 		" 帮我把整体架构设计 Architect.md, 前端架构设计 frontend_arch.md, 后端架构设计 backend_arch.md。" +
 		" 都输出到 docs/arch/ 目录下。\n" +
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
-		"2. 当前的项目代码是由模板生成，所以当前可能存在一些不在 PRD 描述内的实现细节，不影响编译可以不考虑。\n" +
-		"3. 当前项目使用的模板技术架构是：\n" + req.TemplateArchDescription +
-		"4. 如果 docs/arch/ 目录下已经有完善的架构设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
+		"3. 当前的项目代码是由模板生成，所以当前可能存在一些不在 PRD 描述内的实现细节，不影响编译可以不考虑。\n" +
+		"4. 当前项目使用的模板技术架构是：\n" + req.TemplateArchDescription +
+		"5. 如果 docs/arch/ 目录下已经有完善的架构设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
 	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message, req.CliTool)
 	if err != nil {
@@ -91,7 +92,8 @@ func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
 		" 和 @" + req.ArchFolder + " 目录下的架构设计，以及 @" + req.StoriesFolder +
 		" 目录下的用户故事，输出数据模型设计(可以用 sql 脚本代替)。输出到 docs/db/ 目录下。\n" +
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
-		"2. 如果 docs/db/ 目录下已经有完善的数据模型设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
+		"3. 如果 docs/db/ 目录下已经有完善的数据模型设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
 	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message, req.CliTool)
 	if err != nil {
@@ -130,7 +132,8 @@ func (s *ArchitectHandler) GetAPIDefinition(c *gin.Context) {
 	message := agentPrompt + " 请你基于最新的PRD文档 @" + req.PrdPath +
 		" 和 @" + req.DbFolder + " 目录下的数据模型，以及 @" + req.StoriesFolder + " 目录下的用户故事，生成 API 接口定义。输出到 docs/api/ 下多个文件（按控制器分类）。\n" +
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
-		"2. 如果 docs/api/ 目录下已经有完善的 API 接口定义，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
+		"3. 如果 docs/api/ 目录下已经有完善的 API 接口定义，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
 	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message, req.CliTool)
 	if err != nil {

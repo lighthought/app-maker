@@ -40,6 +40,8 @@ type projectStageService struct {
 	gitService       GitService
 	fileService      FileService
 	asyncClient      *asynq.Client
+	epicRepo         repositories.EpicRepository
+	storyRepo        repositories.StoryRepository
 	agentsURL        string
 }
 
@@ -52,6 +54,8 @@ func NewProjectStageService(
 	gitService GitService,
 	fileService FileService,
 	asyncClient *asynq.Client,
+	epicRepo repositories.EpicRepository,
+	storyRepo repositories.StoryRepository,
 ) ProjectStageService {
 	// 读取配置
 	var agentsURL string
@@ -66,6 +70,8 @@ func NewProjectStageService(
 		gitService:       gitService,
 		fileService:      fileService,
 		asyncClient:      asyncClient,
+		epicRepo:         epicRepo,
+		storyRepo:        storyRepo,
 		agentsURL:        agentsURL,
 	}
 }
@@ -118,7 +124,8 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 	if s.agentsURL != "" {
 		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
 	}
-	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Minute)
+	// 使用较长的超时时间，因为 Agent 执行复杂任务（如生成前端页面）可能需要 20-30 分钟
+	agentClient := client.NewAgentClient(s.agentsURL, 60*time.Minute)
 
 	// 2. 执行开发阶段
 	stages := []struct {
@@ -134,7 +141,8 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 		{common.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
 		{common.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
 		{common.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
-		{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
+		{common.DevStatusGeneratePages, "生成前端页面", s.generateFrontendPages},
+		// TODO: 调试阶段注释，{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
 		//{common.DevStatusFixBug, "修复开发问题", s.fixBugs}, // 这个要用户前端输入，可以提供入口
 		{common.DevStatusRunTest, "执行自动测试", s.runTests},
 		{common.DevStatusDeploy, "打包项目", s.packageProject},
@@ -213,7 +221,8 @@ func (s *projectStageService) handleProjectDeployTask(ctx context.Context, t *as
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
-	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Minute)
+	// 使用较长的超时时间，因为部署任务可能需要较长时间
+	agentClient := client.NewAgentClient(s.agentsURL, 60*time.Minute)
 	response, err := agentClient.Deploy(ctx, &req)
 	if err != nil {
 		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 打包失败: "+err.Error())
@@ -367,8 +376,8 @@ func (s *projectStageService) handleAgentChatTask(ctx context.Context, task *asy
 		logger.String("agentsURL", s.agentsURL),
 		logger.String("agentType", req.AgentType),
 	)
-	// 使用较长的超时时间，因为 Agent 执行可能需要几分钟
-	agentClient := client.NewAgentClient(s.agentsURL, 10*time.Minute)
+	// 使用较长的超时时间，因为 Agent 执行复杂任务可能需要 20-30 分钟甚至更长
+	agentClient := client.NewAgentClient(s.agentsURL, 60*time.Minute)
 	// 使用 background context 避免 HTTP 请求超时，但保留原 context 用于取消信号
 	response, err := agentClient.ChatWithAgent(ctx, &req)
 	if err != nil {
@@ -897,7 +906,19 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 		return err
 	}
 
-	// TODO: git 拉新代码，通过文件解析 epics 和 stories 这个关键信息
+	// 解析返回的 markdown 中的 MVP Epics JSON 信息
+	mvpData, err := s.extractMvpEpicsJSON(response.Message)
+	if err == nil && mvpData != nil {
+		// 保存到数据库
+		if err := s.saveMvpEpics(ctx, project, mvpData); err != nil {
+			logger.Error("保存 MVP Epics 失败", logger.String("error", err.Error()))
+		} else {
+			logger.Info("MVP Epics 已保存到数据库")
+		}
+	} else {
+		logger.Warn("未能提取 MVP Epics JSON，将依赖文件方式读取", logger.String("error", err.Error()))
+	}
+
 	projectMsg := &models.ConversationMessage{
 		ProjectGuid:     project.GUID,
 		Type:            common.ConversationTypeAgent,
@@ -917,7 +938,7 @@ func (s *projectStageService) planEpicsAndStories(ctx context.Context,
 	return nil
 }
 
-// developStories 开发Story功能
+// developStories 开发Story功能 (只实现 MVP Stories)
 func (s *projectStageService) developStories(ctx context.Context,
 	project *models.Project, resultWriter *asynq.ResultWriter,
 	agentClient *client.AgentClient, devStage *models.DevStage) error {
@@ -930,6 +951,167 @@ func (s *projectStageService) developStories(ctx context.Context,
 	}
 
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	// 尝试从数据库获取 MVP 阶段的 Epics (P0 优先级)
+	mvpEpics, err := s.epicRepo.GetMvpEpicsByProject(ctx, project.ID)
+
+	// 如果数据库中没有 MVP Epics，fallback 到文件方式
+	if err != nil || len(mvpEpics) == 0 {
+		logger.Warn("数据库中未找到 MVP Epics，使用文件方式", logger.String("error", err.Error()))
+		return s.developStoriesFromFiles(ctx, project, resultWriter, agentClient, devProjectStage)
+	}
+
+	logger.Info("从数据库读取到 MVP Epics", logger.Int("count", len(mvpEpics)))
+
+	req := &agent.ImplementStoryReq{
+		ProjectGuid: project.GUID,
+		PrdPath:     "docs/PRD.md",
+		ArchFolder:  "docs/arch/",
+		DbFolder:    "docs/db/",
+		ApiFolder:   "docs/api/",
+		UxSpecPath:  "docs/ux/ux-spec.md",
+		EpicFile:    "docs/stories/",
+		StoryFile:   "",
+		CliTool:     s.getCliTool(project),
+	}
+
+	bDev := (utils.GetEnvOrDefault("ENVIRONMENT", common.EnvironmentDevelopment) == common.EnvironmentDevelopment)
+	developStoryCount := 0
+	totalStoryCount := 0
+	var lastResponse *tasks.TaskResult
+
+	// 按 Epic 和 Story 的顺序实现
+	for epicIndex, epic := range mvpEpics {
+		logger.Info("开始实现 Epic",
+			logger.String("epic_id", epic.ID),
+			logger.String("epic_name", epic.Name),
+			logger.Int("story_count", len(epic.Stories)))
+
+		for storyIndex, story := range epic.Stories {
+			totalStoryCount++
+
+			// 跳过已完成的 Story
+			if story.Status == common.CommonStatusDone {
+				logger.Info("Story 已完成，跳过",
+					logger.String("story_number", story.StoryNumber),
+					logger.String("story_title", story.Title))
+				continue
+			}
+
+			// 开发环境只实现第一个 Story
+			if developStoryCount >= 1 && bDev {
+				logger.Info("开发模式：跳过 Story",
+					logger.String("story_number", story.StoryNumber),
+					logger.String("story_title", story.Title))
+
+				// 模拟完成
+				lastResponse = &tasks.TaskResult{
+					Message: fmt.Sprintf("开发模式：跳过 Story %s - %s", story.StoryNumber, story.Title),
+				}
+				continue
+			}
+
+			// 设置 Story 文件路径
+			req.StoryFile = story.FilePath
+			req.EpicFile = story.FilePath
+
+			logger.Info("开始实现 Story",
+				logger.String("story_number", story.StoryNumber),
+				logger.String("story_title", story.Title),
+				logger.String("story_file", story.FilePath))
+
+			// 调用 Dev Agent 实现 Story
+			response, err := agentClient.ImplementStory(ctx, req)
+			if err != nil {
+				logger.Error("Story 实现失败",
+					logger.String("story_number", story.StoryNumber),
+					logger.String("error", err.Error()))
+
+				tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "调用 Dev Agent 开发失败: "+err.Error())
+				devProjectStage.SetStatus(common.CommonStatusFailed)
+				devProjectStage.FailedReason = err.Error()
+
+				// 更新 Story 状态为失败
+				story.Status = common.CommonStatusFailed
+				s.storyRepo.Update(ctx, &story)
+
+				s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+				return err
+			}
+
+			// 更新 Story 状态为完成
+			story.Status = common.CommonStatusDone
+			if err := s.storyRepo.Update(ctx, &story); err != nil {
+				logger.Error("更新 Story 状态失败", logger.String("error", err.Error()))
+			}
+
+			logger.Info("Story 实现成功",
+				logger.String("story_number", story.StoryNumber),
+				logger.String("story_title", story.Title))
+
+			developStoryCount++
+			lastResponse = response
+
+			// 不是最后一个 Story，发送中间消息
+			if !(epicIndex == len(mvpEpics)-1 && storyIndex == len(epic.Stories)-1) {
+				projectMsg := &models.ConversationMessage{
+					ProjectGuid:     project.GUID,
+					Type:            common.ConversationTypeAgent,
+					AgentRole:       common.AgentDev.Role,
+					AgentName:       common.AgentDev.Name,
+					Content:         fmt.Sprintf("Story %s 已完成", story.StoryNumber),
+					IsMarkdown:      true,
+					MarkdownContent: response.Message,
+					IsExpanded:      true,
+				}
+				s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+			}
+		}
+
+		// Epic 完成，更新 Epic 状态
+		allStoriesDone := true
+		for _, story := range epic.Stories {
+			if story.Status != common.CommonStatusDone {
+				allStoriesDone = false
+				break
+			}
+		}
+		if allStoriesDone {
+			epic.Status = common.CommonStatusDone
+			if err := s.epicRepo.Update(ctx, epic); err != nil {
+				logger.Error("更新 Epic 状态失败", logger.String("error", err.Error()))
+			}
+			logger.Info("Epic 已完成", logger.String("epic_name", epic.Name))
+		}
+	}
+
+	// 发送最终完成消息
+	devProjectStage.SetStatus(common.CommonStatusDone)
+	finalMsg := fmt.Sprintf("MVP Stories 开发完成，共实现 %d 个 Story", developStoryCount)
+	if lastResponse != nil {
+		finalMsg = lastResponse.Message
+	}
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
+		Content:         "MVP Stories 功能已开发",
+		IsMarkdown:      true,
+		MarkdownContent: finalMsg,
+		IsExpanded:      true,
+	}
+	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "MVP Stories 功能已开发")
+	return nil
+}
+
+// developStoriesFromFiles 从文件方式开发 Stories (fallback)
+func (s *projectStageService) developStoriesFromFiles(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devProjectStage *models.DevStage) error {
 
 	req := &agent.ImplementStoryReq{
 		ProjectGuid: project.GUID,
@@ -975,9 +1157,10 @@ func (s *projectStageService) developStories(ctx context.Context,
 	var response = &tasks.TaskResult{}
 	developStoryCount := 0
 	bDev := (utils.GetEnvOrDefault("ENVIRONMENT", common.EnvironmentDevelopment) == common.EnvironmentDevelopment)
+
 	// 获取 stories 下的文件，循环开发每个 Story
 	for index, storyFile := range storyFiles {
-		// development 模式，只开发一个，其他的都直接打印结果就可以了
+		// development 模式，只开发一个
 		if developStoryCount < 1 || !bDev {
 			req.StoryFile = storyFile
 			// 调用 agents-server 开发 Story 功能
@@ -1194,5 +1377,199 @@ func (s *projectStageService) ChatWithAgent(ctx context.Context, req *agent.Chat
 	if err != nil {
 		return fmt.Errorf("创建与 Agent 对话任务失败: %w", err)
 	}
+	return nil
+}
+
+// extractMvpEpicsJSON 从 markdown 内容中提取 MVP Epics JSON
+func (s *projectStageService) extractMvpEpicsJSON(content string) (*models.MvpEpicsData, error) {
+	// 查找 JSON 代码块
+	jsonStart := strings.Index(content, "```json")
+	if jsonStart == -1 {
+		logger.Warn("未找到 JSON 代码块")
+		return nil, fmt.Errorf("未找到 JSON 代码块")
+	}
+
+	jsonStart += len("```json")
+	jsonEnd := strings.Index(content[jsonStart:], "```")
+	if jsonEnd == -1 {
+		logger.Warn("JSON 代码块未闭合")
+		return nil, fmt.Errorf("JSON 代码块未闭合")
+	}
+
+	jsonContent := strings.TrimSpace(content[jsonStart : jsonStart+jsonEnd])
+
+	var mvpData models.MvpEpicsData
+	if err := json.Unmarshal([]byte(jsonContent), &mvpData); err != nil {
+		logger.Error("解析 MVP Epics JSON 失败", logger.String("error", err.Error()))
+		return nil, fmt.Errorf("解析 MVP Epics JSON 失败: %w", err)
+	}
+
+	logger.Info("成功解析 MVP Epics JSON", logger.Int("epic_count", len(mvpData.MvpEpics)))
+	return &mvpData, nil
+}
+
+// saveMvpEpics 保存 MVP Epics 到数据库
+func (s *projectStageService) saveMvpEpics(ctx context.Context, project *models.Project, mvpData *models.MvpEpicsData) error {
+	if mvpData == nil || len(mvpData.MvpEpics) == 0 {
+		return fmt.Errorf("MVP Epics 数据为空")
+	}
+
+	// 遍历每个 Epic
+	for _, epicItem := range mvpData.MvpEpics {
+		// 创建 Epic
+		epic := &models.Epic{
+			ProjectID:     project.ID,
+			ProjectGuid:   project.GUID,
+			EpicNumber:    epicItem.EpicNumber,
+			Name:          epicItem.Name,
+			Description:   epicItem.Description,
+			Priority:      epicItem.Priority,
+			EstimatedDays: epicItem.EstimatedDays,
+			Status:        common.CommonStatusPending,
+			FilePath:      epicItem.FilePath,
+		}
+
+		// 保存 Epic
+		if err := s.epicRepo.Create(ctx, epic); err != nil {
+			logger.Error("保存 Epic 失败",
+				logger.String("epic_name", epic.Name),
+				logger.String("error", err.Error()))
+			return fmt.Errorf("保存 Epic 失败: %w", err)
+		}
+
+		logger.Info("Epic 已保存",
+			logger.String("epic_id", epic.ID),
+			logger.String("epic_name", epic.Name))
+
+		// 遍历 Epic 下的每个 Story
+		for _, storyItem := range epicItem.Stories {
+			story := &models.Story{
+				EpicID:        epic.ID,
+				StoryNumber:   storyItem.StoryNumber,
+				Title:         storyItem.Title,
+				Description:   storyItem.Description,
+				Priority:      storyItem.Priority,
+				EstimatedDays: storyItem.EstimatedDays,
+				Status:        common.CommonStatusPending,
+				FilePath:      epic.FilePath, // Story 的 FilePath 与 Epic 相同
+				Depends:       storyItem.Depends,
+				Techs:         storyItem.Techs,
+			}
+
+			// 保存 Story
+			if err := s.storyRepo.Create(ctx, story); err != nil {
+				logger.Error("保存 Story 失败",
+					logger.String("story_number", story.StoryNumber),
+					logger.String("story_title", story.Title),
+					logger.String("error", err.Error()))
+				return fmt.Errorf("保存 Story 失败: %w", err)
+			}
+
+			logger.Info("Story 已保存",
+				logger.String("story_id", story.ID),
+				logger.String("story_number", story.StoryNumber),
+				logger.String("story_title", story.Title))
+		}
+	}
+
+	logger.Info("所有 MVP Epics 和 Stories 已保存",
+		logger.Int("epic_count", len(mvpData.MvpEpics)))
+	return nil
+}
+
+// generateFrontendPages 生成前端关键页面 (Vibe Coding)
+func (s *projectStageService) generateFrontendPages(ctx context.Context,
+	project *models.Project, resultWriter *asynq.ResultWriter,
+	agentClient *client.AgentClient, devStage *models.DevStage) error {
+
+	var devProjectStage *models.DevStage
+	if devStage == nil {
+		devProjectStage = models.NewDevStage(project, common.DevStatusGeneratePages, common.CommonStatusInProgress)
+	} else {
+		devProjectStage = devStage
+		devProjectStage.SetStatus(common.CommonStatusInProgress)
+	}
+
+	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	// 只在开发模式下执行
+	bDev := (utils.GetEnvOrDefault("ENVIRONMENT", common.EnvironmentDevelopment) == common.EnvironmentDevelopment)
+	if !bDev {
+		logger.Info("生产环境跳过前端页面生成")
+		devProjectStage.SetStatus(common.CommonStatusDone)
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusGeneratePages), "跳过前端页面生成")
+		return nil
+	}
+
+	// 检查 page-prompt.md 文件是否存在
+	pagePromptRelPath := "docs/ux/page-prompt.md"
+	pagePromptFiles, err := s.fileService.GetRelativeFiles(project.ProjectPath, "docs/ux")
+	hasPagePrompt := false
+	for _, file := range pagePromptFiles {
+		if strings.Contains(file, "page-prompt") || strings.Contains(file, "prompt") {
+			hasPagePrompt = true
+			break
+		}
+	}
+
+	if !hasPagePrompt {
+		logger.Warn("未找到 page-prompt.md 文件，跳过前端页面生成")
+		devProjectStage.SetStatus(common.CommonStatusDone)
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusGeneratePages), "未找到页面提示词文件")
+		return nil
+	}
+
+	logger.Info("开始生成前端页面", logger.String("pagePromptPath", pagePromptRelPath))
+
+	// 根据 CLI 类型选择不同的 prompt
+	var agentPrompt string
+	cliTool := s.getCliTool(project)
+	if cliTool == common.CliToolGemini {
+		agentPrompt = "@.bmad-core/agents/dev.md"
+	} else {
+		agentPrompt = "@bmad/dev.mdc"
+	}
+
+	// 调用 Dev Agent 生成前端页面
+	message := agentPrompt + " 请基于 @docs/ux/page-prompt.md 中的页面设计提示词," +
+		"在前端项目 frontend/src/pages/ 目录下生成关键页面组件。" +
+		"使用 Vue 3 + TypeScript + Naive UI,遵循现有项目的代码风格和架构。" +
+		"只生成 page-prompt.md 中明确定义的页面，不要生成其他页面。" +
+		"注意：始终用中文回答我。"
+
+	req := &agent.ChatReq{
+		ProjectGuid: project.GUID,
+		AgentType:   common.AgentTypeDev,
+		Message:     message,
+	}
+
+	response, err := agentClient.ChatWithAgent(ctx, req)
+	if err != nil {
+		logger.Error("生成前端页面失败", logger.String("error", err.Error()))
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "生成前端页面失败: "+err.Error())
+		devProjectStage.SetStatus(common.CommonStatusFailed)
+		devProjectStage.FailedReason = err.Error()
+		s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+		return err
+	}
+
+	projectMsg := &models.ConversationMessage{
+		ProjectGuid:     project.GUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
+		Content:         "前端关键页面已生成",
+		IsMarkdown:      true,
+		MarkdownContent: response.Message,
+		IsExpanded:      true,
+	}
+
+	devProjectStage.SetStatus(common.CommonStatusDone)
+	s.notifyProjectStatusChange(ctx, project, projectMsg, devProjectStage)
+
+	logger.Info("前端页面生成完成")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusGeneratePages), "前端页面已生成")
 	return nil
 }

@@ -1082,6 +1082,64 @@ paths:
       summary: 部署项目
       tags:
       - 项目管理
+  /api/v1/projects/{guid}/epics:
+    get:
+      consumes:
+      - application/json
+      description: 根据项目 GUID 获取所有 Epics 和 Stories
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 获取项目的 Epics
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/mvp-epics:
+    get:
+      consumes:
+      - application/json
+      description: 根据项目 GUID 获取 MVP 阶段的 Epics 和 Stories (P0 优先级)
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 获取项目的 MVP Epics
+      tags:
+      - Epic
   /api/v1/projects/{guid}/preview-link:
     post:
       consumes:
