@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"autocodeweb-backend/internal/api/handlers"
 	"autocodeweb-backend/internal/api/middleware"
 	"autocodeweb-backend/internal/container"
 	"shared-models/common"
@@ -37,7 +36,14 @@ func Register(engine *gin.Engine, container *container.Container) {
 	routers := engine.Group(common.DefaultApiPrefix)
 	{
 		// 0.健康检查
-		routers.GET("/health", handlers.HealthCheck)
+		var healthHandler = container.HealthHandler
+		if healthHandler != nil {
+			routers.GET("/health", healthHandler.HealthCheck)
+		} else {
+			routers.GET("/health", func(c *gin.Context) {
+				c.JSON(200, gin.H{"message": "Health check endpoint - TODO"})
+			})
+		}
 
 		// 预览路由（无需认证）
 		var projectHandler = container.ProjectHandler

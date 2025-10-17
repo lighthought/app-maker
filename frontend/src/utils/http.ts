@@ -166,20 +166,6 @@ class HttpService {
     return response.data
   }
   
-  // 健康检查方法
-  public async healthCheck(): Promise<{
-    message: string
-    status: string
-    version: string
-  }> {
-    try {
-      const response = await this.instance.get('/health')
-      return response as any
-    } catch (error) {
-      throw new Error('后端服务健康检查失败')
-    }
-  }
-  
   // 日志控制方法
   public setLogEnabled(enabled: boolean): void {
     apiLogger.setEnabled(enabled)

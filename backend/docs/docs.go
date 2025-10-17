@@ -775,7 +775,7 @@ const docTemplate = `{
         },
         "/api/v1/health": {
             "get": {
-                "description": "检查服务是否正常运行",
+                "description": "检查服务是否正常运行，包括依赖服务状态",
                 "consumes": [
                     "application/json"
                 ],
@@ -790,8 +790,7 @@ const docTemplate = `{
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/agent.BackendHealthResp"
                         }
                     },
                     "500": {
@@ -1384,6 +1383,471 @@ const docTemplate = `{
                         "name": "guid",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/epics/confirm": {
+            "post": {
+                "description": "用户确认 Epics 和 Stories，继续执行流程",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "确认 Epics 和 Stories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "确认请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/epics/stories/batch-delete": {
+            "delete": {
+                "description": "批量删除指定的 Stories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "批量删除 Stories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "批量删除请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.BatchDeleteStoriesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/epics/{epicId}": {
+            "put": {
+                "description": "更新指定 Epic 的内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "更新 Epic 内容",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Epic ID",
+                        "name": "epicId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateEpicRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除指定的 Epic",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "删除 Epic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Epic ID",
+                        "name": "epicId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/epics/{epicId}/order": {
+            "put": {
+                "description": "更新指定 Epic 的显示顺序",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "更新 Epic 排序",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Epic ID",
+                        "name": "epicId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "排序请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateEpicOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/epics/{epicId}/stories/{storyId}": {
+            "put": {
+                "description": "更新指定 Story 的内容",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "更新 Story 内容",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Epic ID",
+                        "name": "epicId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Story ID",
+                        "name": "storyId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateStoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "删除指定的 Story",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "删除 Story",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Epic ID",
+                        "name": "epicId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Story ID",
+                        "name": "storyId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/{guid}/epics/{epicId}/stories/{storyId}/order": {
+            "put": {
+                "description": "更新指定 Story 的显示顺序",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Epic"
+                ],
+                "summary": "更新 Story 排序",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "项目 GUID",
+                        "name": "guid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Epic ID",
+                        "name": "epicId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Story ID",
+                        "name": "storyId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "排序请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateStoryOrderRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -2087,6 +2551,98 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "agent.AgentHealthResp": {
+            "type": "object",
+            "properties": {
+                "checked_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tools": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/agent.AgentToolInfo"
+                    }
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "agent.AgentToolInfo": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "agent.BackendHealthResp": {
+            "type": "object",
+            "properties": {
+                "agent": {
+                    "$ref": "#/definitions/agent.AgentHealthResp"
+                },
+                "service": {
+                    "type": "string"
+                },
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/agent.ServiceStatus"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "agent.ServiceStatus": {
+            "type": "object",
+            "properties": {
+                "checked_at": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "autocodeweb-backend_internal_models.BatchDeleteStoriesRequest": {
+            "type": "object",
+            "required": [
+                "story_ids"
+            ],
+            "properties": {
+                "story_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "autocodeweb-backend_internal_models.ChangePasswordRequest": {
             "type": "object",
             "required": [
@@ -2102,6 +2658,23 @@ const docTemplate = `{
                 "old_password": {
                     "type": "string",
                     "example": "oldpassword123"
+                }
+            }
+        },
+        "autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest": {
+            "type": "object",
+            "required": [
+                "action"
+            ],
+            "properties": {
+                "action": {
+                    "description": "confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成",
+                    "type": "string",
+                    "enum": [
+                        "confirm",
+                        "skip",
+                        "regenerate"
+                    ]
                 }
             }
         },
@@ -2274,6 +2847,44 @@ const docTemplate = `{
                 }
             }
         },
+        "autocodeweb-backend_internal_models.UpdateEpicOrderRequest": {
+            "type": "object",
+            "required": [
+                "order"
+            ],
+            "properties": {
+                "order": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "autocodeweb-backend_internal_models.UpdateEpicRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "estimated_days": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "P0",
+                        "P1",
+                        "P2",
+                        "P3"
+                    ]
+                }
+            }
+        },
         "autocodeweb-backend_internal_models.UpdateProfileRequest": {
             "type": "object",
             "properties": {
@@ -2332,9 +2943,64 @@ const docTemplate = `{
                 }
             }
         },
+        "autocodeweb-backend_internal_models.UpdateStoryOrderRequest": {
+            "type": "object",
+            "required": [
+                "order"
+            ],
+            "properties": {
+                "order": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "autocodeweb-backend_internal_models.UpdateStoryRequest": {
+            "type": "object",
+            "properties": {
+                "acceptance_criteria": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "depends": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "estimated_days": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "P0",
+                        "P1",
+                        "P2",
+                        "P3"
+                    ]
+                },
+                "techs": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 1
+                }
+            }
+        },
         "autocodeweb-backend_internal_models.UpdateUserSettingsRequest": {
             "type": "object",
             "properties": {
+                "auto_go_next": {
+                    "description": "自动进入下一阶段配置",
+                    "type": "boolean",
+                    "example": false
+                },
                 "default_ai_model": {
                     "type": "string",
                     "example": "glm-4.6"
@@ -2400,6 +3066,11 @@ const docTemplate = `{
         "autocodeweb-backend_internal_models.UserSettingsResponse": {
             "type": "object",
             "properties": {
+                "auto_go_next": {
+                    "description": "自动进入下一阶段配置",
+                    "type": "boolean",
+                    "example": false
+                },
                 "default_ai_model": {
                     "type": "string",
                     "example": "glm-4.6"

@@ -33,16 +33,17 @@ type ProjectStageService interface {
 
 // ProjectStageService 任务执行服务
 type projectStageService struct {
-	projectRepo      repositories.ProjectRepository
-	stageRepo        repositories.StageRepository
-	messageRepo      repositories.MessageRepository
-	webSocketService WebSocketService
-	gitService       GitService
-	fileService      FileService
-	asyncClient      *asynq.Client
-	epicRepo         repositories.EpicRepository
-	storyRepo        repositories.StoryRepository
-	agentsURL        string
+	projectRepo        repositories.ProjectRepository
+	stageRepo          repositories.StageRepository
+	messageRepo        repositories.MessageRepository
+	webSocketService   WebSocketService
+	gitService         GitService
+	fileService        FileService
+	asyncClient        *asynq.Client
+	epicRepo           repositories.EpicRepository
+	storyRepo          repositories.StoryRepository
+	agentsURL          string
+	environmentService EnvironmentService
 }
 
 // NewTaskExecutionService 创建任务执行服务
@@ -56,6 +57,7 @@ func NewProjectStageService(
 	asyncClient *asynq.Client,
 	epicRepo repositories.EpicRepository,
 	storyRepo repositories.StoryRepository,
+	environmentService EnvironmentService,
 ) ProjectStageService {
 	// 读取配置
 	var agentsURL string
@@ -63,16 +65,17 @@ func NewProjectStageService(
 		agentsURL = cfg.Agents.URL
 	}
 	return &projectStageService{
-		projectRepo:      projectRepo,
-		stageRepo:        stageRepo,
-		messageRepo:      messageRepo,
-		webSocketService: webSocketService,
-		gitService:       gitService,
-		fileService:      fileService,
-		asyncClient:      asyncClient,
-		epicRepo:         epicRepo,
-		storyRepo:        storyRepo,
-		agentsURL:        agentsURL,
+		projectRepo:        projectRepo,
+		stageRepo:          stageRepo,
+		messageRepo:        messageRepo,
+		webSocketService:   webSocketService,
+		gitService:         gitService,
+		fileService:        fileService,
+		asyncClient:        asyncClient,
+		epicRepo:           epicRepo,
+		storyRepo:          storyRepo,
+		agentsURL:          agentsURL,
+		environmentService: environmentService,
 	}
 }
 
@@ -319,6 +322,33 @@ func (s *projectStageService) handleStageTask(ctx context.Context, t *asynq.Task
 	s.projectRepo.Update(ctx, project)
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
+	// 检查 Agent 服务健康状态
+	if !s.environmentService.IsAgentHealthy(ctx) {
+		logger.Error("Agent 服务不健康，停止执行阶段任务",
+			logger.String("projectID", project.ID),
+			logger.String("stage", string(stage)))
+
+		// 更新项目状态为失败
+		project.SetDevStatus(common.DevStatusFailed)
+		project.Status = common.CommonStatusFailed
+		s.projectRepo.Update(ctx, project)
+		s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+
+		// 更新阶段状态为失败
+		if devProjectStage != nil {
+			devProjectStage.Status = common.CommonStatusFailed
+			devProjectStage.FailedReason = "Agent 服务不可用"
+			s.stageRepo.Update(ctx, devProjectStage)
+			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
+		}
+
+		return fmt.Errorf("Agent 服务不可用，无法继续执行阶段任务")
+	}
+
+	logger.Info("Agent 服务健康检查通过",
+		logger.String("projectID", project.ID),
+		logger.String("stage", string(stage)))
+
 	// 创建 Agent 客户端
 	if s.agentsURL == "" {
 		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
@@ -561,6 +591,21 @@ func (s *projectStageService) handleAgentChatTask(ctx context.Context, task *asy
 		logger.String("projectID", project.ID),
 		logger.String("devStatus", project.DevStatus),
 	)
+
+	// 检查 Agent 服务健康状态
+	if !s.environmentService.IsAgentHealthy(ctx) {
+		logger.Error("🔴 [AgentChat] Agent 服务不健康，停止处理对话任务",
+			logger.String("projectID", project.ID),
+			logger.String("agentType", req.AgentType))
+
+		// 更新任务状态为失败
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "Agent 服务不可用，无法处理对话任务")
+		return fmt.Errorf("Agent 服务不可用，无法处理对话任务")
+	}
+
+	logger.Info("🔵 [AgentChat] Agent 服务健康检查通过",
+		logger.String("projectID", project.ID),
+		logger.String("agentType", req.AgentType))
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 35, "和 Agent 对话中...")
 	logger.Info("🔵 [AgentChat] 开始调用 Agent 模块",

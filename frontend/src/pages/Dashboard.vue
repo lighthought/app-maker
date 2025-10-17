@@ -305,7 +305,8 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
-import { useFilesStore } from '@/stores/file'
+import { useBackendStore } from '@/stores/backend'
+import type { BackendHealthResponse, ServiceStatus } from '@/types/health'
 import TaskProgressModal from '@/components/TaskProgressModal.vue'
 import ProjectSettingsModal from '@/components/ProjectSettingsModal.vue'
 import { formatDateTime, formatDateShort } from '@/utils/time'
@@ -332,7 +333,7 @@ const router = useRouter()
 const { t, locale } = useI18n()
 const userStore = useUserStore()
 const projectStore = useProjectStore()
-const fileStore = useFilesStore()
+const backendStore = useBackendStore()
 
 // 响应式数据
 const searchKeyword = ref('')
@@ -341,7 +342,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const currentProject = ref<Project | null>(null)
 const updateInterval = ref<number | null>(null)
-const backendStatus = ref<'ok' | 'error' | 'checking'>('checking')
+const backendStatus = ref<'ok' | 'error' | 'checking' | 'warning'>('checking')
 const backendVersion = ref('')
 
 // 统计数据（全部项目，不受过滤影响）
@@ -468,10 +469,32 @@ const handleDeleteProject = async (projectGuid: string) => {
 const checkBackendHealth = async () => {
   try {
     backendStatus.value = 'checking'
-    const healthData = await httpService.healthCheck()
-    backendStatus.value = 'ok'
+    const response = await backendStore.healthCheck() 
+    const healthData = response as BackendHealthResponse
+    
+    // 根据整体状态设置后端状态
+    if (healthData.status === 'healthy') {
+      backendStatus.value = 'ok'
+    } else if (healthData.status === 'degraded') {
+      backendStatus.value = 'warning'
+    } else {
+      backendStatus.value = 'error'
+    }
+    
     backendVersion.value = healthData.version
     console.log('后端健康检查成功:', healthData)
+    
+    // 记录各个服务的状态
+    if (healthData.services) {
+      healthData.services.forEach((service: ServiceStatus) => {
+        console.log(`服务 ${service.name}: ${service.status} - ${service.version} - ${service.message}`)
+      })
+    }
+    
+    // 记录 Agent 服务状态
+    if (healthData.agent) {
+      console.log('Agent 服务状态:', healthData.agent.status)
+    }
   } catch (error) {
     backendStatus.value = 'error'
     console.error('后端健康检查失败:', error)

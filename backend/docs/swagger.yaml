@@ -1,4 +1,64 @@
 definitions:
+  agent.AgentHealthResp:
+    properties:
+      checked_at:
+        type: string
+      status:
+        type: string
+      tools:
+        items:
+          $ref: '#/definitions/agent.AgentToolInfo'
+        type: array
+      version:
+        type: string
+    type: object
+  agent.AgentToolInfo:
+    properties:
+      name:
+        type: string
+      version:
+        type: string
+    type: object
+  agent.BackendHealthResp:
+    properties:
+      agent:
+        $ref: '#/definitions/agent.AgentHealthResp'
+      service:
+        type: string
+      services:
+        items:
+          $ref: '#/definitions/agent.ServiceStatus'
+        type: array
+      status:
+        type: string
+      timestamp:
+        type: string
+      version:
+        type: string
+    type: object
+  agent.ServiceStatus:
+    properties:
+      checked_at:
+        type: string
+      message:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      version:
+        type: string
+    type: object
+  autocodeweb-backend_internal_models.BatchDeleteStoriesRequest:
+    properties:
+      story_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - story_ids
+    type: object
   autocodeweb-backend_internal_models.ChangePasswordRequest:
     properties:
       new_password:
@@ -11,6 +71,18 @@ definitions:
     required:
     - new_password
     - old_password
+    type: object
+  autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest:
+    properties:
+      action:
+        description: 'confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成'
+        enum:
+        - confirm
+        - skip
+        - regenerate
+        type: string
+    required:
+    - action
     type: object
   autocodeweb-backend_internal_models.CreateProjectRequest:
     properties:
@@ -134,6 +206,33 @@ definitions:
     - password
     - username
     type: object
+  autocodeweb-backend_internal_models.UpdateEpicOrderRequest:
+    properties:
+      order:
+        minimum: 0
+        type: integer
+    required:
+    - order
+    type: object
+  autocodeweb-backend_internal_models.UpdateEpicRequest:
+    properties:
+      description:
+        type: string
+      estimated_days:
+        minimum: 0
+        type: integer
+      name:
+        maxLength: 200
+        minLength: 1
+        type: string
+      priority:
+        enum:
+        - P0
+        - P1
+        - P2
+        - P3
+        type: string
+    type: object
   autocodeweb-backend_internal_models.UpdateProfileRequest:
     properties:
       email:
@@ -178,8 +277,47 @@ definitions:
         minLength: 1
         type: string
     type: object
+  autocodeweb-backend_internal_models.UpdateStoryOrderRequest:
+    properties:
+      order:
+        minimum: 0
+        type: integer
+    required:
+    - order
+    type: object
+  autocodeweb-backend_internal_models.UpdateStoryRequest:
+    properties:
+      acceptance_criteria:
+        type: string
+      content:
+        type: string
+      depends:
+        type: string
+      description:
+        type: string
+      estimated_days:
+        minimum: 0
+        type: integer
+      priority:
+        enum:
+        - P0
+        - P1
+        - P2
+        - P3
+        type: string
+      techs:
+        type: string
+      title:
+        maxLength: 200
+        minLength: 1
+        type: string
+    type: object
   autocodeweb-backend_internal_models.UpdateUserSettingsRequest:
     properties:
+      auto_go_next:
+        description: 自动进入下一阶段配置
+        example: false
+        type: boolean
       default_ai_model:
         example: glm-4.6
         type: string
@@ -228,6 +366,10 @@ definitions:
     type: object
   autocodeweb-backend_internal_models.UserSettingsResponse:
     properties:
+      auto_go_next:
+        description: 自动进入下一阶段配置
+        example: false
+        type: boolean
       default_ai_model:
         example: glm-4.6
         type: string
@@ -760,15 +902,14 @@ paths:
     get:
       consumes:
       - application/json
-      description: 检查服务是否正常运行
+      description: 检查服务是否正常运行，包括依赖服务状态
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/agent.BackendHealthResp'
         "500":
           description: 服务器内部错误
           schema:
@@ -1109,6 +1250,317 @@ paths:
           schema:
             $ref: '#/definitions/common.ErrorResponse'
       summary: 获取项目的 Epics
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/epics/{epicId}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定的 Epic
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: Epic ID
+        in: path
+        name: epicId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 删除 Epic
+      tags:
+      - Epic
+    put:
+      consumes:
+      - application/json
+      description: 更新指定 Epic 的内容
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: Epic ID
+        in: path
+        name: epicId
+        required: true
+        type: string
+      - description: 更新请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateEpicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 更新 Epic 内容
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/epics/{epicId}/order:
+    put:
+      consumes:
+      - application/json
+      description: 更新指定 Epic 的显示顺序
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: Epic ID
+        in: path
+        name: epicId
+        required: true
+        type: string
+      - description: 排序请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateEpicOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 更新 Epic 排序
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/epics/{epicId}/stories/{storyId}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定的 Story
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: Epic ID
+        in: path
+        name: epicId
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: storyId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 删除 Story
+      tags:
+      - Epic
+    put:
+      consumes:
+      - application/json
+      description: 更新指定 Story 的内容
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: Epic ID
+        in: path
+        name: epicId
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: storyId
+        required: true
+        type: string
+      - description: 更新请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateStoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 更新 Story 内容
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/epics/{epicId}/stories/{storyId}/order:
+    put:
+      consumes:
+      - application/json
+      description: 更新指定 Story 的显示顺序
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: Epic ID
+        in: path
+        name: epicId
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: storyId
+        required: true
+        type: string
+      - description: 排序请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateStoryOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 更新 Story 排序
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/epics/confirm:
+    post:
+      consumes:
+      - application/json
+      description: 用户确认 Epics 和 Stories，继续执行流程
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: 确认请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 确认 Epics 和 Stories
+      tags:
+      - Epic
+  /api/v1/projects/{guid}/epics/stories/batch-delete:
+    delete:
+      consumes:
+      - application/json
+      description: 批量删除指定的 Stories
+      parameters:
+      - description: 项目 GUID
+        in: path
+        name: guid
+        required: true
+        type: string
+      - description: 批量删除请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/autocodeweb-backend_internal_models.BatchDeleteStoriesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 批量删除 Stories
       tags:
       - Epic
   /api/v1/projects/{guid}/mvp-epics:

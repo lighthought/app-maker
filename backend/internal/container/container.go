@@ -51,6 +51,7 @@ type Container struct {
 	PreviewService         services.PreviewService
 	EpicService            services.EpicService
 	RedisPubSubService     services.RedisPubSubService
+	EnvironmentService     services.EnvironmentService
 
 	// Handlers
 	UserHandler      *handlers.UserHandler
@@ -61,6 +62,7 @@ type Container struct {
 	CacheHandler     *handlers.CacheHandler
 	WebSocketHandler *handlers.WebSocketHandler
 	EpicHandler      *handlers.EpicHandler
+	HealthHandler    *handlers.HealthHandler
 }
 
 func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Container {
@@ -124,11 +126,12 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	gitService := services.NewGitService()
 	gitService.SetupSSH()
 	fileService := services.NewFileService(asyncClient, gitService)
+	environmentService := services.NewEnvironmentService(cfg.Agents.URL)
 	projectTemplateService := services.NewProjectTemplateService(fileService)
 
 	projectStageService := services.NewProjectStageService(projectRepository,
 		stageRepository, messageRepository, webSocketService, gitService, fileService, asyncClient,
-		epicRepository, storyRepository)
+		epicRepository, storyRepository, environmentService)
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, gitService, webSocketService)
@@ -169,6 +172,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	userHandler := handlers.NewUserHandler(userService)
 	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, projectService, jwtService)
 	epicHandler := handlers.NewEpicHandler(epicService)
+	healthHandler := handlers.NewHealthHandler(environmentService, webSocketService)
 
 	return &Container{
 		AsyncClient:            asyncClient,
@@ -195,6 +199,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		PreviewService:         previewService,
 		EpicService:            epicService,
 		RedisPubSubService:     redisPubSubService,
+		EnvironmentService:     environmentService,
 		CacheHandler:           cacheHandler,
 		ChatHandler:            chatHandler,
 		FileHandler:            fileHandler,
@@ -203,6 +208,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		UserHandler:            userHandler,
 		WebSocketHandler:       webSocketHandler,
 		EpicHandler:            epicHandler,
+		HealthHandler:          healthHandler,
 	}
 }
 
