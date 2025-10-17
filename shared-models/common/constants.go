@@ -272,6 +272,11 @@ const (
 	WebSocketMessageTypeError                = "error"
 )
 
+// Redis Pub/Sub 频道常量
+const (
+	RedisPubSubChannelAgentTask = "agent:task:status" // Agent 任务状态频道
+)
+
 // 任务类型常量
 const (
 	TaskTypeProjectDownload    = "project:download"    // 下载项目
@@ -283,6 +288,19 @@ const (
 	TaskTypeAgentExecute       = "agent:execute"       // 代理执行任务
 	TaskTypeAgentSetup         = "agent:setup"         // 项目环境准备任务
 	TaskTypeAgentChat          = "agent:chat"          // 与 Agent 对话任务
+
+	// 项目开发阶段任务类型
+	TaskTypeStageCheckRequirement   = "stage:check_requirement"   // 检查需求
+	TaskTypeStageGeneratePRD        = "stage:generate_prd"        // 生成PRD文档
+	TaskTypeStageDefineUXStandard   = "stage:define_ux_standard"  // 定义UX标准
+	TaskTypeStageDesignArchitecture = "stage:design_architecture" // 设计系统架构
+	TaskTypeStagePlanEpicAndStory   = "stage:plan_epic_and_story" // 划分Epic和Story
+	TaskTypeStageDefineDataModel    = "stage:define_data_model"   // 定义数据模型
+	TaskTypeStageDefineAPI          = "stage:define_api"          // 定义API接口
+	TaskTypeStageGeneratePages      = "stage:generate_pages"      // 生成前端页面
+	TaskTypeStageDevelopStory       = "stage:develop_story"       // 开发Story功能
+	TaskTypeStageRunTest            = "stage:run_test"            // 执行自动测试
+	TaskTypeStageDeploy             = "stage:deploy"              // 部署项目
 )
 
 // 任务优先级

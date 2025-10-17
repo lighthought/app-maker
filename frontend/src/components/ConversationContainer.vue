@@ -38,6 +38,43 @@
         @toggle-expanded="toggleMessageExpanded"
       />
       
+      <!-- 用户确认界面 -->
+      <div v-if="showConfirmInterface" class="confirm-interface">
+        <div class="confirm-message">
+          <div class="confirm-avatar">
+            <n-icon size="20" color="white">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </n-icon>
+          </div>
+          <div class="confirm-content">
+            <div class="confirm-title">{{ getConfirmTitle() }}</div>
+            <div class="confirm-description">{{ getConfirmDescription() }}</div>
+            
+            <!-- Epic/Story 编辑界面 -->
+            <div v-if="confirmStage === 'plan_epic_and_story'" class="epic-story-editor-wrapper">
+              <EpicStoryEditor 
+                :project-guid="projectGuid"
+                @confirmed="handleConfirmCompleted"
+              />
+            </div>
+            
+            <!-- 其他确认界面 -->
+            <div v-else class="simple-confirm">
+              <n-space>
+                <n-button @click="handleSimpleConfirm" type="primary" size="small">
+                  确认并继续
+                </n-button>
+                <n-button @click="handleSimpleSkip" type="info" size="small">
+                  跳过确认
+                </n-button>
+              </n-space>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- 加载状态 -->
       <div v-if="isLoading" class="loading-message">
         <div class="loading-avatar">
@@ -73,10 +110,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NIcon, NAlert, NButton } from 'naive-ui'
+import { NIcon, NAlert, NButton, NSpace, useMessage } from 'naive-ui'
+import { http } from '@/utils/http'
 import ConversationMessage from './ConversationMessage.vue'
 import DevStages from './DevStages.vue'
 import SmartInput from './common/SmartInput.vue'
+import EpicStoryEditor from './EpicStoryEditor.vue'
 import { useProjectStore } from '@/stores/project'
 import { useWebSocket } from '@/utils/websocket'
 import type { ConversationMessage as ConversationMessageType, DevStage, ProjectInfoUpdate } from '@/types/project'
@@ -91,6 +130,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const { t } = useI18n()
+const message = useMessage()
 
 // 定义事件
 const emit = defineEmits<{
@@ -125,6 +165,10 @@ const inputValue = ref('')
 const lastAgentType = ref<string>('') // 最后一次提问的 Agent
 const isAgentLocked = ref(false) // 是否锁定 Agent 选择
 const selectedAgent = ref<string>('') // 当前选择的 Agent
+
+// 确认界面相关状态
+const showConfirmInterface = ref(false)
+const confirmStage = ref<string>('')
 
 // Agent 选项列表 - 使用国际化
 const agentOptions = computed(() => [
@@ -574,6 +618,114 @@ onMounted(() => {
   initialize()
 })
 
+// 确认界面相关方法
+const getConfirmTitle = () => {
+  switch (confirmStage.value) {
+    case 'generate_prd':
+      return 'PRD 文档生成完成'
+    case 'define_ux_standard':
+      return 'UX 标准定义完成'
+    case 'design_architecture':
+      return '系统架构设计完成'
+    case 'plan_epic_and_story':
+      return 'Epic 和 Story 划分完成'
+    case 'define_data_model':
+      return '数据模型定义完成'
+    case 'define_api':
+      return 'API 接口定义完成'
+    case 'develop_story':
+      return 'Story 开发完成'
+    default:
+      return '阶段完成，需要确认'
+  }
+}
+
+const getConfirmDescription = () => {
+  switch (confirmStage.value) {
+    case 'generate_prd':
+      return 'PRD 文档已生成，请确认内容是否符合要求'
+    case 'define_ux_standard':
+      return 'UX 标准已定义，请确认设计规范是否合适'
+    case 'design_architecture':
+      return '系统架构已设计，请确认架构方案是否合理'
+    case 'plan_epic_and_story':
+      return 'Epic 和 Story 已划分，请确认并编辑后继续'
+    case 'define_data_model':
+      return '数据模型已定义，请确认数据表结构是否正确'
+    case 'define_api':
+      return 'API 接口已定义，请确认接口设计是否完整'
+    case 'develop_story':
+      return 'Story 开发已完成，请确认功能实现是否满足需求'
+    default:
+      return '当前阶段已完成，请确认是否继续下一阶段'
+  }
+}
+
+const handleSimpleConfirm = async () => {
+  try {
+    const response = await http.post(`/projects/${props.projectGuid}/epics/confirm`, {
+      action: 'confirm'
+    })
+    
+    if (response.data.code === 200) {
+      showConfirmInterface.value = false
+      confirmStage.value = ''
+      // 重新加载项目信息
+      await loadDevStages()
+      await loadConversations()
+    } else {
+      message.error(response.data.message || '确认失败')
+    }
+  } catch (error: any) {
+    console.error('确认失败:', error)
+    message.error('确认失败: ' + (error.message || '未知错误'))
+  }
+}
+
+const handleSimpleSkip = async () => {
+  try {
+    const response = await http.post(`/projects/${props.projectGuid}/epics/confirm`, {
+      action: 'skip'
+    })
+    
+    if (response.data.code === 200) {
+      showConfirmInterface.value = false
+      confirmStage.value = ''
+      // 重新加载项目信息
+      await loadDevStages()
+      await loadConversations()
+    } else {
+      message.error(response.data.message || '跳过确认失败')
+    }
+  } catch (error: any) {
+    console.error('跳过确认失败:', error)
+    message.error('跳过确认失败: ' + (error.message || '未知错误'))
+  }
+}
+
+const handleConfirmCompleted = () => {
+  showConfirmInterface.value = false
+  confirmStage.value = ''
+  // 重新加载项目信息
+  loadDevStages()
+  loadConversations()
+}
+
+// 监听项目状态变化，显示确认界面
+watch(() => props.project, (newProject) => {
+  if (newProject && newProject.waiting_for_user_confirm && newProject.confirm_stage) {
+    showConfirmInterface.value = true
+    confirmStage.value = newProject.confirm_stage
+    // 滚动到底部显示确认界面
+    nextTick(() => {
+      scrollToBottom()
+    })
+  } else {
+    showConfirmInterface.value = false
+    confirmStage.value = ''
+  }
+}, { immediate: true, deep: true })
+
 onUnmounted(() => {
   stopAutoRefresh()
   wsDisconnect()
@@ -713,6 +865,57 @@ onUnmounted(() => {
   background: #a8a8a8;
 }
 
+/* 确认界面样式 */
+.confirm-interface {
+  margin: 16px 0;
+  
+  .confirm-message {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: var(--n-color);
+    border: 1px solid var(--n-border-color);
+    border-radius: 8px;
+    
+    .confirm-avatar {
+      width: 40px;
+      height: 40px;
+      background: var(--n-primary-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .confirm-content {
+      flex: 1;
+      
+      .confirm-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--n-text-color);
+      }
+      
+      .confirm-description {
+        font-size: 14px;
+        color: var(--n-text-color-2);
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      
+      .epic-story-editor-wrapper {
+        margin-top: 16px;
+      }
+      
+      .simple-confirm {
+        margin-top: 16px;
+      }
+    }
+  }
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .conversation-container {
@@ -721,6 +924,17 @@ onUnmounted(() => {
   
   .conversation-messages {
     padding: var(--spacing-sm);
+  }
+  
+  .confirm-interface {
+    .confirm-message {
+      flex-direction: column;
+      gap: 8px;
+      
+      .confirm-avatar {
+        align-self: flex-start;
+      }
+    }
   }
 }
 

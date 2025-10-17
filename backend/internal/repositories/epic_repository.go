@@ -25,6 +25,8 @@ type EpicRepository interface {
 	GetMvpEpicsByProject(ctx context.Context, projectID string) ([]*models.Epic, error)
 	// BatchCreate 批量创建 Epics
 	BatchCreate(ctx context.Context, epics []*models.Epic) error
+	// UpdateDisplayOrder 更新 Epic 显示顺序
+	UpdateDisplayOrder(ctx context.Context, id string, order int) error
 }
 
 type epicRepository struct {
@@ -90,4 +92,10 @@ func (r *epicRepository) GetMvpEpicsByProject(ctx context.Context, projectID str
 
 func (r *epicRepository) BatchCreate(ctx context.Context, epics []*models.Epic) error {
 	return r.db.WithContext(ctx).CreateInBatches(epics, 100).Error
+}
+
+func (r *epicRepository) UpdateDisplayOrder(ctx context.Context, id string, order int) error {
+	return r.db.WithContext(ctx).Model(&models.Epic{}).
+		Where("id = ?", id).
+		Update("display_order", order).Error
 }

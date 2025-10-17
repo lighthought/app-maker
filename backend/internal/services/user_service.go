@@ -333,6 +333,7 @@ func (s *userService) GetUserSettings(ctx context.Context, userID string) (*mode
 		DefaultModelProvider: user.DefaultModelProvider,
 		DefaultModelApiUrl:   user.DefaultModelApiUrl,
 		DefaultApiToken:      user.DefaultApiToken,
+		AutoGoNext:           user.AutoGoNext,
 	}, nil
 }
 
@@ -358,6 +359,9 @@ func (s *userService) UpdateUserSettings(ctx context.Context, userID string, req
 	}
 	if req.DefaultApiToken != "" {
 		user.DefaultApiToken = req.DefaultApiToken
+	}
+	if req.AutoGoNext != nil {
+		user.AutoGoNext = *req.AutoGoNext
 	}
 
 	// 保存更新

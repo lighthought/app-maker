@@ -26,6 +26,7 @@ type WebSocketService interface {
 	NotifyProjectStageUpdate(ctx context.Context, projectGUID string, stage *models.DevStage)
 	NotifyProjectMessage(ctx context.Context, projectGUID string, message *models.ConversationMessage)
 	NotifyProjectInfoUpdate(ctx context.Context, projectGUID string, info *models.Project)
+	NotifyUserConfirmRequired(ctx context.Context, projectGUID string, stage common.DevStatus)
 
 	// 启动和停止
 	Start(ctx context.Context) error
@@ -263,6 +264,34 @@ func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectG
 		logger.String("name", project.Name),
 		logger.String("type", common.WebSocketMessageTypeProjectInfoUpdate),
 		logger.String("taskID", taskInfo.ID),
+	)
+}
+
+// NotifyUserConfirmRequired 通知用户确认需求
+func (s *webSocketService) NotifyUserConfirmRequired(ctx context.Context, projectGUID string, stage common.DevStatus) {
+	// 创建用户确认需求的消息
+	message := &models.ConversationMessage{
+		ProjectGuid: projectGUID,
+		Type:        common.ConversationTypeAgent,
+		AgentRole:   common.AgentPM.Role,
+		AgentName:   common.AgentPM.Name,
+		Content:     fmt.Sprintf("阶段 %s 已完成，需要您的确认", common.GetDevStageDescription(stage)),
+		IsMarkdown:  false,
+		IsExpanded:  true,
+	}
+
+	// 保存消息到数据库
+	if err := s.messageRepo.Create(ctx, message); err != nil {
+		logger.Error("保存用户确认消息失败", logger.String("error", err.Error()))
+	}
+
+	// 广播消息
+	s.broadcastProjectMessage(ctx, projectGUID, message.ID)
+
+	logger.Info("用户确认需求通知已发送",
+		logger.String("projectGUID", projectGUID),
+		logger.String("stage", string(stage)),
+		logger.String("stageDescription", common.GetDevStageDescription(stage)),
 	)
 }
 

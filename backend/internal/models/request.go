@@ -38,6 +38,7 @@ type UpdateUserSettingsRequest struct {
 	DefaultModelProvider string `json:"default_model_provider" binding:"omitempty,oneof=ollama zhipu anthropic openai vllm" example:"zhipu"`
 	DefaultModelApiUrl   string `json:"default_model_api_url" binding:"omitempty,url" example:"https://open.bigmodel.cn/api/anthropic"`
 	DefaultApiToken      string `json:"default_api_token" binding:"omitempty" example:"sk-..."`
+	AutoGoNext           *bool  `json:"auto_go_next" binding:"omitempty" example:"false"` // 自动进入下一阶段配置
 }
 
 // CreateProjectRequest 创建项目请求
@@ -76,4 +77,44 @@ type JenkinsBuildRequest struct {
 type ChatWithAgentRequest struct {
 	AgentType string `json:"agent_type" binding:"required"`
 	Content   string `json:"content" binding:"required"`
+}
+
+// UpdateEpicOrderRequest 更新 Epic 排序请求
+type UpdateEpicOrderRequest struct {
+	Order int `json:"order" binding:"required,min=0"`
+}
+
+// UpdateEpicRequest 更新 Epic 请求
+type UpdateEpicRequest struct {
+	Name          *string `json:"name,omitempty" binding:"omitempty,min=1,max=200"`
+	Description   *string `json:"description,omitempty"`
+	Priority      *string `json:"priority,omitempty" binding:"omitempty,oneof=P0 P1 P2 P3"`
+	EstimatedDays *int    `json:"estimated_days,omitempty" binding:"omitempty,min=0"`
+}
+
+// UpdateStoryOrderRequest 更新 Story 排序请求
+type UpdateStoryOrderRequest struct {
+	Order int `json:"order" binding:"required,min=0"`
+}
+
+// UpdateStoryRequest 更新 Story 请求
+type UpdateStoryRequest struct {
+	Title              *string `json:"title,omitempty" binding:"omitempty,min=1,max=200"`
+	Description        *string `json:"description,omitempty"`
+	Priority           *string `json:"priority,omitempty" binding:"omitempty,oneof=P0 P1 P2 P3"`
+	EstimatedDays      *int    `json:"estimated_days,omitempty" binding:"omitempty,min=0"`
+	Depends            *string `json:"depends,omitempty"`
+	Techs              *string `json:"techs,omitempty"`
+	Content            *string `json:"content,omitempty"`
+	AcceptanceCriteria *string `json:"acceptance_criteria,omitempty"`
+}
+
+// BatchDeleteStoriesRequest 批量删除 Stories 请求
+type BatchDeleteStoriesRequest struct {
+	StoryIDs []string `json:"story_ids" binding:"required,min=1"`
+}
+
+// ConfirmEpicsAndStoriesRequest 确认 Epics 和 Stories 请求
+type ConfirmEpicsAndStoriesRequest struct {
+	Action string `json:"action" binding:"required,oneof=confirm skip regenerate"` // confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成
 }

@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS users (
     default_model_provider VARCHAR(50) DEFAULT 'zhipu',
     default_model_api_url VARCHAR(500),
     default_api_token VARCHAR(500),
+    auto_go_next BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -114,6 +115,9 @@ CREATE TABLE IF NOT EXISTS projects (
     model_provider VARCHAR(50),
     model_api_url VARCHAR(500),
     api_token VARCHAR(500),
+    waiting_for_user_confirm BOOLEAN NOT NULL DEFAULT FALSE,
+    confirm_stage VARCHAR(50) DEFAULT NULL,
+    auto_go_next BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -209,6 +213,7 @@ CREATE TABLE IF NOT EXISTS project_epics (
     estimated_days INT,
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
     file_path VARCHAR(500),
+    display_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -238,6 +243,7 @@ CREATE TABLE IF NOT EXISTS epic_stories (
     techs TEXT,
     content TEXT,
     acceptance_criteria TEXT,
+    display_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -284,8 +290,14 @@ CREATE INDEX IF NOT EXISTS idx_preview_tokens_created_at ON preview_tokens(creat
 CREATE INDEX IF NOT EXISTS idx_project_epics_project_id ON project_epics(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_epics_project_guid ON project_epics(project_guid);
 CREATE INDEX IF NOT EXISTS idx_project_epics_status ON project_epics(status);
+CREATE INDEX IF NOT EXISTS idx_project_epics_display_order ON project_epics(project_guid, display_order);
 CREATE INDEX IF NOT EXISTS idx_epic_stories_epic_id ON epic_stories(epic_id);
 CREATE INDEX IF NOT EXISTS idx_epic_stories_status ON epic_stories(status);
+CREATE INDEX IF NOT EXISTS idx_epic_stories_display_order ON epic_stories(epic_id, display_order);
+
+-- 项目确认相关索引
+CREATE INDEX IF NOT EXISTS idx_projects_waiting_confirm ON projects(waiting_for_user_confirm);
+CREATE INDEX IF NOT EXISTS idx_projects_confirm_stage ON projects(confirm_stage);
 
 
 -- 创建更新时间触发器函数

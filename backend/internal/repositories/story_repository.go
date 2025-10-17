@@ -23,6 +23,10 @@ type StoryRepository interface {
 	UpdateStatus(ctx context.Context, id string, status string) error
 	// BatchCreate 批量创建 Stories
 	BatchCreate(ctx context.Context, stories []*models.Story) error
+	// UpdateDisplayOrder 更新 Story 显示顺序
+	UpdateDisplayOrder(ctx context.Context, id string, order int) error
+	// BatchDelete 批量删除 Stories
+	BatchDelete(ctx context.Context, ids []string) error
 }
 
 type storyRepository struct {
@@ -71,4 +75,14 @@ func (r *storyRepository) UpdateStatus(ctx context.Context, id string, status st
 
 func (r *storyRepository) BatchCreate(ctx context.Context, stories []*models.Story) error {
 	return r.db.WithContext(ctx).CreateInBatches(stories, 100).Error
+}
+
+func (r *storyRepository) UpdateDisplayOrder(ctx context.Context, id string, order int) error {
+	return r.db.WithContext(ctx).Model(&models.Story{}).
+		Where("id = ?", id).
+		Update("display_order", order).Error
+}
+
+func (r *storyRepository) BatchDelete(ctx context.Context, ids []string) error {
+	return r.db.WithContext(ctx).Delete(&models.Story{}, "id IN ?", ids).Error
 }

@@ -335,6 +335,197 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // Epic/Story 相关方法
+  const getMvpEpics = async (projectGuid: string) => {
+    try {
+      const response = await httpService.get<{
+        code: number
+        message: string
+        data: any[]
+      }>(`/projects/${projectGuid}/mvp-epics`)
+
+      if (response.code === 0) {
+        return response.data || []
+      } else {
+        console.error('获取 MVP Epics 失败:', response.message)
+        return []
+      }
+    } catch (error) {
+      console.error('获取 MVP Epics 失败:', error)
+      return []
+    }
+  }
+
+  const updateEpicOrder = async (projectGuid: string, epicId: string, order: number) => {
+    try {
+      const response = await httpService.put<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/${epicId}/order`, { order })
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('更新 Epic 排序失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('更新 Epic 排序失败:', error)
+      return false
+    }
+  }
+
+  const updateEpic = async (projectGuid: string, epicId: string, updateData: {
+    name?: string
+    description?: string
+    priority?: string
+    estimated_days?: number
+  }) => {
+    try {
+      const response = await httpService.put<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/${epicId}`, updateData)
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('更新 Epic 失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('更新 Epic 失败:', error)
+      return false
+    }
+  }
+
+  const deleteEpic = async (projectGuid: string, epicId: string) => {
+    try {
+      const response = await httpService.delete<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/${epicId}`)
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('删除 Epic 失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('删除 Epic 失败:', error)
+      return false
+    }
+  }
+
+  const updateStoryOrder = async (projectGuid: string, epicId: string, storyId: string, order: number) => {
+    try {
+      const response = await httpService.put<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/${epicId}/stories/${storyId}/order`, { order })
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('更新 Story 排序失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('更新 Story 排序失败:', error)
+      return false
+    }
+  }
+
+  const updateStory = async (projectGuid: string, epicId: string, storyId: string, updateData: {
+    title?: string
+    description?: string
+    priority?: string
+    estimated_days?: number
+    depends?: string
+    techs?: string
+    content?: string
+    acceptance_criteria?: string
+  }) => {
+    try {
+      const response = await httpService.put<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/${epicId}/stories/${storyId}`, updateData)
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('更新 Story 失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('更新 Story 失败:', error)
+      return false
+    }
+  }
+
+  const deleteStory = async (projectGuid: string, epicId: string, storyId: string) => {
+    try {
+      const response = await httpService.delete<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/${epicId}/stories/${storyId}`)
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('删除 Story 失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('删除 Story 失败:', error)
+      return false
+    }
+  }
+
+  const batchDeleteStories = async (projectGuid: string, storyIds: string[]) => {
+    try {
+      const response = await httpService.request<{
+        code: number
+        message: string
+      }>({
+        method: 'DELETE',
+        url: `/projects/${projectGuid}/epics/stories/batch-delete`,
+        data: { story_ids: storyIds }
+      })
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('批量删除 Stories 失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('批量删除 Stories 失败:', error)
+      return false
+    }
+  }
+
+  const confirmEpicsAndStories = async (projectGuid: string, action: 'confirm' | 'skip' | 'regenerate') => {
+    try {
+      const response = await httpService.post<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/epics/confirm`, { action })
+
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('确认 Epics 和 Stories 失败:', response.message)
+        return false
+      }
+    } catch (error) {
+      console.error('确认 Epics 和 Stories 失败:', error)
+      return false
+    }
+  }
+
   return {
     projects,
     currentProject,
@@ -351,6 +542,16 @@ export const useProjectStore = defineStore('project', () => {
     sendMessageToAgent,
     getProjectStages,
     downloadProject,
-    deployProject
+    deployProject,
+    // Epic/Story 相关方法
+    getMvpEpics,
+    updateEpicOrder,
+    updateEpic,
+    deleteEpic,
+    updateStoryOrder,
+    updateStory,
+    deleteStory,
+    batchDeleteStories,
+    confirmEpicsAndStories
   }
 })

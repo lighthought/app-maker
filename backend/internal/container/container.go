@@ -50,6 +50,7 @@ type Container struct {
 	WebSocketService       services.WebSocketService
 	PreviewService         services.PreviewService
 	EpicService            services.EpicService
+	RedisPubSubService     services.RedisPubSubService
 
 	// Handlers
 	UserHandler      *handlers.UserHandler
@@ -133,7 +134,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		asyncClient, projectTemplateService, gitService, webSocketService)
 
 	previewService := services.NewPreviewService(previewTokenRepository)
-	epicService := services.NewEpicService(epicRepository, storyRepository, projectRepository)
+	epicService := services.NewEpicService(epicRepository, storyRepository, projectRepository, fileService)
+	redisPubSubService := services.NewRedisPubSubService(redis, projectStageService)
 
 	var asynqServer *asynq.Server
 	// 有缓存，才处理异步任务
@@ -147,6 +149,14 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		logger.Info("WebSocket 服务启动中...")
 		if err := webSocketService.Start(context.Background()); err != nil {
 			logger.Error("WebSocket 服务启动失败", logger.String("error", err.Error()))
+		}
+	}()
+
+	// 启动 Redis Pub/Sub 服务
+	go func() {
+		logger.Info("Redis Pub/Sub 服务启动中...")
+		if err := redisPubSubService.Start(context.Background()); err != nil {
+			logger.Error("Redis Pub/Sub 服务启动失败", logger.String("error", err.Error()))
 		}
 	}()
 
@@ -184,6 +194,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		WebSocketService:       webSocketService,
 		PreviewService:         previewService,
 		EpicService:            epicService,
+		RedisPubSubService:     redisPubSubService,
 		CacheHandler:           cacheHandler,
 		ChatHandler:            chatHandler,
 		FileHandler:            fileHandler,
@@ -199,6 +210,8 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 func (c *Container) Stop() {
 	c.WebSocketService.Stop()
 	logger.Info("WebSocket 服务已停止")
+	c.RedisPubSubService.Stop()
+	logger.Info("Redis Pub/Sub 服务已停止")
 	c.AsyncInspector.Close()
 	logger.Info("AsyncInspector 已关闭")
 	c.AsyncClient.Close()

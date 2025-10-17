@@ -31,3 +31,13 @@ func (ar *AgentResult) GetMarkdownContent() string {
 	}
 	return ar.Output
 }
+
+// AgentTaskStatusMessage Agent 任务状态消息（用于 Redis Pub/Sub）
+type AgentTaskStatusMessage struct {
+	TaskID      string `json:"task_id"`      // 任务ID
+	ProjectGuid string `json:"project_guid"` // 项目GUID
+	AgentType   string `json:"agent_type"`   // Agent类型
+	Status      string `json:"status"`       // 任务状态：running, done, failed
+	Message     string `json:"message"`      // 状态消息
+	Timestamp   string `json:"timestamp"`    // 时间戳
+}

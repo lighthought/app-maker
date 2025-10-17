@@ -156,6 +156,20 @@ func Register(engine *gin.Engine, container *container.Container) {
 				if epicHandler != nil {
 					projects.GET("/:guid/epics", epicHandler.GetProjectEpics)        // 获取项目 Epics
 					projects.GET("/:guid/mvp-epics", epicHandler.GetProjectMvpEpics) // 获取项目 MVP Epics
+
+					// Epic 编辑相关接口
+					projects.PUT("/:guid/epics/:epicId/order", epicHandler.UpdateEpicOrder) // 更新 Epic 排序
+					projects.PUT("/:guid/epics/:epicId", epicHandler.UpdateEpic)            // 更新 Epic 内容
+					projects.DELETE("/:guid/epics/:epicId", epicHandler.DeleteEpic)         // 删除 Epic
+
+					// Story 编辑相关接口
+					projects.PUT("/:guid/epics/:epicId/stories/:storyId/order", epicHandler.UpdateStoryOrder) // 更新 Story 排序
+					projects.PUT("/:guid/epics/:epicId/stories/:storyId", epicHandler.UpdateStory)            // 更新 Story 内容
+					projects.DELETE("/:guid/epics/:epicId/stories/:storyId", epicHandler.DeleteStory)         // 删除 Story
+					projects.DELETE("/:guid/epics/stories/batch-delete", epicHandler.BatchDeleteStories)      // 批量删除 Stories
+
+					// 确认接口
+					projects.POST("/:guid/epics/confirm", epicHandler.ConfirmEpicsAndStories) // 确认 Epics 和 Stories
 				} else {
 					projects.GET("/:guid/epics", func(c *gin.Context) {
 						c.JSON(200, gin.H{"message": "Project epics endpoint - TODO"})

@@ -18,6 +18,7 @@ type Epic struct {
 	EstimatedDays int            `json:"estimated_days"`
 	Status        string         `json:"status" gorm:"size:20;default:'pending'"`
 	FilePath      string         `json:"file_path" gorm:"size:500"`
+	DisplayOrder  int            `json:"display_order" gorm:"default:0"` // 显示顺序，用于前端拖拽排序
 	Stories       []Story        `json:"stories,omitempty" gorm:"foreignKey:EpicID"`
 	CreatedAt     time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt     time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
@@ -57,6 +58,7 @@ type Story struct {
 	Techs              string         `json:"techs" gorm:"type:text"`
 	Content            string         `json:"content" gorm:"type:text"`
 	AcceptanceCriteria string         `json:"acceptance_criteria" gorm:"type:text"`
+	DisplayOrder       int            `json:"display_order" gorm:"default:0"` // 显示顺序，用于前端拖拽排序
 	CreatedAt          time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt          time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt          gorm.DeletedAt `json:"-" gorm:"index"`

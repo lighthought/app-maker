@@ -238,6 +238,8 @@ export default {
     modelApiUrlPlaceholder: '输入 API 地址',
     apiToken: 'API Token',
     apiTokenPlaceholder: '输入 API Token (如: sk-...)',
+    autoGoNext: '自动进入下一阶段 (YOLO 模式)',
+    autoGoNextDescription: '开启后将跳过所有确认步骤，自动执行到项目完成',
     devSettingsNote: '这些设置将作为新项目的默认配置。'
   },
 

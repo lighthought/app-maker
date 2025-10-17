@@ -29,8 +29,10 @@ type AgentTaskService interface {
 	EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskInfo, error)
 	// 与 Agent 对话
 	EnqueueChatWithAgent(req *agent.ChatReq) (*asynq.TaskInfo, error)
-    // 与指定代理对话
+	// 与指定代理对话
 	ChatWithAgent(ctx context.Context, projectGuid, agentType, message string) (*models.CommandResult, error)
+	// 发布任务状态消息
+	PublishTaskStatus(ctx context.Context, taskID, projectGuid, agentType, status, message string) error
 }
 
 type agentTaskService struct {
@@ -235,6 +237,11 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 		logger.String("agentType", payload.AgentType),
 		logger.String("message", payload.Message))
 
+	// 发布任务开始状态
+	if task != nil {
+		h.PublishTaskStatus(ctx, task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType, "running", "任务开始执行")
+	}
+
 	// 从 payload 或项目检测获取 CLI 类型
 	cliTool := payload.CliTool
 	if cliTool == "" {
@@ -290,6 +297,8 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 	if !result.Success {
 		if task != nil {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, result.Error)
+			// 发布任务失败状态
+			h.PublishTaskStatus(ctx, task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType, "failed", result.Error)
 			logger.Error("代理任务执行失败",
 				logger.String("taskID", task.ResultWriter().TaskID()),
 				logger.String("agentType", payload.AgentType),
@@ -346,6 +355,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 				logger.String("message", payload.Message),
 				logger.String("error", claudeResponse.Result))
 		}
+		h.PublishTaskStatus(ctx, task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType, "failed", claudeResponse.Result)
 		return nil, fmt.Errorf("agent execute task, claude failed: %s", claudeResponse.Result)
 	}
 
@@ -366,12 +376,16 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 
 		if task != nil {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, err.Error())
+			// 发布任务失败状态
+			h.PublishTaskStatus(ctx, task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType, "failed", "项目文档、代码提交并推送失败: "+err.Error())
 		}
 		return nil, fmt.Errorf("项目文档、代码提交并推送失败: %w", err)
 	}
 
 	if task != nil {
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, claudeResponse.Result)
+		// 发布任务完成状态
+		h.PublishTaskStatus(ctx, task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType, "done", "任务执行完成")
 	}
 	return &result, nil
 }
@@ -388,4 +402,42 @@ func (h *agentTaskService) ChatWithAgent(ctx context.Context, projectGuid, agent
 		Message:     message,
 	}
 	return h.innerProcessTask(ctx, payload, nil)
+}
+
+// PublishTaskStatus 发布任务状态消息到 Redis Pub/Sub
+func (h *agentTaskService) PublishTaskStatus(ctx context.Context, taskID, projectGuid, agentType, status, message string) error {
+	if h.redisClient == nil {
+		return fmt.Errorf("redis client is nil")
+	}
+
+	statusMsg := &agent.AgentTaskStatusMessage{
+		TaskID:      taskID,
+		ProjectGuid: projectGuid,
+		AgentType:   agentType,
+		Status:      status,
+		Message:     message,
+		Timestamp:   time.Now().Format(time.RFC3339),
+	}
+
+	// 序列化消息
+	msgBytes, err := json.Marshal(statusMsg)
+	if err != nil {
+		return fmt.Errorf("序列化任务状态消息失败: %w", err)
+	}
+
+	// 发布到 Redis Pub/Sub
+	err = h.redisClient.Publish(ctx, common.RedisPubSubChannelAgentTask, msgBytes).Err()
+	if err != nil {
+		return fmt.Errorf("发布任务状态消息失败: %w", err)
+	}
+
+	logger.Info("任务状态消息已发布",
+		logger.String("taskID", taskID),
+		logger.String("projectGuid", projectGuid),
+		logger.String("agentType", agentType),
+		logger.String("status", status),
+		logger.String("message", message),
+	)
+
+	return nil
 }

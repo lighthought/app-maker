@@ -102,12 +102,35 @@ func (h *projectStageService) ProcessTask(ctx context.Context, task *asynq.Task)
 		return h.handleProjectDeployTask(ctx, task)
 	case common.TaskTypeAgentChat:
 		return h.handleAgentChatTask(ctx, task)
+	// 新增的阶段任务类型
+	case common.TaskTypeStageCheckRequirement:
+		return h.handleCheckRequirementTask(ctx, task)
+	case common.TaskTypeStageGeneratePRD:
+		return h.handleGeneratePRDTask(ctx, task)
+	case common.TaskTypeStageDefineUXStandard:
+		return h.handleDefineUXStandardTask(ctx, task)
+	case common.TaskTypeStageDesignArchitecture:
+		return h.handleDesignArchitectureTask(ctx, task)
+	case common.TaskTypeStagePlanEpicAndStory:
+		return h.handlePlanEpicAndStoryTask(ctx, task)
+	case common.TaskTypeStageDefineDataModel:
+		return h.handleDefineDataModelTask(ctx, task)
+	case common.TaskTypeStageDefineAPI:
+		return h.handleDefineAPITask(ctx, task)
+	case common.TaskTypeStageGeneratePages:
+		return h.handleGeneratePagesTask(ctx, task)
+	case common.TaskTypeStageDevelopStory:
+		return h.handleDevelopStoryTask(ctx, task)
+	case common.TaskTypeStageRunTest:
+		return h.handleRunTestTask(ctx, task)
+	case common.TaskTypeStageDeploy:
+		return h.handleDeployTask(ctx, task)
 	default:
 		return fmt.Errorf("unexpected task type %s", task.Type())
 	}
 }
 
-// HandleProjectDevelopmentTask 处理项目开发任务
+// HandleProjectDevelopmentTask 处理项目开发任务（重构为状态机入口）
 func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, t *asynq.Task) error {
 	var payload tasks.ProjectTaskPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
@@ -121,47 +144,11 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
-	if s.agentsURL != "" {
-		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
-	}
-	// 使用较长的超时时间，因为 Agent 执行复杂任务（如生成前端页面）可能需要 20-30 分钟
-	agentClient := client.NewAgentClient(s.agentsURL, 60*time.Minute)
-
-	// 2. 执行开发阶段
-	stages := []struct {
-		status      common.DevStatus
-		description string
-		executor    func(context.Context, *models.Project, *asynq.ResultWriter, *client.AgentClient, *models.DevStage) error
-	}{
-		{common.DevStatusPendingAgents, "等待Agents处理", s.pendingAgents},
-		{common.DevStatusCheckRequirement, "检查需求", s.checkRequirement},
-		{common.DevStatusGeneratePRD, "生成PRD文档", s.generatePRD},
-		{common.DevStatusDefineUXStandard, "定义UX标准", s.defineUXStandards},
-		{common.DevStatusDesignArchitecture, "设计系统架构", s.designArchitecture},
-		{common.DevStatusPlanEpicAndStory, "划分Epic和Story", s.planEpicsAndStories},
-		{common.DevStatusDefineDataModel, "定义数据模型", s.defineDataModel},
-		{common.DevStatusDefineAPI, "定义API接口", s.defineAPIs},
-		{common.DevStatusGeneratePages, "生成前端页面", s.generateFrontendPages},
-		// TODO: 调试阶段注释，{common.DevStatusDevelopStory, "开发Story功能", s.developStories},
-		//{common.DevStatusFixBug, "修复开发问题", s.fixBugs}, // 这个要用户前端输入，可以提供入口
-		{common.DevStatusRunTest, "执行自动测试", s.runTests},
-		{common.DevStatusDeploy, "打包项目", s.packageProject},
-	}
-
-	gitConfig := &GitConfig{
-		UserID:        project.UserID,
-		GUID:          project.GUID,
-		ProjectPath:   project.ProjectPath,
-		CommitMessage: fmt.Sprintf("Auto commit by App Maker - %s", project.Name),
-	}
-
-	for _, stage := range stages {
-		devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, string(stage.status))
-		if err == nil && devProjectStage.Status == common.CommonStatusDone {
-			tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(stage.status), common.GetDevStageDescription(stage.status)+"已完成")
-			continue
-		}
-
+	// 只执行初始阶段：等待Agents处理
+	devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, string(common.DevStatusPendingAgents))
+	if err == nil && devProjectStage.Status == common.CommonStatusDone {
+		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusPendingAgents), common.GetDevStageDescription(common.DevStatusPendingAgents)+"已完成")
+	} else {
 		if err != nil {
 			devProjectStage = nil
 		} else if devProjectStage != nil {
@@ -170,41 +157,245 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
 		}
 
-		// 执行阶段
-		if err := stage.executor(ctx, project, resultWriter, agentClient, devProjectStage); err != nil {
-			logger.Error("开发阶段执行失败",
+		// 执行等待Agents处理阶段
+		if err := s.pendingAgents(ctx, project, resultWriter, nil, devProjectStage); err != nil {
+			logger.Error("等待Agents处理阶段执行失败",
 				logger.String("projectID", project.ID),
-				logger.String("stage", string(stage.status)),
 				logger.String("error", err.Error()),
 			)
-
-			// 更新项目状态为失败
 			project.SetDevStatus(common.DevStatusFailed)
 			s.projectRepo.Update(ctx, project)
 			return err
 		}
-
-		if err := s.gitService.Pull(ctx, gitConfig); err != nil {
-			logger.Error("拉取远程仓库代码失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-			)
-		}
-
-		// TODO: 等待当前阶段变成完成状态、不再是暂停的状态
 	}
 
-	// 开发完成
-	project.SetDevStatus(common.DevStatusDone)
-	project.Status = common.CommonStatusDone
+	// 完成后根据 auto_go_next 配置决定下一步
+	return s.proceedToNextStage(ctx, project, common.DevStatusPendingAgents, false)
+}
+
+// proceedToNextStage 进入下一阶段的通用方法
+func (s *projectStageService) proceedToNextStage(ctx context.Context, project *models.Project, currentStage common.DevStatus, requireConfirm bool) error {
+	// 优先使用项目级配置，其次用户级配置
+	autoGoNext := project.AutoGoNext
+	if !autoGoNext {
+		autoGoNext = project.User.AutoGoNext
+	}
+
+	if requireConfirm && !autoGoNext {
+		// 设置项目状态为等待用户确认
+		project.WaitingForUserConfirm = true
+		project.ConfirmStage = string(currentStage)
+		s.projectRepo.Update(ctx, project)
+
+		// 通过 WebSocket 通知前端
+		s.webSocketService.NotifyUserConfirmRequired(ctx, project.GUID, currentStage)
+		return nil
+	}
+
+	// 自动进入下一阶段
+	nextStage := s.getNextStage(currentStage)
+	if nextStage == "" {
+		// 没有下一阶段，项目完成
+		project.SetDevStatus(common.DevStatusDone)
+		project.Status = common.CommonStatusDone
+		s.projectRepo.Update(ctx, project)
+		s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+		return nil
+	}
+
+	// 创建下一阶段任务
+	task := s.createTaskForStage(nextStage, project)
+	_, err := s.asyncClient.Enqueue(task)
+	if err != nil {
+		return fmt.Errorf("创建下一阶段任务失败: %w", err)
+	}
+
+	return nil
+}
+
+// getNextStage 获取下一阶段
+func (s *projectStageService) getNextStage(currentStage common.DevStatus) common.DevStatus {
+	switch currentStage {
+	case common.DevStatusPendingAgents:
+		return common.DevStatusCheckRequirement
+	case common.DevStatusCheckRequirement:
+		return common.DevStatusGeneratePRD
+	case common.DevStatusGeneratePRD:
+		return common.DevStatusDefineUXStandard
+	case common.DevStatusDefineUXStandard:
+		return common.DevStatusDesignArchitecture
+	case common.DevStatusDesignArchitecture:
+		return common.DevStatusPlanEpicAndStory
+	case common.DevStatusPlanEpicAndStory:
+		return common.DevStatusDefineDataModel
+	case common.DevStatusDefineDataModel:
+		return common.DevStatusDefineAPI
+	case common.DevStatusDefineAPI:
+		return common.DevStatusGeneratePages
+	case common.DevStatusGeneratePages:
+		return common.DevStatusDevelopStory
+	case common.DevStatusDevelopStory:
+		return common.DevStatusRunTest
+	case common.DevStatusRunTest:
+		return common.DevStatusDeploy
+	case common.DevStatusDeploy:
+		return "" // 没有下一阶段
+	default:
+		return ""
+	}
+}
+
+// createTaskForStage 为指定阶段创建任务
+func (s *projectStageService) createTaskForStage(stage common.DevStatus, project *models.Project) *asynq.Task {
+	switch stage {
+	case common.DevStatusCheckRequirement:
+		return tasks.NewCheckRequirementTask(project.ID, project.GUID)
+	case common.DevStatusGeneratePRD:
+		return tasks.NewGeneratePRDTask(project.ID, project.GUID)
+	case common.DevStatusDefineUXStandard:
+		return tasks.NewDefineUXStandardTask(project.ID, project.GUID)
+	case common.DevStatusDesignArchitecture:
+		return tasks.NewDesignArchitectureTask(project.ID, project.GUID)
+	case common.DevStatusPlanEpicAndStory:
+		return tasks.NewPlanEpicAndStoryTask(project.ID, project.GUID)
+	case common.DevStatusDefineDataModel:
+		return tasks.NewDefineDataModelTask(project.ID, project.GUID)
+	case common.DevStatusDefineAPI:
+		return tasks.NewDefineAPITask(project.ID, project.GUID)
+	case common.DevStatusGeneratePages:
+		return tasks.NewGeneratePagesTask(project.ID, project.GUID)
+	case common.DevStatusDevelopStory:
+		return tasks.NewDevelopStoryTask(project.ID, project.GUID)
+	case common.DevStatusRunTest:
+		return tasks.NewRunTestTask(project.ID, project.GUID)
+	case common.DevStatusDeploy:
+		return tasks.NewDeployTask(project.ID, project.GUID)
+	default:
+		return nil
+	}
+}
+
+// 通用的阶段任务处理方法
+func (s *projectStageService) handleStageTask(ctx context.Context, t *asynq.Task, stage common.DevStatus, requireConfirm bool, executor func(context.Context, *models.Project, *asynq.ResultWriter, *client.AgentClient, *models.DevStage) error) error {
+	var payload tasks.ProjectTaskPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+	resultWriter := t.ResultWriter()
+	logger.Info("处理阶段任务",
+		logger.String("taskID", resultWriter.TaskID()),
+		logger.String("stage", string(stage)),
+	)
+
+	project, err := s.projectRepo.GetByGUID(ctx, payload.ProjectGuid)
+	if err != nil {
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+
+	// 获取或创建阶段记录
+	devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, string(stage))
+	if err != nil {
+		devProjectStage = &models.DevStage{
+			ProjectGuid: project.GUID,
+			Name:        string(stage),
+			Status:      common.CommonStatusInProgress,
+			TaskID:      project.CurrentTaskID,
+		}
+		if err := s.stageRepo.Create(ctx, devProjectStage); err != nil {
+			return fmt.Errorf("创建阶段记录失败: %w", err)
+		}
+	} else if devProjectStage.Status == common.CommonStatusDone {
+		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(stage), common.GetDevStageDescription(stage)+"已完成")
+		return s.proceedToNextStage(ctx, project, stage, requireConfirm)
+	} else {
+		devProjectStage.TaskID = project.CurrentTaskID
+		devProjectStage.Status = common.CommonStatusInProgress
+		s.stageRepo.Update(ctx, devProjectStage)
+		s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
+	}
+
+	// 更新项目状态
+	project.SetDevStatus(stage)
 	s.projectRepo.Update(ctx, project)
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
-	logger.Info("项目开发流程执行完成",
-		logger.String("projectID", project.ID),
-	)
-	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "项目开发任务完成")
-	return nil
+	// 创建 Agent 客户端
+	if s.agentsURL == "" {
+		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
+	}
+	agentClient := client.NewAgentClient(s.agentsURL, 60*time.Minute)
+
+	// 执行阶段
+	if err := executor(ctx, project, resultWriter, agentClient, devProjectStage); err != nil {
+		logger.Error("阶段执行失败",
+			logger.String("projectID", project.ID),
+			logger.String("stage", string(stage)),
+			logger.String("error", err.Error()),
+		)
+
+		// 更新项目状态为失败
+		project.SetDevStatus(common.DevStatusFailed)
+		s.projectRepo.Update(ctx, project)
+		return err
+	}
+
+	// 阶段执行成功，进入下一阶段
+	return s.proceedToNextStage(ctx, project, stage, requireConfirm)
+}
+
+// 处理检查需求任务
+func (s *projectStageService) handleCheckRequirementTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusCheckRequirement, false, s.checkRequirement)
+}
+
+// 处理生成PRD任务
+func (s *projectStageService) handleGeneratePRDTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusGeneratePRD, true, s.generatePRD)
+}
+
+// 处理定义UX标准任务
+func (s *projectStageService) handleDefineUXStandardTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusDefineUXStandard, true, s.defineUXStandards)
+}
+
+// 处理设计架构任务
+func (s *projectStageService) handleDesignArchitectureTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusDesignArchitecture, true, s.designArchitecture)
+}
+
+// 处理划分Epic和Story任务
+func (s *projectStageService) handlePlanEpicAndStoryTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusPlanEpicAndStory, true, s.planEpicsAndStories)
+}
+
+// 处理定义数据模型任务
+func (s *projectStageService) handleDefineDataModelTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusDefineDataModel, true, s.defineDataModel)
+}
+
+// 处理定义API任务
+func (s *projectStageService) handleDefineAPITask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusDefineAPI, true, s.defineAPIs)
+}
+
+// 处理生成前端页面任务
+func (s *projectStageService) handleGeneratePagesTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusGeneratePages, false, s.generateFrontendPages)
+}
+
+// 处理开发Story任务
+func (s *projectStageService) handleDevelopStoryTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusDevelopStory, true, s.developStories)
+}
+
+// 处理运行测试任务
+func (s *projectStageService) handleRunTestTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusRunTest, false, s.runTests)
+}
+
+// 处理部署任务
+func (s *projectStageService) handleDeployTask(ctx context.Context, t *asynq.Task) error {
+	return s.handleStageTask(ctx, t, common.DevStatusDeploy, false, s.packageProject)
 }
 
 // 处理项目部署任务

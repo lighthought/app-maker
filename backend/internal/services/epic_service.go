@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
@@ -14,23 +15,40 @@ type EpicService interface {
 	GetMvpEpicsByProjectGuid(ctx context.Context, projectGuid string) ([]*models.Epic, error)
 	// UpdateStoryStatus 更新 Story 状态
 	UpdateStoryStatus(ctx context.Context, storyID string, status string) error
+
+	// Epic 编辑相关方法
+	UpdateEpicOrder(ctx context.Context, epicID string, order int) error
+	UpdateEpic(ctx context.Context, epicID string, req *models.UpdateEpicRequest) error
+	DeleteEpic(ctx context.Context, epicID string) error
+
+	// Story 编辑相关方法
+	UpdateStoryOrder(ctx context.Context, storyID string, order int) error
+	UpdateStory(ctx context.Context, storyID string, req *models.UpdateStoryRequest) error
+	DeleteStory(ctx context.Context, storyID string) error
+	BatchDeleteStories(ctx context.Context, storyIDs []string) error
+
+	// 确认相关方法
+	ConfirmEpicsAndStories(ctx context.Context, projectGuid string, action string) error
 }
 
 type epicService struct {
 	epicRepo    repositories.EpicRepository
 	storyRepo   repositories.StoryRepository
 	projectRepo repositories.ProjectRepository
+	fileService FileService
 }
 
 func NewEpicService(
 	epicRepo repositories.EpicRepository,
 	storyRepo repositories.StoryRepository,
 	projectRepo repositories.ProjectRepository,
+	fileService FileService,
 ) EpicService {
 	return &epicService{
 		epicRepo:    epicRepo,
 		storyRepo:   storyRepo,
 		projectRepo: projectRepo,
+		fileService: fileService,
 	}
 }
 
@@ -50,4 +68,142 @@ func (s *epicService) GetMvpEpicsByProjectGuid(ctx context.Context, projectGuid 
 
 func (s *epicService) UpdateStoryStatus(ctx context.Context, storyID string, status string) error {
 	return s.storyRepo.UpdateStatus(ctx, storyID, status)
+}
+
+// UpdateEpicOrder 更新 Epic 排序
+func (s *epicService) UpdateEpicOrder(ctx context.Context, epicID string, order int) error {
+	return s.epicRepo.UpdateDisplayOrder(ctx, epicID, order)
+}
+
+// UpdateEpic 更新 Epic 内容
+func (s *epicService) UpdateEpic(ctx context.Context, epicID string, req *models.UpdateEpicRequest) error {
+	epic, err := s.epicRepo.GetByID(ctx, epicID)
+	if err != nil {
+		return err
+	}
+
+	// 更新字段
+	if req.Name != nil {
+		epic.Name = *req.Name
+	}
+	if req.Description != nil {
+		epic.Description = *req.Description
+	}
+	if req.Priority != nil {
+		epic.Priority = *req.Priority
+	}
+	if req.EstimatedDays != nil {
+		epic.EstimatedDays = *req.EstimatedDays
+	}
+
+	return s.epicRepo.Update(ctx, epic)
+}
+
+// DeleteEpic 删除 Epic
+func (s *epicService) DeleteEpic(ctx context.Context, epicID string) error {
+	return s.epicRepo.Delete(ctx, epicID)
+}
+
+// UpdateStoryOrder 更新 Story 排序
+func (s *epicService) UpdateStoryOrder(ctx context.Context, storyID string, order int) error {
+	return s.storyRepo.UpdateDisplayOrder(ctx, storyID, order)
+}
+
+// UpdateStory 更新 Story 内容
+func (s *epicService) UpdateStory(ctx context.Context, storyID string, req *models.UpdateStoryRequest) error {
+	story, err := s.storyRepo.GetByID(ctx, storyID)
+	if err != nil {
+		return err
+	}
+
+	// 更新字段
+	if req.Title != nil {
+		story.Title = *req.Title
+	}
+	if req.Description != nil {
+		story.Description = *req.Description
+	}
+	if req.Priority != nil {
+		story.Priority = *req.Priority
+	}
+	if req.EstimatedDays != nil {
+		story.EstimatedDays = *req.EstimatedDays
+	}
+	if req.Depends != nil {
+		story.Depends = *req.Depends
+	}
+	if req.Techs != nil {
+		story.Techs = *req.Techs
+	}
+	if req.Content != nil {
+		story.Content = *req.Content
+	}
+	if req.AcceptanceCriteria != nil {
+		story.AcceptanceCriteria = *req.AcceptanceCriteria
+	}
+
+	return s.storyRepo.Update(ctx, story)
+}
+
+// DeleteStory 删除 Story
+func (s *epicService) DeleteStory(ctx context.Context, storyID string) error {
+	return s.storyRepo.Delete(ctx, storyID)
+}
+
+// BatchDeleteStories 批量删除 Stories
+func (s *epicService) BatchDeleteStories(ctx context.Context, storyIDs []string) error {
+	return s.storyRepo.BatchDelete(ctx, storyIDs)
+}
+
+// ConfirmEpicsAndStories 确认 Epics 和 Stories
+func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid string, action string) error {
+	// 获取项目信息
+	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
+	if err != nil {
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+
+	// 获取当前的 Epics 和 Stories
+	epics, err := s.epicRepo.GetByProjectGuid(ctx, projectGuid)
+	if err != nil {
+		return fmt.Errorf("获取 Epics 失败: %w", err)
+	}
+
+	// 根据 action 处理不同的确认逻辑
+	switch action {
+	case "confirm":
+		// 确认并继续：同步到文件，然后触发下一阶段的执行
+		if err := s.fileService.SyncEpicsToFiles(ctx, project.ProjectPath, epics); err != nil {
+			return fmt.Errorf("同步 Epics 到文件失败: %w", err)
+		}
+
+		// 清除等待确认状态
+		project.WaitingForUserConfirm = false
+		project.ConfirmStage = ""
+		if err := s.projectRepo.Update(ctx, project); err != nil {
+			return fmt.Errorf("更新项目状态失败: %w", err)
+		}
+
+		// TODO: 触发下一阶段的执行
+		// 这里需要调用 ProjectStageService 继续下一阶段
+
+	case "skip":
+		// 跳过确认：直接继续下一阶段
+		project.WaitingForUserConfirm = false
+		project.ConfirmStage = ""
+		if err := s.projectRepo.Update(ctx, project); err != nil {
+			return fmt.Errorf("更新项目状态失败: %w", err)
+		}
+
+		// TODO: 触发下一阶段的执行
+
+	case "regenerate":
+		// 重新生成：调用 PO Agent 重新生成 Epics 和 Stories
+		// TODO: 实现重新生成逻辑
+
+	default:
+		return fmt.Errorf("未知的确认操作: %s", action)
+	}
+
+	return nil
 }

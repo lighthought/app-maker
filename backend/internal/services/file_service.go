@@ -32,6 +32,9 @@ type FileService interface {
 
 	// GetRelativeFiles 获取相对路径的文件列表
 	GetRelativeFiles(projectPath, subFolder string) ([]string, error)
+
+	// SyncEpicsToFiles 将数据库中的 Epics 和 Stories 同步到项目文件
+	SyncEpicsToFiles(ctx context.Context, projectPath string, epics []*models.Epic) error
 }
 
 // projectFileService 项目文件服务实现
@@ -290,4 +293,118 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, f
 		ModifiedAt: info.ModTime().Format(time.RFC3339),
 		Content:    content,
 	}, nil
+}
+
+// SyncEpicsToFiles 将数据库中的 Epics 和 Stories 同步到项目文件
+func (s *fileService) SyncEpicsToFiles(ctx context.Context, projectPath string, epics []*models.Epic) error {
+	storiesDir := filepath.Join(projectPath, "docs/stories")
+
+	// 确保 stories 目录存在
+	if err := os.MkdirAll(storiesDir, 0755); err != nil {
+		return fmt.Errorf("创建 stories 目录失败: %w", err)
+	}
+
+	// 1. 获取当前存在的所有 epic 文件
+	existingFiles, _ := filepath.Glob(filepath.Join(storiesDir, "epic*.md"))
+	existingFileMap := make(map[string]bool)
+	for _, f := range existingFiles {
+		existingFileMap[filepath.Base(f)] = true
+	}
+
+	// 2. 写入数据库中的 epics
+	for _, epic := range epics {
+		if epic.FilePath == "" {
+			// 如果没有文件路径，生成一个默认的
+			epic.FilePath = fmt.Sprintf("epic%d-%s-stories.md", epic.EpicNumber, strings.ToLower(strings.ReplaceAll(epic.Name, " ", "-")))
+		}
+
+		filePath := filepath.Join(storiesDir, epic.FilePath)
+		content := s.generateEpicMarkdown(epic)
+
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("写入 Epic 文件失败: %w", err)
+		}
+
+		// 从待删除列表中移除
+		delete(existingFileMap, epic.FilePath)
+
+		logger.Info("Epic 文件已同步",
+			logger.String("epicName", epic.Name),
+			logger.String("filePath", filePath))
+	}
+
+	// 3. 删除用户已删除的 epic 文件
+	for fileName := range existingFileMap {
+		filePath := filepath.Join(storiesDir, fileName)
+		if err := os.Remove(filePath); err != nil {
+			logger.Warn("删除 Epic 文件失败",
+				logger.String("filePath", filePath),
+				logger.String("error", err.Error()))
+		} else {
+			logger.Info("Epic 文件已删除",
+				logger.String("filePath", filePath))
+		}
+	}
+
+	return nil
+}
+
+// generateEpicMarkdown 生成 Epic 的 Markdown 内容
+func (s *fileService) generateEpicMarkdown(epic *models.Epic) string {
+	var content strings.Builder
+
+	// Epic 标题
+	content.WriteString(fmt.Sprintf("# Epic %d: %s\n\n", epic.EpicNumber, epic.Name))
+
+	// Epic 描述
+	if epic.Description != "" {
+		content.WriteString(fmt.Sprintf("## 描述\n\n%s\n\n", epic.Description))
+	}
+
+	// Epic 信息
+	content.WriteString("## Epic 信息\n\n")
+	content.WriteString(fmt.Sprintf("- **优先级**: %s\n", epic.Priority))
+	content.WriteString(fmt.Sprintf("- **预估天数**: %d 天\n", epic.EstimatedDays))
+	content.WriteString(fmt.Sprintf("- **状态**: %s\n\n", epic.Status))
+
+	// Stories 列表
+	if len(epic.Stories) > 0 {
+		content.WriteString("## 用户故事\n\n")
+
+		for _, story := range epic.Stories {
+			content.WriteString(fmt.Sprintf("### %s: %s\n\n", story.StoryNumber, story.Title))
+
+			if story.Description != "" {
+				content.WriteString(fmt.Sprintf("**描述**: %s\n\n", story.Description))
+			}
+
+			content.WriteString(fmt.Sprintf("- **优先级**: %s\n", story.Priority))
+			content.WriteString(fmt.Sprintf("- **预估天数**: %d 天\n", story.EstimatedDays))
+			content.WriteString(fmt.Sprintf("- **状态**: %s\n", story.Status))
+
+			if story.Depends != "" {
+				content.WriteString(fmt.Sprintf("- **依赖**: %s\n", story.Depends))
+			}
+
+			if story.Techs != "" {
+				content.WriteString(fmt.Sprintf("- **技术要点**: %s\n", story.Techs))
+			}
+
+			content.WriteString("\n")
+
+			if story.AcceptanceCriteria != "" {
+				content.WriteString("**验收标准**:\n")
+				content.WriteString(fmt.Sprintf("%s\n\n", story.AcceptanceCriteria))
+			}
+
+			if story.Content != "" {
+				content.WriteString("**详细内容**:\n")
+				content.WriteString(fmt.Sprintf("%s\n\n", story.Content))
+			}
+
+			content.WriteString("---\n\n")
+		}
+	}
+
+	return content.String()
 }

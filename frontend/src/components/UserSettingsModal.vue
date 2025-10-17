@@ -79,6 +79,16 @@
         />
       </n-form-item>
 
+      <n-form-item :label="t('userSettings.autoGoNext')" path="autoGoNext">
+        <n-switch
+          v-model:value="formData.autoGoNext"
+          :round="false"
+        />
+        <span style="margin-left: 8px; color: var(--n-text-color-2); font-size: 14px;">
+          {{ t('userSettings.autoGoNextDescription') }}
+        </span>
+      </n-form-item>
+
       <n-alert type="info" :show-icon="false" style="margin-top: 8px;">
         {{ t('userSettings.devSettingsNote') }}
       </n-alert>
@@ -102,7 +112,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMessage, NModal, NForm, NFormItem, NInput, NButton, NTag, NSelect, NAlert, NDivider, NIcon, type FormRules } from 'naive-ui'
+import { useMessage, NModal, NForm, NFormItem, NInput, NButton, NTag, NSelect, NAlert, NDivider, NIcon, NSwitch, type FormRules } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 // 导入图标
 import { EyeIcon, EyeOffIcon } from '@/components/icon'
@@ -170,7 +180,8 @@ const formData = reactive({
   defaultAiModel: 'glm-4.6',
   defaultModelProvider: 'zhipu',
   defaultModelApiUrl: 'https://open.bigmodel.cn/api/anthropic',
-  defaultApiToken: ''
+  defaultApiToken: '',
+  autoGoNext: false
 })
 
 // 表单验证规则
@@ -199,6 +210,7 @@ watch(() => props.show, async (newVal) => {
       formData.defaultModelProvider = result.data.default_model_provider || 'zhipu'
       formData.defaultModelApiUrl = result.data.default_model_api_url || 'https://open.bigmodel.cn/api/anthropic'
       formData.defaultApiToken = ''
+      formData.autoGoNext = result.data.auto_go_next || false
     } else {
       console.error('加载用户设置失败:', result.message)
     }
@@ -242,7 +254,8 @@ const handleSave = async () => {
       default_ai_model: formData.defaultAiModel,
       default_model_provider: formData.defaultModelProvider,
       default_model_api_url: formData.defaultModelApiUrl,
-      default_api_token: ''
+      default_api_token: '',
+      auto_go_next: formData.autoGoNext
     })
 
     if (settingsResult.success) {
