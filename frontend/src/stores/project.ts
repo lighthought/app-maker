@@ -486,15 +486,11 @@ export const useProjectStore = defineStore('project', () => {
 
   const batchDeleteStories = async (projectGuid: string, storyIds: string[]) => {
     try {
-      const response = await httpService.request<{
+      const response = await httpService.delete<{
         code: number
         message: string
-      }>({
-        method: 'DELETE',
-        url: `/projects/${projectGuid}/epics/stories/batch-delete`,
-        data: { story_ids: storyIds }
-      })
-
+      }>(`/projects/${projectGuid}/epics/stories/batch-delete`, { data: { story_ids: storyIds } })
+      
       if (response.code === 0) {
         return true
       } else {

@@ -111,7 +111,6 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NIcon, NAlert, NButton, NSpace, useMessage } from 'naive-ui'
-import { http } from '@/utils/http'
 import ConversationMessage from './ConversationMessage.vue'
 import DevStages from './DevStages.vue'
 import SmartInput from './common/SmartInput.vue'
@@ -663,18 +662,16 @@ const getConfirmDescription = () => {
 
 const handleSimpleConfirm = async () => {
   try {
-    const response = await http.post(`/projects/${props.projectGuid}/epics/confirm`, {
-      action: 'confirm'
-    })
-    
-    if (response.data.code === 200) {
+    const success = await projectStore.confirmEpicsAndStories(props.projectGuid, 'confirm')
+   
+    if (success) {
       showConfirmInterface.value = false
       confirmStage.value = ''
       // 重新加载项目信息
       await loadDevStages()
       await loadConversations()
     } else {
-      message.error(response.data.message || '确认失败')
+      //message.error(response.data.message || '确认失败')
     }
   } catch (error: any) {
     console.error('确认失败:', error)
@@ -684,18 +681,16 @@ const handleSimpleConfirm = async () => {
 
 const handleSimpleSkip = async () => {
   try {
-    const response = await http.post(`/projects/${props.projectGuid}/epics/confirm`, {
-      action: 'skip'
-    })
+    const success = await projectStore.confirmEpicsAndStories(props.projectGuid, 'skip')
     
-    if (response.data.code === 200) {
+    if (success) {
       showConfirmInterface.value = false
       confirmStage.value = ''
       // 重新加载项目信息
       await loadDevStages()
       await loadConversations()
     } else {
-      message.error(response.data.message || '跳过确认失败')
+      //message.error(response.data.message || '跳过确认失败')
     }
   } catch (error: any) {
     console.error('跳过确认失败:', error)
