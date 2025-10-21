@@ -10,6 +10,11 @@ type FileItem struct {
 	Children   []FileItem `json:"children,omitempty"`
 }
 
+// NewFileItem 创建文件项
+func NewFileItem(name, path, fileType string, size int64, modifiedAt string) *FileItem {
+	return &FileItem{Name: name, Path: path, Type: fileType, Size: size, ModifiedAt: modifiedAt}
+}
+
 // FileContent 文件内容结构
 type FileContent struct {
 	Path       string `json:"path"`

@@ -27,10 +27,10 @@ type ProjectService interface {
 	GetProject(ctx context.Context, projectGuid, userID string) (*models.ProjectInfo, error)
 	UpdateProject(ctx context.Context, projectGuid string, req *models.UpdateProjectRequest, userID string) (*models.ProjectInfo, error)
 	DeleteProject(ctx context.Context, projectGuid, userID string) error
-	ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*models.PaginationResponse, error)
+	ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*common.PaginationResponse, error)
 
 	// 用户项目管理
-	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*models.PaginationResponse, error)
+	GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*common.PaginationResponse, error)
 
 	// 检查项目访问权限
 	CheckProjectAccess(ctx context.Context, projectGuid, userID string) (*models.Project, error)
@@ -661,7 +661,7 @@ func (s *projectService) DeleteProject(ctx context.Context, projectGuid, userID 
 }
 
 // ListProjects 获取项目列表
-func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*models.PaginationResponse, error) {
+func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectListRequest, userID string) (*common.PaginationResponse, error) {
 	// 设置默认分页参数
 	if req.Page <= 0 {
 		req.Page = 1
@@ -683,25 +683,12 @@ func (s *projectService) ListProjects(ctx context.Context, req *models.ProjectLi
 	}
 
 	// 构建分页响应
-	totalPages := (int(total) + req.PageSize - 1) / req.PageSize
-	pagination := &models.PaginationResponse{
-		Code:        common.SUCCESS_CODE,
-		Message:     "success",
-		Total:       int(total),
-		Page:        req.Page,
-		PageSize:    req.PageSize,
-		TotalPages:  totalPages,
-		Data:        projectInfos,
-		HasNext:     req.Page < totalPages,
-		HasPrevious: req.Page > 1,
-		Timestamp:   utils.GetCurrentTime(),
-	}
-
+	pagination := utils.GetPaginationResponse(int(total), req.Page, req.PageSize, projectInfos)
 	return pagination, nil
 }
 
 // GetUserProjects 获取用户的项目列表
-func (s *projectService) GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*models.PaginationResponse, error) {
+func (s *projectService) GetUserProjects(ctx context.Context, userID string, req *models.ProjectListRequest) (*common.PaginationResponse, error) {
 	// 设置默认分页参数
 	if req.Page <= 0 {
 		req.Page = 1
@@ -723,20 +710,7 @@ func (s *projectService) GetUserProjects(ctx context.Context, userID string, req
 	}
 
 	// 构建分页响应
-	totalPages := (int(total) + req.PageSize - 1) / req.PageSize
-	pagination := &models.PaginationResponse{
-		Code:        common.SUCCESS_CODE,
-		Message:     "success",
-		Total:       int(total),
-		Page:        req.Page,
-		PageSize:    req.PageSize,
-		TotalPages:  totalPages,
-		Data:        projectInfos,
-		HasNext:     req.Page < totalPages,
-		HasPrevious: req.Page > 1,
-		Timestamp:   utils.GetCurrentTime(),
-	}
-
+	pagination := utils.GetPaginationResponse(int(total), req.Page, req.PageSize, projectInfos)
 	return pagination, nil
 }
 

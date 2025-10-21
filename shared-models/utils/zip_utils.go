@@ -16,27 +16,18 @@ import (
 // outputPath: 输出的zip文件路径
 // workingDir: 工作目录（可选，默认为sourceDir）
 func CompressDirectory(ctx context.Context, sourceDir, outputPath string, workingDir ...string) error {
-	logger.Info("开始压缩目录",
-		logger.String("sourceDir", sourceDir),
-		logger.String("outputPath", outputPath),
-	)
+	logger.Info("开始压缩目录", logger.String("sourceDir", sourceDir), logger.String("outputPath", outputPath))
 
 	// 检查源目录是否存在
-	if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
-		logger.Error("源目录不存在",
-			logger.String("sourceDir", sourceDir),
-			logger.ErrorField(err),
-		)
+	if !IsDirectoryExists(sourceDir) {
+		logger.Error("源目录不存在", logger.String("sourceDir", sourceDir))
 		return fmt.Errorf("source directory does not exist: %s", sourceDir)
 	}
 
 	// 确保输出目录存在
 	outputDir := filepath.Dir(outputPath)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		logger.Error("创建输出目录失败",
-			logger.String("outputDir", outputDir),
-			logger.ErrorField(err),
-		)
+		logger.Error("创建输出目录失败", logger.String("outputDir", outputDir), logger.ErrorField(err))
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -59,11 +50,7 @@ func CompressDirectory(ctx context.Context, sourceDir, outputPath string, workin
 		return fmt.Errorf("failed to execute zip command: %w", err)
 	}
 
-	logger.Info("目录压缩完成",
-		logger.String("sourceDir", sourceDir),
-		logger.String("outputPath", outputPath),
-	)
-
+	logger.Info("目录压缩完成", logger.String("sourceDir", sourceDir), logger.String("outputPath", outputPath))
 	return nil
 }
 
@@ -80,20 +67,14 @@ func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName s
 	)
 
 	// 检查源目录是否存在
-	if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
-		logger.Error("源目录不存在",
-			logger.String("sourceDir", sourceDir),
-			logger.ErrorField(err),
-		)
+	if !IsDirectoryExists(sourceDir) {
+		logger.Error("源目录不存在", logger.String("sourceDir", sourceDir))
 		return "", fmt.Errorf("source directory does not exist: %s", sourceDir)
 	}
 
 	// 确保缓存目录存在
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		logger.Error("创建缓存目录失败",
-			logger.String("cacheDir", cacheDir),
-			logger.ErrorField(err),
-		)
+		logger.Error("创建缓存目录失败", logger.String("cacheDir", cacheDir), logger.ErrorField(err))
 		return "", fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
@@ -111,18 +92,10 @@ func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName s
 	cmd.Dir = workDir
 
 	if err := cmd.Run(); err != nil {
-		logger.Error("执行zip命令失败",
-			logger.String("sourceDir", sourceDir),
-			logger.String("cacheFilePath", cacheFilePath),
-			logger.ErrorField(err),
-		)
 		return "", fmt.Errorf("failed to execute zip command: %w", err)
 	}
 
-	logger.Info("目录压缩到缓存完成",
-		logger.String("sourceDir", sourceDir),
-		logger.String("cacheFilePath", cacheFilePath),
-	)
+	logger.Info("目录压缩到缓存完成", logger.String("sourceDir", sourceDir), logger.String("cacheFilePath", cacheFilePath))
 
 	// 从 cacheFilePath 中去掉 baseDir 前缀
 	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")

@@ -58,19 +58,6 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 		return
 	}
 
-	// 获取分页参数
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "50"))
-
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 50
-	}
-
-	offset := (page - 1) * pageSize
-
 	// 权限检查
 	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, c.GetString("user_id"))
 	if err != nil {
@@ -82,7 +69,18 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 		return
 	}
 
+	// 获取分页参数
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "50"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+
 	// 获取对话消息
+	offset := (page - 1) * pageSize
 	messages, total, err := h.messageService.GetProjectConversations(c.Request.Context(), projectGuid, pageSize, offset)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取对话历史失败, "+err.Error()))
@@ -90,22 +88,8 @@ func (h *ChatHandler) GetProjectMessages(c *gin.Context) {
 	}
 
 	// 计算分页信息
-	totalPages := (total + pageSize - 1) / pageSize
-	hasNext := page < totalPages
-	hasPrevious := page > 1
-
-	c.JSON(http.StatusOK, models.PaginationResponse{
-		Code:        common.SUCCESS_CODE,
-		Message:     "success",
-		Total:       total,
-		Page:        page,
-		PageSize:    pageSize,
-		TotalPages:  totalPages,
-		Data:        messages,
-		HasNext:     hasNext,
-		HasPrevious: hasPrevious,
-		Timestamp:   utils.GetCurrentTime(),
-	})
+	response := utils.GetPaginationResponse(total, page, pageSize, messages)
+	c.JSON(http.StatusOK, *response)
 }
 
 // AddChatMessage 添加对话消息

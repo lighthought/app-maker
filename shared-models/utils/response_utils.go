@@ -22,3 +22,22 @@ func GetErrorResponse(code int, message string) common.ErrorResponse {
 		Timestamp: GetCurrentTime(),
 	}
 }
+
+func GetPaginationResponse(total int, page int, pageSize int, data interface{}) *common.PaginationResponse {
+	totalPages := (total + pageSize - 1) / pageSize
+	hasNext := page < totalPages
+	hasPrevious := page > 1
+
+	return &common.PaginationResponse{
+		Code:        common.SUCCESS_CODE,
+		Message:     "success",
+		Total:       total,
+		Page:        page,
+		PageSize:    pageSize,
+		TotalPages:  totalPages,
+		Data:        data,
+		HasNext:     hasNext,
+		HasPrevious: hasPrevious,
+		Timestamp:   GetCurrentTime(),
+	}
+}

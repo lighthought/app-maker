@@ -8,27 +8,31 @@ import (
 	"github.com/spf13/viper"
 )
 
+// AppConfig App配置
 type AppConfig struct {
-	Port          string `mapstructure:"port"`
-	Environment   string `mapstructure:"environment"`
-	WorkspacePath string `mapstructure:"workspace_path"`
+	Port          string `mapstructure:"port"`           // 端口
+	Environment   string `mapstructure:"environment"`    // 环境
+	WorkspacePath string `mapstructure:"workspace_path"` // 工作空间路径
 }
 
+// LogConfig 日志配置
 type LogConfig struct {
-	Level string `mapstructure:"level"`
-	File  string `mapstructure:"file"`
+	Level string `mapstructure:"level"` // 日志级别
+	File  string `mapstructure:"file"`  // 日志文件路径
 }
 
+// RedisConfig Redis配置
 type RedisConfig struct {
-	Host     string `mapstructure:"host"`
+	Host     string `mapstructure:"host"` // 主机
 	Port     int    `mapstructure:"port"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
+	Password string `mapstructure:"password"` // 密码
+	DB       int    `mapstructure:"db"`       // 数据库
 }
 
+// CommandConfig 命令配置
 type CommandConfig struct {
-	Timeout time.Duration `mapstructure:"timeout"`
-	CliTool string        `mapstructure:"cli_tool"`
+	Timeout time.Duration `mapstructure:"timeout"`  // 超时时间
+	CliTool string        `mapstructure:"cli_tool"` // 命令行工具
 }
 
 // Asynq 异步配置
@@ -36,22 +40,24 @@ type AsynqConfig struct {
 	Concurrency int `mapstructure:"concurrency"` // 并发数
 }
 
+// Config 配置
 type Config struct {
-	App     AppConfig     `mapstructure:"app"`
-	Log     LogConfig     `mapstructure:"log"`
-	Command CommandConfig `mapstructure:"command"`
-	Redis   RedisConfig   `mapstructure:"redis"`
-	Asynq   AsynqConfig   `mapstructure:"asynq"`
+	App     AppConfig     `mapstructure:"app"`     // App配置
+	Log     LogConfig     `mapstructure:"log"`     // 日志配置
+	Command CommandConfig `mapstructure:"command"` // 命令配置
+	Redis   RedisConfig   `mapstructure:"redis"`   // Redis配置
+	Asynq   AsynqConfig   `mapstructure:"asynq"`   // 异步配置
 }
 
 // GitConfig Git配置
 type GitConfig struct {
-	UserID        string
-	GUID          string
-	ProjectPath   string
-	CommitMessage string
+	UserID        string // 用户ID
+	GUID          string // 项目GUID
+	ProjectPath   string // 项目路径
+	CommitMessage string // 提交信息
 }
 
+// Load 加载配置
 func Load() (*Config, error) {
 	v := viper.New()
 	v.SetEnvPrefix("AGENTS")

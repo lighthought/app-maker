@@ -11,82 +11,75 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config 配置
 type Config struct {
-	App      AppConfig      `mapstructure:"app"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	Asynq    AsynqConfig    `mapstructure:"asynq"`
-	CORS     CORSConfig     `mapstructure:"cors"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	AI       AIConfig       `mapstructure:"ai"`
-	Log      LogConfig      `mapstructure:"log"`
-	Agents   AgentsConfig   `mapstructure:"agents"`
+	App      AppConfig      `mapstructure:"app"`      // App配置
+	Database DatabaseConfig `mapstructure:"database"` // 数据库配置
+	Redis    RedisConfig    `mapstructure:"redis"`    // Redis配置
+	Asynq    AsynqConfig    `mapstructure:"asynq"`    // 异步配置
+	CORS     CORSConfig     `mapstructure:"cors"`     // CORS配置
+	JWT      JWTConfig      `mapstructure:"jwt"`      // JWT配置
+	Log      LogConfig      `mapstructure:"log"`      // 日志配置
+	Agents   AgentsConfig   `mapstructure:"agents"`   // Agents配置
 }
 
+// AppConfig App配置
 type AppConfig struct {
-	Environment string `mapstructure:"environment"`
-	Port        string `mapstructure:"port"`
-	SecretKey   string `mapstructure:"secret_key"`
+	Environment string `mapstructure:"environment"` // 环境
+	Port        string `mapstructure:"port"`        // 端口
+	SecretKey   string `mapstructure:"secret_key"`  // 密钥
 }
 
+// DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Host           string `mapstructure:"host"`
-	Port           int    `mapstructure:"port"`
-	User           string `mapstructure:"user"`
-	Password       string `mapstructure:"password"`
-	Name           string `mapstructure:"name"`
-	SSLMode        string `mapstructure:"ssl_mode"`
-	ConnectTimeout int    `mapstructure:"connect_timeout"`
-	AutoMigrate    bool   `mapstructure:"auto_migrate"`
-	SeedData       bool   `mapstructure:"seed_data"`
+	Host           string `mapstructure:"host"`            // 主机
+	Port           int    `mapstructure:"port"`            // 端口
+	User           string `mapstructure:"user"`            // 用户
+	Password       string `mapstructure:"password"`        // 密码
+	Name           string `mapstructure:"name"`            // 数据库名称
+	SSLMode        string `mapstructure:"ssl_mode"`        // SSL模式
+	ConnectTimeout int    `mapstructure:"connect_timeout"` // 连接超时时间
+	AutoMigrate    bool   `mapstructure:"auto_migrate"`    // 自动迁移
+	SeedData       bool   `mapstructure:"seed_data"`       // 种子数据
 }
 
+// RedisConfig Redis配置
 type RedisConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
+	Host     string `mapstructure:"host"`     // 主机
+	Port     int    `mapstructure:"port"`     // 端口
+	Password string `mapstructure:"password"` // 密码
+	DB       int    `mapstructure:"db"`       // 数据库
 }
 
+// JWTConfig JWT配置
 type JWTConfig struct {
-	SecretKey string `mapstructure:"secret_key"`
-	Expire    int    `mapstructure:"expire_hours"`
+	SecretKey string `mapstructure:"secret_key"`   // 密钥
+	Expire    int    `mapstructure:"expire_hours"` // 过期时间
 }
 
 // CORSConfig CORS配置
 type CORSConfig struct {
-	AllowedOrigins   []string `mapstructure:"allowed_origins"`
-	AllowedMethods   []string `mapstructure:"allowed_methods"`
-	AllowedHeaders   []string `mapstructure:"allowed_headers"`
-	AllowCredentials bool     `mapstructure:"allow_credentials"`
-	MaxAge           int      `mapstructure:"max_age"`
+	AllowedOrigins   []string `mapstructure:"allowed_origins"`   // 允许的源
+	AllowedMethods   []string `mapstructure:"allowed_methods"`   // 允许的方法
+	AllowedHeaders   []string `mapstructure:"allowed_headers"`   // 允许的头
+	AllowCredentials bool     `mapstructure:"allow_credentials"` // 允许的凭据
+	MaxAge           int      `mapstructure:"max_age"`           // 最大年龄
 }
 
+// LogConfig 日志配置
 type LogConfig struct {
-	Level string `mapstructure:"level"`
-	File  string `mapstructure:"file"`
+	Level string `mapstructure:"level"` // 日志级别
+	File  string `mapstructure:"file"`  // 日志文件路径
 }
 
 // Agents server配置
 type AgentsConfig struct {
-	URL string `mapstructure:"url"`
+	URL string `mapstructure:"url"` // Agents server URL
 }
 
 // Asynq 异步配置
 type AsynqConfig struct {
 	Concurrency int `mapstructure:"concurrency"` // 并发数
-}
-
-// AIConfig AI 配置
-type AIConfig struct {
-	Ollama OllamaConfig `mapstructure:"ollama"`
-}
-
-// OllamaConfig Ollama 配置
-type OllamaConfig struct {
-	BaseURL string `mapstructure:"base_url"`
-	Model   string `mapstructure:"model"`
-	Timeout int    `mapstructure:"timeout"`
 }
 
 func Load() (*Config, error) {
@@ -105,18 +98,11 @@ func Load() (*Config, error) {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./configs")
 	viper.AddConfigPath("../configs")
+	viper.AutomaticEnv() // 环境变量覆盖
+	setEnvKeyReplacer()  // 设置环境变量映射
+	setDefaults()        // 设置默认值
 
-	// 环境变量覆盖
-	viper.AutomaticEnv()
-
-	// 设置环境变量映射
-	setEnvKeyReplacer()
-
-	// 设置默认值
-	setDefaults()
-
-	// 读取配置文件
-	if err := viper.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err != nil { // 读取配置文件
 		// 如果配置文件不存在，使用环境变量和默认值
 		fmt.Printf("config file not found, using environment variables and defaults: %v\n", err)
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/lighthought/app-maker/shared-models/auth"
 	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/lighthought/app-maker/backend/internal/models"
 	"github.com/lighthought/app-maker/backend/internal/repositories"
@@ -21,7 +22,7 @@ type UserService interface {
 	GetUserProfile(ctx context.Context, userID string) (*models.UserInfo, error)
 	UpdateUserProfile(ctx context.Context, userID string, req *models.UpdateProfileRequest) error
 	ChangePassword(ctx context.Context, userID string, req *models.ChangePasswordRequest) error
-	GetUserList(ctx context.Context, page, pageSize int) (*models.PaginationResponse, error)
+	GetUserList(ctx context.Context, page, pageSize int) (*common.PaginationResponse, error)
 	DeleteUser(ctx context.Context, userID string) error
 	RefreshToken(ctx context.Context, refreshToken string) (*models.LoginResponse, error)
 	GetUserSettings(ctx context.Context, userID string) (*models.UserSettingsResponse, error)
@@ -229,7 +230,7 @@ func (s *userService) ChangePassword(ctx context.Context, userID string, req *mo
 }
 
 // GetUserList 获取用户列表
-func (s *userService) GetUserList(ctx context.Context, page, pageSize int) (*models.PaginationResponse, error) {
+func (s *userService) GetUserList(ctx context.Context, page, pageSize int) (*common.PaginationResponse, error) {
 	offset := (page - 1) * pageSize
 	users, total, err := s.userRepo.List(ctx, offset, pageSize)
 	if err != nil {
@@ -249,17 +250,7 @@ func (s *userService) GetUserList(ctx context.Context, page, pageSize int) (*mod
 		}
 	}
 
-	totalPages := (int(total) + pageSize - 1) / pageSize
-
-	return &models.PaginationResponse{
-		Total:       int(total),
-		Page:        page,
-		PageSize:    pageSize,
-		TotalPages:  totalPages,
-		Data:        userInfos,
-		HasNext:     page < totalPages,
-		HasPrevious: page > 1,
-	}, nil
+	return utils.GetPaginationResponse(int(total), page, pageSize, userInfos), nil
 }
 
 // DeleteUser 删除用户

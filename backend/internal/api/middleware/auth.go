@@ -30,6 +30,7 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 			return
 		}
 
+		// 分离 Bear 前缀
 		token := parts[1]
 
 		// 验证JWT token
@@ -44,7 +45,6 @@ func AuthMiddleware(jwtService *auth.JWTService) gin.HandlerFunc {
 		c.Set("user_id", claims.UserID)
 		c.Set("user_email", claims.Email)
 		c.Set("user_username", claims.Username)
-
 		c.Next()
 	}
 }

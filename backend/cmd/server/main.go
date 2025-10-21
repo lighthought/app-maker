@@ -46,40 +46,44 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @securityDefinitions.apikey Bearer
-// @in header
-// @name Authorization
-// @description Type "Bearer" followed by a space and JWT token
-func main() {
+// loadConfig 加载配置
+func loadConfigAndService() (*config.Config, error) {
 	// 加载配置
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("加载配置失败: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("加载配置失败: %v", err)
 	}
 
 	// 初始化日志
 	if err := logger.Init(cfg.Log.Level, cfg.Log.File); err != nil {
 		fmt.Printf("初始化日志失败: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("初始化日志失败: %v", err)
 	}
 
-	logger.Info("启动AutoCodeWeb后端服务")
+	logger.Info("启动 AppMaker 后端服务, 配置和日志初始化成功")
 
 	// 连接数据库
 	if err := database.Connect(cfg.Database); err != nil {
 		logger.Fatal("连接数据库失败", logger.String("error", err.Error()))
+		return nil, fmt.Errorf("连接数据库失败: %v", err)
 	}
 	defer database.Close()
+	logger.Info("数据库连接成功")
 
 	// 连接Redis
 	if err := database.ConnectRedis(cfg.Redis); err != nil {
 		logger.Warn("连接Redis失败，将使用内存缓存", logger.String("error", err.Error()))
-	} else {
-		logger.Info("Redis连接成功")
-		defer database.CloseRedis()
+		return nil, fmt.Errorf("连接Redis失败: %v", err)
 	}
 
+	logger.Info("Redis连接成功")
+	defer database.CloseRedis()
+	return cfg, nil
+}
+
+// setupContainer 初始化依赖注入容器
+func setupContainer(cfg *config.Config) (*container.Container, *gin.Engine) {
 	var the_container *container.Container
 	if database.GetDB() != nil && database.GetRedis() != nil {
 		the_container = container.NewContainer(cfg, database.GetDB(), database.GetRedis())
@@ -106,7 +110,10 @@ func main() {
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// 注册路由
 	routes.Register(engine, the_container)
+	return the_container, engine
+}
 
+func startServer(cfg *config.Config, engine *gin.Engine, the_container *container.Container) {
 	// 创建HTTP服务器
 	srv := &http.Server{
 		Addr:    ":" + cfg.App.Port,
@@ -136,4 +143,24 @@ func main() {
 	}
 
 	logger.Info("服务器已关闭")
+}
+
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token
+func main() {
+	cfg, err := loadConfigAndService()
+	if err != nil {
+		logger.Fatal("加载配置、连接缓存或数据库失败，程序退出", logger.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	container, engine := setupContainer(cfg)
+	if container == nil {
+		logger.Fatal("依赖注入容器初始化失败，程序退出")
+		os.Exit(1)
+	}
+
+	startServer(cfg, engine, container)
 }

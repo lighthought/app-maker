@@ -1,14 +1,15 @@
 package container
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/lighthought/app-maker/backend/internal/api/handlers"
 	"github.com/lighthought/app-maker/backend/internal/config"
 	"github.com/lighthought/app-maker/backend/internal/repositories"
 	"github.com/lighthought/app-maker/backend/internal/services"
 	"github.com/lighthought/app-maker/backend/internal/worker"
 
-	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -67,17 +68,10 @@ type Container struct {
 	HealthHandler    *handlers.HealthHandler
 }
 
-func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Container {
+func (c *Container) initExternalService(cfg *config.Config, redis *redis.Client, asyncOpt *asynq.RedisClientOpt) {
 	// 初始化缓存系统
 	var cacheInstance cache.Cache
 	var err error
-
-	redisClientOpt := asynq.RedisClientOpt{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		Password: cfg.Redis.Password,
-		DB:       common.CacheDbBackendAsynq,
-	}
-
 	if redis != nil {
 		// 创建缓存配置
 		cacheConfig := cache.Config{
@@ -96,66 +90,79 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 			logger.Info("缓存系统初始化成功")
 		}
 	}
+	c.CacheInstance = cacheInstance
 
-	// asynq items
-	asyncClient := asynq.NewClient(redisClientOpt)
-	asyncRedisClientOpt := &asynq.RedisClientOpt{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		Password: cfg.Redis.Password,
-		DB:       common.CacheDbBackendAsynq,
-	}
-	asyncInspector := asynq.NewInspector(asyncRedisClientOpt)
+	c.AsyncClient = asynq.NewClient(asyncOpt)
+	c.AsyncInspector = asynq.NewInspector(asyncOpt)
+	c.JWTService = auth.NewJWTService(cfg.JWT.SecretKey, time.Duration(cfg.JWT.Expire)*time.Hour)
+	c.CachMonitor = cache.NewMonitor(redis)
+}
 
-	jwtService := auth.NewJWTService(cfg.JWT.SecretKey, time.Duration(cfg.JWT.Expire)*time.Hour)
-	cachMonitor := cache.NewMonitor(redis)
+// 初始化 repositories
+func (c *Container) initRepositories(db *gorm.DB) {
+	c.UserRepository = repositories.NewUserRepository(db)
+	c.StageRepository = repositories.NewStageRepository(db)
+	c.ProjectRepository = repositories.NewProjectRepository(db)
+	c.MessageRepository = repositories.NewMessageRepository(db)
+	c.PreviewTokenRepository = repositories.NewPreviewTokenRepository(db)
+	c.EpicRepository = repositories.NewEpicRepository(db)
+	c.StoryRepository = repositories.NewStoryRepository(db)
+}
 
-	// repositories
-	userRepository := repositories.NewUserRepository(db)
-	stageRepository := repositories.NewStageRepository(db)
-	projectRepository := repositories.NewProjectRepository(db)
-	messageRepository := repositories.NewMessageRepository(db)
-	previewTokenRepository := repositories.NewPreviewTokenRepository(db)
-	epicRepository := repositories.NewEpicRepository(db)
-	storyRepository := repositories.NewStoryRepository(db)
+func (c *Container) initServices(cfg *config.Config, db *gorm.DB, redis *redis.Client) {
+	c.WebSocketService = services.NewWebSocketService(c.AsyncClient,
+		c.StageRepository, c.MessageRepository, c.ProjectRepository)
+	c.MessageService = services.NewMessageService(c.MessageRepository)
 
-	// services
-	webSocketService := services.NewWebSocketService(asyncClient,
-		stageRepository, messageRepository, projectRepository)
-	messageService := services.NewMessageService(messageRepository)
-
-	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)
-	gitService := services.NewGitService()
+	c.UserService = services.NewUserService(c.UserRepository, c.JWTService, cfg.JWT.Expire)
+	c.GitService = services.NewGitService()
 	// 如果是本地主机运行，则不用执行，只有容器运行才需要初始化 SSH
 	if cfg.App.Environment != common.EnvironmentLocalDebug {
-		gitService.SetupSSH()
+		c.GitService.SetupSSH()
 	}
 
-	fileService := services.NewFileService(asyncClient, gitService)
-	environmentService := services.NewEnvironmentService(cfg.Agents.URL, db, cacheInstance)
-	projectTemplateService := services.NewProjectTemplateService(fileService)
+	c.FileService = services.NewFileService(c.AsyncClient, c.GitService)
+	c.EnvironmentService = services.NewEnvironmentService(cfg.Agents.URL, db, c.CacheInstance)
+	c.ProjectTemplateService = services.NewProjectTemplateService(c.FileService)
 
-	projectStageService := services.NewProjectStageService(projectRepository,
-		stageRepository, messageRepository, webSocketService, gitService, fileService, asyncClient,
-		epicRepository, storyRepository, environmentService, cfg.Agents.URL)
+	c.ProjectStageService = services.NewProjectStageService(c.ProjectRepository,
+		c.StageRepository, c.MessageRepository, c.WebSocketService, c.GitService, c.FileService, c.AsyncClient,
+		c.EpicRepository, c.StoryRepository, c.EnvironmentService, cfg.Agents.URL)
 
-	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
-		asyncClient, projectTemplateService, gitService, webSocketService, cfg)
+	c.ProjectService = services.NewProjectService(c.ProjectRepository, c.MessageRepository, c.StageRepository,
+		c.AsyncClient, c.ProjectTemplateService, c.GitService, c.WebSocketService, cfg)
 
-	previewService := services.NewPreviewService(previewTokenRepository)
-	epicService := services.NewEpicService(epicRepository, storyRepository, projectRepository, fileService)
-	redisPubSubService := services.NewRedisPubSubService(redis, projectStageService)
+	c.PreviewService = services.NewPreviewService(c.PreviewTokenRepository)
+	c.EpicService = services.NewEpicService(c.EpicRepository, c.StoryRepository, c.ProjectRepository, c.FileService)
+	c.RedisPubSubService = services.NewRedisPubSubService(redis, c.ProjectStageService)
+}
 
-	var asynqServer *asynq.Server
+// 初始化 handlers
+func (c *Container) initHandlers(cfg *config.Config) {
+	c.CacheHandler = handlers.NewCacheHandler(c.CacheInstance, c.CachMonitor)
+	c.ChatHandler = handlers.NewChatHandler(c.MessageService, c.FileService, c.ProjectService, c.ProjectStageService)
+	c.FileHandler = handlers.NewFileHandler(c.FileService, c.ProjectService)
+	c.ProjectHandler = handlers.NewProjectHandler(c.ProjectService, c.ProjectStageService, c.PreviewService)
+	c.TaskHandler = handlers.NewTaskHandler(c.AsyncInspector)
+	c.UserHandler = handlers.NewUserHandler(c.UserService)
+	c.WebSocketHandler = handlers.NewWebSocketHandler(c.WebSocketService, c.ProjectService, c.JWTService)
+	c.EpicHandler = handlers.NewEpicHandler(c.EpicService)
+	c.HealthHandler = handlers.NewHealthHandler(c.EnvironmentService, c.WebSocketService)
+}
+
+// 启动异步服务
+func (c *Container) startAsyncServices(cfg *config.Config, asyncOpt *asynq.RedisClientOpt) {
 	// 有缓存，才处理异步任务
-	if cacheInstance != nil {
+	if c.CacheInstance != nil {
 		projectTaskHandler := worker.NewProjectTaskWorker()
-		asynqServer = initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, projectTaskHandler, projectService, projectStageService, webSocketService)
+		c.AsyncServer = initAsynqWorker(asyncOpt, cfg.Asynq.Concurrency, projectTaskHandler,
+			c.ProjectService, c.ProjectStageService, c.WebSocketService)
 	}
 
 	// 启动 WebSocket 服务
 	go func() {
 		logger.Info("WebSocket 服务启动中...")
-		if err := webSocketService.Start(context.Background()); err != nil {
+		if err := c.WebSocketService.Start(context.Background()); err != nil {
 			logger.Error("WebSocket 服务启动失败", logger.String("error", err.Error()))
 		}
 	}()
@@ -163,58 +170,26 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	// 启动 Redis Pub/Sub 服务
 	go func() {
 		logger.Info("Redis Pub/Sub 服务启动中...")
-		if err := redisPubSubService.Start(context.Background()); err != nil {
+		if err := c.RedisPubSubService.Start(context.Background()); err != nil {
 			logger.Error("Redis Pub/Sub 服务启动失败", logger.String("error", err.Error()))
 		}
 	}()
+}
 
-	// handlers
-	cacheHandler := handlers.NewCacheHandler(cacheInstance, cachMonitor)
-	chatHandler := handlers.NewChatHandler(messageService, fileService, projectService, projectStageService)
-	fileHandler := handlers.NewFileHandler(fileService, projectService)
-	projectHandler := handlers.NewProjectHandler(projectService, projectStageService, previewService)
-	taskHandler := handlers.NewTaskHandler(asyncInspector)
-	userHandler := handlers.NewUserHandler(userService)
-	webSocketHandler := handlers.NewWebSocketHandler(webSocketService, projectService, jwtService)
-	epicHandler := handlers.NewEpicHandler(epicService)
-	healthHandler := handlers.NewHealthHandler(environmentService, webSocketService)
-
-	return &Container{
-		AsyncClient:            asyncClient,
-		AsyncServer:            asynqServer,
-		JWTService:             jwtService,
-		CachMonitor:            cachMonitor,
-		AsyncInspector:         asyncInspector,
-		CacheInstance:          cacheInstance,
-		UserRepository:         userRepository,
-		StageRepository:        stageRepository,
-		ProjectRepository:      projectRepository,
-		MessageRepository:      messageRepository,
-		PreviewTokenRepository: previewTokenRepository,
-		EpicRepository:         epicRepository,
-		StoryRepository:        storyRepository,
-		UserService:            userService,
-		FileService:            fileService,
-		ProjectTemplateService: projectTemplateService,
-		ProjectStageService:    projectStageService,
-		ProjectService:         projectService,
-		MessageService:         messageService,
-		GitService:             gitService,
-		WebSocketService:       webSocketService,
-		PreviewService:         previewService,
-		EpicService:            epicService,
-		RedisPubSubService:     redisPubSubService,
-		EnvironmentService:     environmentService,
-		CacheHandler:           cacheHandler,
-		ChatHandler:            chatHandler,
-		FileHandler:            fileHandler,
-		ProjectHandler:         projectHandler,
-		TaskHandler:            taskHandler,
-		UserHandler:            userHandler,
-		WebSocketHandler:       webSocketHandler,
-		EpicHandler:            epicHandler,
-		HealthHandler:          healthHandler,
+func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Container {
+	var container Container
+	asyncOpt := asynq.RedisClientOpt{
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       common.CacheDbBackendAsynq,
 	}
+
+	container.initExternalService(cfg, redis, &asyncOpt)
+	container.initRepositories(db)
+	container.initServices(cfg, db, redis)
+	container.initHandlers(cfg)
+	container.startAsyncServices(cfg, &asyncOpt)
+	return &container
 }
 
 // 停止

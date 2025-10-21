@@ -84,6 +84,20 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*Previ
 	return &config, nil
 }
 
+// 通过 git 获取最新的代码
+func (s *fileService) refreshProjectFiles(ctx context.Context, userID, projectGuid, projectRootPath, path string) error {
+	if path == "" {
+		gitConfig := &GitConfig{
+			UserID:        userID,
+			GUID:          projectGuid,
+			ProjectPath:   projectRootPath,
+			CommitMessage: "Auto commit by App Maker",
+		}
+		return s.gitService.Pull(ctx, gitConfig)
+	}
+	return nil
+}
+
 // GetProjectFiles 获取项目文件列表
 func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, path string) ([]models.FileItem, error) {
 	// 构建项目路径
@@ -102,14 +116,8 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 	}
 
 	// 刷新，重新从 git 上拉取最新的文档和代码
-	if path == "" {
-		gitConfig := &GitConfig{
-			UserID:        userID,
-			GUID:          projectGuid,
-			ProjectPath:   projectRootPath,
-			CommitMessage: "Auto commit by App Maker",
-		}
-		s.gitService.Pull(ctx, gitConfig)
+	if err := s.refreshProjectFiles(ctx, userID, projectGuid, projectRootPath, path); err != nil {
+		logger.Error("failed to refresh project files", logger.String("error", err.Error()))
 	}
 
 	// 加载预览文件配置
@@ -119,19 +127,15 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 	}
 
 	var files []models.FileItem
-
-	if path == "" {
-		// 根目录：只返回满足条件的文件夹和根目录下的文件
+	if path == "" { // 根目录：只返回满足条件的文件夹和根目录下的文件
 		files, err = s.getRootDirectoryFiles(projectPath, config)
-	} else {
-		// 子目录：返回该目录下满足条件的文件
+	} else { // 子目录：返回该目录下满足条件的文件
 		files, err = s.getSubDirectoryFiles(projectPath, path, config)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file list: %s", err.Error())
 	}
-
 	return files, nil
 }
 
@@ -193,16 +197,13 @@ func (s *fileService) GetRelativeFiles(projectPath, subFolder string) ([]string,
 // getSubDirectoryFiles 获取子目录文件
 func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, config *PreviewFilesConfig) ([]models.FileItem, error) {
 	var files []models.FileItem
-
-	// 读取目录内容
-	entries, err := os.ReadDir(projectPath)
+	entries, err := os.ReadDir(projectPath) // 读取目录内容
 	if err != nil {
 		logger.Error("读取目录内容失败", logger.String("projectPath", projectPath), logger.String("currentPath", currentPath))
 		return nil, err
 	}
 
 	logger.Info("读取目录内容:", logger.String("projectPath", projectPath), logger.String("currentPath", currentPath))
-
 	for _, entry := range entries {
 		// 跳过隐藏文件
 		if strings.HasPrefix(entry.Name(), ".") {
@@ -224,27 +225,14 @@ func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, conf
 			fileItemType = "folder"
 		}
 		if utils.IsPathInFolders(entryPath, config.Folders) {
-			files = append(files, models.FileItem{
-				Name:       entry.Name(),
-				Path:       entryPath,
-				Type:       fileItemType,
-				Size:       0,
-				ModifiedAt: info.ModTime().Format(time.RFC3339),
-			})
+			files = append(files, *models.NewFileItem(entry.Name(), entryPath, fileItemType, 0, info.ModTime().Format(time.RFC3339)))
 			continue
 		}
 
 		if !bIsDir && utils.IsPathInFiles(entryPath, config.Files) {
-			files = append(files, models.FileItem{
-				Name:       entry.Name(),
-				Path:       entryPath,
-				Type:       fileItemType,
-				Size:       info.Size(),
-				ModifiedAt: info.ModTime().Format(time.RFC3339),
-			})
+			files = append(files, *models.NewFileItem(entry.Name(), entryPath, fileItemType, info.Size(), info.ModTime().Format(time.RFC3339)))
 		}
 	}
-
 	return files, nil
 }
 
@@ -299,7 +287,6 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, f
 // SyncEpicsToFiles 将数据库中的 Epics 和 Stories 同步到项目文件
 func (s *fileService) SyncEpicsToFiles(ctx context.Context, projectPath string, epics []*models.Epic) error {
 	storiesDir := filepath.Join(projectPath, "docs/stories")
-
 	// 确保 stories 目录存在
 	if err := os.MkdirAll(storiesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create stories directory: %s", err.Error())
@@ -314,54 +301,66 @@ func (s *fileService) SyncEpicsToFiles(ctx context.Context, projectPath string, 
 
 	// 2. 写入数据库中的 epics
 	for _, epic := range epics {
-		if epic.FilePath == "" {
-			// 如果没有文件路径，生成一个默认的
+		if epic.FilePath == "" { // 如果没有文件路径，生成一个默认的
 			epic.FilePath = fmt.Sprintf("epic%d-%s-stories.md", epic.EpicNumber, strings.ToLower(strings.ReplaceAll(epic.Name, " ", "-")))
 		}
 
 		filePath := filepath.Join(storiesDir, epic.FilePath)
 		content := s.generateEpicMarkdown(epic)
-
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to write Epic file: %s", err.Error())
 		}
-
-		// 从待删除列表中移除
-		delete(existingFileMap, epic.FilePath)
-
-		logger.Info("Epic file synchronized",
-			logger.String("epicName", epic.Name),
-			logger.String("filePath", filePath))
+		delete(existingFileMap, epic.FilePath) // 从待删除列表中移除
+		logger.Info("Epic file synchronized", logger.String("epicName", epic.Name), logger.String("filePath", filePath))
 	}
 
 	// 3. 删除用户已删除的 epic 文件
 	for fileName := range existingFileMap {
 		filePath := filepath.Join(storiesDir, fileName)
 		if err := os.Remove(filePath); err != nil {
-			logger.Warn("failed to delete Epic file",
-				logger.String("filePath", filePath),
-				logger.String("error", err.Error()))
+			logger.Warn("failed to delete Epic file", logger.String("filePath", filePath), logger.String("error", err.Error()))
 		} else {
-			logger.Info("Epic file deleted",
-				logger.String("filePath", filePath))
+			logger.Info("Epic file deleted", logger.String("filePath", filePath))
 		}
 	}
-
 	return nil
+}
+
+func (s *fileService) appendStory(content *strings.Builder, story *models.Story) {
+	content.WriteString(fmt.Sprintf("### %s: %s\n\n", story.StoryNumber, story.Title))
+	if story.Description != "" {
+		content.WriteString(fmt.Sprintf("**描述**: %s\n\n", story.Description))
+	}
+	content.WriteString(fmt.Sprintf("- **优先级**: %s\n", story.Priority))
+	content.WriteString(fmt.Sprintf("- **预估天数**: %d 天\n", story.EstimatedDays))
+	content.WriteString(fmt.Sprintf("- **状态**: %s\n", story.Status))
+	if story.Depends != "" {
+		content.WriteString(fmt.Sprintf("- **依赖**: %s\n", story.Depends))
+	}
+	if story.Techs != "" {
+		content.WriteString(fmt.Sprintf("- **技术要点**: %s\n", story.Techs))
+	}
+	content.WriteString("\n")
+	if story.AcceptanceCriteria != "" {
+		content.WriteString("**验收标准**:\n")
+		content.WriteString(fmt.Sprintf("%s\n\n", story.AcceptanceCriteria))
+	}
+	if story.Content != "" {
+		content.WriteString("**详细内容**:\n")
+		content.WriteString(fmt.Sprintf("%s\n\n", story.Content))
+	}
+	content.WriteString("---\n\n")
 }
 
 // generateEpicMarkdown 生成 Epic 的 Markdown 内容
 func (s *fileService) generateEpicMarkdown(epic *models.Epic) string {
 	var content strings.Builder
-
 	// Epic 标题
 	content.WriteString(fmt.Sprintf("# Epic %d: %s\n\n", epic.EpicNumber, epic.Name))
-
 	// Epic 描述
 	if epic.Description != "" {
 		content.WriteString(fmt.Sprintf("## 描述\n\n%s\n\n", epic.Description))
 	}
-
 	// Epic 信息
 	content.WriteString("## Epic 信息\n\n")
 	content.WriteString(fmt.Sprintf("- **优先级**: %s\n", epic.Priority))
@@ -371,39 +370,8 @@ func (s *fileService) generateEpicMarkdown(epic *models.Epic) string {
 	// Stories 列表
 	if len(epic.Stories) > 0 {
 		content.WriteString("## 用户故事\n\n")
-
 		for _, story := range epic.Stories {
-			content.WriteString(fmt.Sprintf("### %s: %s\n\n", story.StoryNumber, story.Title))
-
-			if story.Description != "" {
-				content.WriteString(fmt.Sprintf("**描述**: %s\n\n", story.Description))
-			}
-
-			content.WriteString(fmt.Sprintf("- **优先级**: %s\n", story.Priority))
-			content.WriteString(fmt.Sprintf("- **预估天数**: %d 天\n", story.EstimatedDays))
-			content.WriteString(fmt.Sprintf("- **状态**: %s\n", story.Status))
-
-			if story.Depends != "" {
-				content.WriteString(fmt.Sprintf("- **依赖**: %s\n", story.Depends))
-			}
-
-			if story.Techs != "" {
-				content.WriteString(fmt.Sprintf("- **技术要点**: %s\n", story.Techs))
-			}
-
-			content.WriteString("\n")
-
-			if story.AcceptanceCriteria != "" {
-				content.WriteString("**验收标准**:\n")
-				content.WriteString(fmt.Sprintf("%s\n\n", story.AcceptanceCriteria))
-			}
-
-			if story.Content != "" {
-				content.WriteString("**详细内容**:\n")
-				content.WriteString(fmt.Sprintf("%s\n\n", story.Content))
-			}
-
-			content.WriteString("---\n\n")
+			s.appendStory(&content, &story)
 		}
 	}
 

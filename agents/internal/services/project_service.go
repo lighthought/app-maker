@@ -48,32 +48,17 @@ func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) erro
 	}
 }
 
-// 初始化项目环境
-func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task) error {
-	var req agent.SetupProjEnvReq
-	if err := json.Unmarshal(task.Payload(), &req); err != nil {
-		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
-	}
-
-	installBmad := req.SetupBmadMethod
-
+// 检查项目的 gitlab 环境
+func (s *projectService) checkGitRepository(ctx context.Context, task *asynq.Task, req agent.SetupProjEnvReq,
+	projectPath string) (string, error) {
 	var markdownResult string = "项目开发环境初始化：\n"
-	// 检查 workspace 目录下是否有 project 目录，如果没有，则 git clone 项目
-	var projectPath = s.fileService.GetProjectPath(req.ProjectGuid)
-
-	// 1. 优先使用请求参数
-	bmadCliType := req.BmadCliType
-	// 2. 如果请求参数为空，检测本地目录
-	if bmadCliType == "" {
-		bmadCliType = s.fileService.DetectCliTool(req.ProjectGuid)
-	}
 	if !utils.IsDirectoryExists(projectPath) {
 		// git clone 项目
 		gitUrl := strings.Replace(req.GitlabRepoUrl, "git@gitlab:app-maker", "http://gitlab.app-maker.localhost/app-maker", 1)
 		res := s.commandService.SimpleExecute(ctx, "", "git", "clone", gitUrl, req.ProjectGuid)
 		if !res.Success {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "git clone 项目失败: "+res.Error)
-			return fmt.Errorf("git clone 项目失败: %s", res.Error)
+			return "", fmt.Errorf("git clone 项目失败: %s", res.Error)
 		}
 
 		markdownResult += "* git clone 成功：\n"
@@ -85,7 +70,7 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 		res := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "git", "pull", "--progress", "-v", "--no-rebase", "--", "origin")
 		if !res.Success {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "git pull 项目失败: "+res.Error)
-			return fmt.Errorf("git pull 项目失败: %s", res.Error)
+			return "", fmt.Errorf("git pull 项目失败: %s", res.Error)
 		}
 
 		markdownResult += "* git pull 成功：\n"
@@ -94,14 +79,25 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 
 	// 配置不用转换 LF 为 CRLF，避免提交一堆实际没有修改的代码和文档
 	s.commandService.SimpleExecute(ctx, req.ProjectGuid, "git", "config", "core.autocrlf", "false")
+	return markdownResult, nil
+}
 
-	// 3. 验证 CLI 工具对应的目录是否存在
+// 检查、安装 bmad-method
+func (s *projectService) installBmad(ctx context.Context, task *asynq.Task, req agent.SetupProjEnvReq,
+	projectPath, markdownResult string) (string, error) {
+	// 优先使用请求参数
+	installBmad := req.SetupBmadMethod
+	bmadCliType := req.BmadCliType
+	// 如果请求参数为空，检测本地目录
+	if bmadCliType == "" {
+		bmadCliType = s.fileService.DetectCliTool(req.ProjectGuid)
+	}
+
 	cliDirMap := map[string]string{
 		common.CliToolClaudeCode: ".claude",
 		common.CliToolQwenCode:   ".qwen",
 		common.CliToolGemini:     ".gemini",
 	}
-
 	cliDir := cliDirMap[bmadCliType]
 	needInstall := installBmad || !utils.IsDirectoryExists(filepath.Join(projectPath, cliDir))
 
@@ -115,21 +111,26 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 			res := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "npx", "bmad-method", "install", "-f", "-i", bmadCliType, "-d", ".")
 			if !res.Success {
 				tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "agent 安装失败: "+res.Error)
-				return fmt.Errorf("bmad-method 安装失败: %s", res.Error)
+				return "", fmt.Errorf("bmad-method 安装失败: %s", res.Error)
 			}
 
 			markdownResult += fmt.Sprintf("* agent (%s) 安装成功\n", bmadCliType)
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 60, markdownResult)
 		}
 	}
+	return markdownResult, nil
+}
 
+// 安装代码依赖
+func (s *projectService) installCodeDependencies(ctx context.Context, task *asynq.Task, req agent.SetupProjEnvReq,
+	projectPath, markdownResult string) (string, error) {
 	var frontendModulePath = filepath.Join(projectPath, "frontend", "node_modules")
 	if !utils.IsDirectoryExists(frontendModulePath) {
 		subPath := req.ProjectGuid + "/frontend"
 		res := s.commandService.SimpleExecute(ctx, subPath, "npm", "install")
 		if !res.Success {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "frontend 安装失败: "+res.Error)
-			return fmt.Errorf("frontend 安装失败: %s", res.Error)
+			return "", fmt.Errorf("frontend 安装失败: %s", res.Error)
 		}
 
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 80, "frontend 安装成功")
@@ -145,7 +146,7 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 		build := s.commandService.SimpleExecute(ctx, subPath, "go", "build", "-o", "server", "./cmd/server")
 		if !goMod.Success || !build.Success {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "backend 安装失败: "+goMod.Error+build.Error)
-			return fmt.Errorf("backend 安装失败: %s", goMod.Error+build.Error)
+			return "", fmt.Errorf("backend 安装失败: %s", goMod.Error+build.Error)
 		}
 
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 95, "backend 安装成功")
@@ -154,9 +155,65 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 95, "backend 安装成功")
 		markdownResult += "* backend 已安装过\n"
 	}
+	return markdownResult, nil
+}
+
+// 初始化项目环境
+func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task) error {
+	var req agent.SetupProjEnvReq
+	if err := json.Unmarshal(task.Payload(), &req); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+
+	// 1.检查 workspace 目录下是否有 project 目录，如果没有，则 git clone 项目
+	var projectPath = s.fileService.GetProjectPath(req.ProjectGuid)
+	markdownResult, err := s.checkGitRepository(ctx, task, req, projectPath)
+	if err != nil {
+		return err
+	}
+
+	// 2.检查、安装 bmad-method
+	markdownResult, err = s.installBmad(ctx, task, req, projectPath, markdownResult)
+	if err != nil {
+		return err
+	}
+
+	// 3. 安装代码依赖
+	markdownResult, err = s.installCodeDependencies(ctx, task, req, projectPath, markdownResult)
+	if err != nil {
+		return err
+	}
 
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, markdownResult)
 	return nil
+}
+
+func (s *projectService) chatAfterExecuteFailed(ctx context.Context, task *asynq.Task, projectGuid, cmdDesc, process string, cmd ...string) (string, error) {
+	logger.Info("执行命令",
+		logger.String("projectGuid", projectGuid),
+		logger.String("process", process),
+		logger.String("cmd", strings.Join(cmd, " ")))
+
+	buildResult := s.commandService.SimpleExecute(ctx, projectGuid, process, cmd...)
+	if !buildResult.Success {
+		logger.Error(cmdDesc+"失败",
+			logger.String("projectGuid", projectGuid),
+			logger.String("error", buildResult.Error),
+			logger.String("output", buildResult.Output),
+		)
+		prompt := cmdDesc + "失败了，帮我修复下，最后执行 '" + process + " " + strings.Join(cmd, " ") + "' 命令" + buildResult.Error
+		result, err := s.agentTaskService.ChatWithAgent(ctx, projectGuid, common.AgentTypeDev,
+			prompt)
+		if err != nil {
+			return "", fmt.Errorf("%s失败: %s", cmdDesc, err.Error())
+		}
+		if !result.Success {
+
+			return "", fmt.Errorf("%s失败: %s", cmdDesc, result.Error)
+		}
+		buildResult = *result
+	}
+	return buildResult.Output, nil
 }
 
 // 部署项目
@@ -168,55 +225,19 @@ func (s *projectService) projectDeploy(ctx context.Context, task *asynq.Task) er
 	logger.Info("开始执行项目部署", logger.String("projectGuid", req.ProjectGuid))
 
 	// 1. 执行 make build-dev 构建项目
-	logger.Info("执行 make build-dev", logger.String("projectGuid", req.ProjectGuid))
-	buildResult := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "make", "build-dev")
-	if !buildResult.Success {
-		logger.Error("项目构建失败",
-			logger.String("projectGuid", req.ProjectGuid),
-			logger.String("error", buildResult.Error),
-			logger.String("output", buildResult.Output),
-		)
-		prompt := "项目构建失败了，帮我修复下，最后执行 'make buid-dev' 命令" + buildResult.Error
-		result, err := s.agentTaskService.ChatWithAgent(ctx, req.ProjectGuid, common.AgentTypeDev,
-			prompt)
-		if err != nil {
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目构建失败: "+err.Error())
-			return fmt.Errorf("项目构建失败: %s", err.Error())
-		}
-		if !result.Success {
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目构建失败: "+result.Error)
-			return fmt.Errorf("项目构建失败: %s", result.Error)
-		}
-		buildResult = *result
+	buildResult, err2 := s.chatAfterExecuteFailed(ctx, task, req.ProjectGuid, "构建项目", "make", "build-dev")
+	if err2 != nil {
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "构建项目失败: "+err2.Error())
+		return err2
 	}
-
-	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 50, buildResult.Output)
-	logger.Info("项目构建成功", logger.String("projectGuid", req.ProjectGuid))
+	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 50, buildResult)
 
 	// 2. 执行 make run-dev 启动项目
-	logger.Info("执行 make run-dev", logger.String("projectGuid", req.ProjectGuid))
-	runResult := s.commandService.SimpleExecute(ctx, req.ProjectGuid, "make", "run-dev")
-	if !runResult.Success {
-		logger.Error("项目启动失败",
-			logger.String("projectGuid", req.ProjectGuid),
-			logger.String("error", runResult.Error),
-			logger.String("output", runResult.Output),
-		)
-		prompt := "项目启动失败了，帮我修复下，最后执行 'make run-dev' 命令" + runResult.Error
-		result, err := s.agentTaskService.ChatWithAgent(ctx, req.ProjectGuid, common.AgentTypeDev,
-			prompt)
-		buildResult = *result
-		if err != nil {
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目启动失败: "+err.Error())
-			return fmt.Errorf("项目启动失败: %s", err.Error())
-		}
-		if !result.Success {
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "项目启动失败: "+result.Error)
-			return fmt.Errorf("项目启动失败: %s", result.Error)
-		}
+	buildResult, err3 := s.chatAfterExecuteFailed(ctx, task, req.ProjectGuid, "启动项目", "make", "run-dev")
+	if err3 != nil {
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "启动项目失败: "+err3.Error())
+		return err3
 	}
-
-	logger.Info("项目部署完成", logger.String("projectGuid", req.ProjectGuid))
-	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, buildResult.Output)
+	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, buildResult)
 	return nil
 }
