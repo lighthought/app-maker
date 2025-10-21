@@ -106,17 +106,17 @@ func Load() (*Config, error) {
 	// 读取配置文件
 	if err := viper.ReadInConfig(); err != nil {
 		// 如果配置文件不存在，使用环境变量和默认值
-		fmt.Printf("配置文件未找到，使用环境变量和默认值: %v\n", err)
+		fmt.Printf("config file not found, using environment variables and defaults: %v\n", err)
 	}
 
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("解析配置失败: %w", err)
+		return nil, fmt.Errorf("failed to parse config: %s", err.Error())
 	}
 
 	// 验证必要的配置
 	if err := validateConfig(&config); err != nil {
-		return nil, fmt.Errorf("配置验证失败: %w", err)
+		return nil, fmt.Errorf("failed to validate config: %s", err.Error())
 	}
 
 	return &config, nil
@@ -173,20 +173,20 @@ func setDefaults() {
 	viper.SetDefault("asynq.concurrency", 100)
 
 	// Agents Server 默认
-	viper.SetDefault("agents.url", utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:3001"))
+	viper.SetDefault("agents.url", utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:8088"))
 }
 
 func validateConfig(config *Config) error {
 	if config.App.Port == "" {
-		return fmt.Errorf("应用端口不能为空")
+		return fmt.Errorf("app port cannot be empty")
 	}
 
 	if config.Database.Host == "" || config.Database.Name == "" {
-		return fmt.Errorf("数据库配置不完整")
+		return fmt.Errorf("database config is incomplete")
 	}
 
 	if config.JWT.SecretKey == "" {
-		return fmt.Errorf("JWT密钥不能为空")
+		return fmt.Errorf("JWT secret key cannot be empty")
 	}
 
 	return nil

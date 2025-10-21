@@ -33,7 +33,7 @@ type projectStageService struct {
 
 func NewProjectStageService(...) ProjectStageService {
     // agents 服务地址
-    agentsURL := utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:9090")
+    agentsURL := utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:8088")
     agentClient := client.NewAgentClient(agentsURL, 5*time.Minute)
     
     return &projectStageService{

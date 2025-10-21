@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"app-maker-agents/internal/api/handlers"
 	"app-maker-agents/internal/container"
 	"shared-models/common"
 
@@ -15,7 +14,7 @@ func Register(
 ) {
 	routers := engine.Group(common.DefaultApiPrefix)
 	{
-		routers.GET("/health", handlers.HealthCheck)
+		routers.GET("/health", container.HealthHandler.HealthCheck)
 		// 项目环境准备
 		projectHandler := container.ProjectHandler
 		project := routers.Group("/project")

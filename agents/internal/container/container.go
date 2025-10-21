@@ -6,12 +6,13 @@ import (
 	"app-maker-agents/internal/services"
 	"fmt"
 	"log"
+
 	"shared-models/auth"
+	"shared-models/cache"
 	"shared-models/common"
 	"shared-models/logger"
 
 	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
 )
 
 type Container struct {
@@ -20,7 +21,7 @@ type Container struct {
 	AsyncInspector *asynq.Inspector
 	AsyncServer    *asynq.Server
 	JWTService     *auth.JWTService
-	RedisClient    *redis.Client
+	CacheInstance  cache.Cache
 
 	// Internal Services
 	CommandService   services.CommandService
@@ -39,34 +40,37 @@ type Container struct {
 	PoHandler        *handlers.PoHandler
 	DevHandler       *handlers.DevHandler
 	TaskHandler      *handlers.TaskHandler
+	HealthHandler    *handlers.HealthHandler
 }
 
 func NewContainer(cfg *config.Config) *Container {
-
-	redisClientOpt := asynq.RedisClientOpt{
+	asyncOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	}
 
 	// 创建独立的 Redis 客户端用于缓存
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+	cacheInstance, _ := cache.NewCache(cache.Config{
+		Host:     cfg.Redis.Host,
+		Port:     cfg.Redis.Port,
 		Password: cfg.Redis.Password,
 		DB:       2,
+		PoolSize: 10,
+		MinIdle:  5,
 	})
 
-	asyncClient := asynq.NewClient(redisClientOpt)
-	asyncInspector := asynq.NewInspector(redisClientOpt)
+	asyncClient := asynq.NewClient(asyncOpt)
+	asyncInspector := asynq.NewInspector(asyncOpt)
 
 	commandSvc := services.NewCommandService(cfg.Command, cfg.App.WorkspacePath)
 	gitService := services.NewGitService(commandSvc)
 
 	fileSvc := services.NewFileService(commandSvc, cfg.App.WorkspacePath)
-	agentTaskService := services.NewAgentTaskService(commandSvc, fileSvc, gitService, asyncClient, redisClient)
+	agentTaskService := services.NewAgentTaskService(commandSvc, fileSvc, gitService, asyncClient, cacheInstance)
 	projectSvc := services.NewProjectService(commandSvc, agentTaskService, fileSvc)
 
-	asynqServer := initAsynqWorker(&redisClientOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
+	asynqServer := initAsynqWorker(&asyncOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
 	projectHandler := handlers.NewProjectHandler(agentTaskService, projectSvc)
 	chatHandler := handlers.NewChatHandler(agentTaskService)
@@ -77,6 +81,7 @@ func NewContainer(cfg *config.Config) *Container {
 	architectHandler := handlers.NewArchitectHandler(agentTaskService)
 	uxHandler := handlers.NewUxHandler(agentTaskService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
+	healthHandler := handlers.NewHealthHandler(cacheInstance)
 
 	return &Container{
 		AsyncClient:      asyncClient,
@@ -85,7 +90,7 @@ func NewContainer(cfg *config.Config) *Container {
 		AsyncServer:      asynqServer,
 		CommandService:   commandSvc,
 		GitService:       gitService,
-		RedisClient:      redisClient,
+		CacheInstance:    cacheInstance,
 		ProjectHandler:   projectHandler,
 		ChatHandler:      chatHandler,
 		AnalyseHandler:   analyseHandler,
@@ -95,10 +100,13 @@ func NewContainer(cfg *config.Config) *Container {
 		ArchitectHandler: architectHandler,
 		UxHandler:        uxHandler,
 		TaskHandler:      taskHandler,
+		HealthHandler:    healthHandler,
 	}
 }
 
-func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, agentTaskService services.AgentTaskService, projectSvc services.ProjectService) *asynq.Server {
+func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int,
+	agentTaskService services.AgentTaskService,
+	projectSvc services.ProjectService) *asynq.Server {
 	// 配置 Worker
 	server := asynq.NewServer(
 		redisClientOpt,
@@ -134,10 +142,17 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, agen
 }
 
 func (c *Container) Stop() {
-	c.AsyncServer.Shutdown()
-	c.AsyncClient.Close()
-	c.AsyncInspector.Close()
-	if c.RedisClient != nil {
-		c.RedisClient.Close()
+	logger.Info("Stopping container... ")
+	if c.AsyncServer != nil {
+		c.AsyncServer.Shutdown()
+	}
+	if c.AsyncClient != nil {
+		c.AsyncClient.Close()
+	}
+	if c.AsyncInspector != nil {
+		c.AsyncInspector.Close()
+	}
+	if c.CacheInstance != nil {
+		c.CacheInstance.Close()
 	}
 }

@@ -14,22 +14,21 @@ import (
 	"golang.org/x/text/transform"
 )
 
-const (
-	baseDir = "/app/data"
-)
-
 // GetProjectPath 获取项目路径
 func GetProjectPath(userID, projectGuid string) string {
+	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
 	return filepath.Join(baseDir, "projects", userID, projectGuid)
 }
 
 // GetTemplatePath 获取模板路径
 func GetTemplatePath() string {
+	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
 	return filepath.Join(baseDir, "template.zip")
 }
 
 // GetCachePath 获取缓存路径
 func GetCachePath() string {
+	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
 	return filepath.Join(baseDir, "projects", "cache")
 }
 
@@ -69,6 +68,18 @@ func IsDirectoryExists(filePath string) bool {
 		return false
 	}
 	return info.IsDir()
+}
+
+// 删除目录
+func DeleteDirectory(filePath string) error {
+	if err := os.RemoveAll(filePath); err != nil {
+		logger.Error("删除目录失败",
+			logger.String("error", err.Error()),
+			logger.String("filePath", filePath),
+		)
+		return err
+	}
+	return nil
 }
 
 // 获取文件信息
@@ -249,7 +260,7 @@ func GetFileContent(filePath, encoding string) (string, error) {
 func GetSafeFilePath(filePath string) (string, error) {
 	// 1. 安全清理文件名，防止目录遍历攻击
 	safeFilename := strings.ReplaceAll(filePath, "..", "")
-
+	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
 	// 2. 拼接完整的文件路径
 	full_path := filepath.Join(baseDir, safeFilename)
 	logger.Info("获取安全路径",

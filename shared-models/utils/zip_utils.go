@@ -125,6 +125,7 @@ func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName s
 	)
 
 	// 从 cacheFilePath 中去掉 baseDir 前缀
+	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
 	resultPath := strings.Replace(cacheFilePath, baseDir, "", 1)
 	return resultPath, nil
 }

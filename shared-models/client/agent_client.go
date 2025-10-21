@@ -78,8 +78,8 @@ func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) 
 		// 检查原始 context 是否被取消（允许主动取消任务）
 		select {
 		case <-ctx.Done():
-			logger.Info("任务等待被取消", logger.String("taskID", taskID))
-			return nil, fmt.Errorf("任务等待被取消: %w", ctx.Err())
+			logger.Info("task waiting cancelled", logger.String("taskID", taskID))
+			return nil, fmt.Errorf("task waiting cancelled: %w", ctx.Err())
 		default:
 			// 继续执行
 		}
@@ -87,35 +87,35 @@ func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) 
 		// 使用 background context 进行 HTTP 请求，避免超时
 		resp, err := c.httpClient.Get(bgCtx, "/api/v1/tasks/"+taskID)
 		if err != nil {
-			logger.Info("获取任务状态失败",
+			logger.Info("failed to get task status",
 				logger.String("taskID", taskID),
 				logger.String("error", err.Error()),
 				logger.Int("retryTimes", iRetryTimes))
 			return nil, err
 		}
 		if resp.Code != common.SUCCESS_CODE {
-			return nil, fmt.Errorf("agent 任务执行失败: %s", resp.Message)
+			return nil, fmt.Errorf("agent task execution failed: %s", resp.Message)
 		}
 
 		result := &tasks.TaskResult{}
 		if err := parseResponseData(resp, result); err != nil {
-			logger.Info("解析任务状态失败",
+			logger.Info("failed to parse task status",
 				logger.String("taskID", taskID),
 				logger.String("error", err.Error()))
 			return nil, err
 		}
 
 		if result.Status == common.CommonStatusDone {
-			logger.Info("任务完成",
+			logger.Info("task completed",
 				logger.String("taskID", taskID),
 				logger.Int("totalRetries", iRetryTimes))
 			return result, nil
 		}
 		if result.Status == common.CommonStatusFailed {
-			logger.Info("任务失败",
+			logger.Info("task failed",
 				logger.String("taskID", taskID),
 				logger.String("message", result.Message))
-			return result, fmt.Errorf("agent 任务执行失败: %s", result.Message)
+			return result, fmt.Errorf("agent task execution failed: %s", result.Message)
 		}
 
 		// 等待 5 秒后重试
@@ -124,7 +124,7 @@ func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) 
 
 		// 每 10 次重试记录一次日志
 		if iRetryTimes%10 == 0 {
-			logger.Info("任务仍在执行中",
+			logger.Info("task still executing",
 				logger.String("taskID", taskID),
 				logger.String("status", result.Status),
 				logger.String("message", result.Message),
@@ -132,212 +132,84 @@ func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) 
 		}
 	}
 
-	return nil, fmt.Errorf("任务超时: 已等待 %d 秒", iMaxRetryTimes*5)
+	return nil, fmt.Errorf("task timeout: waited %d seconds", iMaxRetryTimes*5)
+}
+
+func (c *AgentClient) syncPost(ctx context.Context, url string, req interface{}) (*tasks.TaskResult, error) {
+	resp, err := c.httpClient.Post(ctx, url, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Code != common.SUCCESS_CODE {
+		return nil, fmt.Errorf("agent execution failed: %s", resp.Message)
+	}
+
+	taskID := resp.Data.(string)
+	return c.waitForTaskCompletion(ctx, taskID)
 }
 
 // SetupProjectEnvironment 项目环境准备
 func (c *AgentClient) SetupProjectEnvironment(ctx context.Context, req *agent.SetupProjEnvReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/project/setup", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent setup project environment failed: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/project/setup", req)
 }
 
 // AnalyseProjectBrief 分析项目简介
 func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetProjBriefReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/analyse/project-brief", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/analyse/project-brief", req)
 }
 
 // GetPRD 获取 PRD
 func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/pm/prd", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/pm/prd", req)
 }
 
 // GetUXStandard 获取 UX 标准
 func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandardReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/ux-expert/ux-standard", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/ux-expert/ux-standard", req)
 }
 
 // GetArchitecture 获取架构设计
 func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchitectureReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/architect/architect", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/architect/architect", req)
 }
 
 // GetDatabaseDesign 获取数据库设计
 func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatabaseDesignReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/architect/database", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/architect/database", req)
 }
 
 // GetAPIDefinition 获取 API 定义
 func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDefinitionReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/architect/apidefinition", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/architect/apidefinition", req)
 }
 
 // GetEpicsAndStories 获取史诗和故事
 func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpicsAndStoriesReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/po/epicsandstories", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/po/epicsandstories", req)
 }
 
 // ImplementStory 实现用户故事
 func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementStoryReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/dev/implstory", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/dev/implstory", req)
 }
 
 // FixBug 修复 Bug
 func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/dev/fixbug", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/dev/fixbug", req)
 }
 
 // RunTest 运行测试
 func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*tasks.TaskResult, error) {
-	// 转换为 FixBugReq 格式（临时方案）
-	fixBugReq := &agent.FixBugReq{
-		ProjectGuid:    req.ProjectGuid,
-		BugDescription: "执行项目测试",
-	}
-
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/dev/runtest", fixBugReq)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/dev/runtest", req)
 }
 
 // Deploy 部署项目
 func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*tasks.TaskResult, error) {
-	// 转换为 FixBugReq 格式（临时方案）
-	fixBugReq := &agent.FixBugReq{
-		ProjectGuid:    req.ProjectGuid,
-		BugDescription: "打包部署项目",
-	}
-
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/dev/deploy", fixBugReq)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/dev/deploy", req)
 }
 
 // ChatWithAgent 与 Agent 对话
 func (c *AgentClient) ChatWithAgent(ctx context.Context, req *agent.ChatReq) (*tasks.TaskResult, error) {
-	resp, err := c.httpClient.Post(ctx, "/api/v1/agent/chat", req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent 执行失败: %s", resp.Message)
-	}
-
-	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return c.syncPost(ctx, "/api/v1/agent/chat", req)
 }

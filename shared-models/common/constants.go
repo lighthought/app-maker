@@ -2,6 +2,7 @@ package common
 
 import (
 	"shared-models/agent"
+	"time"
 )
 
 // 响应状态码
@@ -309,6 +310,16 @@ const (
 	TaskQueueCritical = 6 // 高优先级
 	TaskQueueDefault  = 3 // 中优先级
 	TaskQueueLow      = 1 // 低优先级
+)
+
+// 缓存时长
+const (
+	CacheExpirationShort   = 5 * time.Minute
+	CacheExpirationMedium  = 30 * time.Minute
+	CacheExpirationLong    = 2 * time.Hour
+	CacheExpirationDay     = 24 * time.Hour
+	CacheExpirationWeek    = 7 * 24 * time.Hour
+	CacheExpirationDefault = 30 * time.Minute
 )
 
 // CLI 工具类型
