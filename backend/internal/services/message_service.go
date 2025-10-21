@@ -48,7 +48,7 @@ func (s *messageService) GetProjectConversations(ctx context.Context, projectGui
 
 func (s *messageService) AddConversationMessage(ctx context.Context, message *models.ConversationMessage) (*models.ConversationMessage, error) {
 	if err := s.repo.Create(ctx, message); err != nil {
-		return nil, fmt.Errorf("创建对话消息失败: %w", err)
+		return nil, fmt.Errorf("failed to create conversation message: %s", err.Error())
 	}
 	return message, nil
 }

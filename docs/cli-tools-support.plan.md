@@ -291,7 +291,7 @@ func HealthCheck(c *gin.Context) {
     }
     
     // 调用 Agent 健康检查
-    agentsURL := utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
+    agentsURL := utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:8088")
     agentClient := client.NewAgentClient(agentsURL, 5*time.Second)
     
     if agentHealth, err := agentClient.HealthCheck(context.Background()); err == nil {

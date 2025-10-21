@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	cfgPkg "autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/models"
 	"autocodeweb-backend/internal/repositories"
 	"shared-models/agent"
@@ -58,12 +57,8 @@ func NewProjectStageService(
 	epicRepo repositories.EpicRepository,
 	storyRepo repositories.StoryRepository,
 	environmentService EnvironmentService,
+	agentsURL string,
 ) ProjectStageService {
-	// 读取配置
-	var agentsURL string
-	if cfg, err := cfgPkg.Load(); err == nil {
-		agentsURL = cfg.Agents.URL
-	}
 	return &projectStageService{
 		projectRepo:        projectRepo,
 		stageRepo:          stageRepo,
@@ -150,7 +145,10 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 	// 只执行初始阶段：等待Agents处理
 	devProjectStage, err := s.stageRepo.GetByProjectGuidAndName(ctx, project.GUID, string(common.DevStatusPendingAgents))
 	if err == nil && devProjectStage.Status == common.CommonStatusDone {
-		tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, common.GetDevStageProgress(common.DevStatusPendingAgents), common.GetDevStageDescription(common.DevStatusPendingAgents)+"已完成")
+		tasks.UpdateResult(resultWriter,
+			common.CommonStatusInProgress,
+			common.GetDevStageProgress(common.DevStatusPendingAgents),
+			common.GetDevStageDescription(common.DevStatusPendingAgents)+"已完成")
 	} else {
 		if err != nil {
 			devProjectStage = nil
@@ -173,11 +171,13 @@ func (s *projectStageService) handleProjectDevelopmentTask(ctx context.Context, 
 	}
 
 	// 完成后根据 auto_go_next 配置决定下一步
+	logger.Info("等待Agents处理阶段完成", logger.String("projectID", project.ID))
 	return s.proceedToNextStage(ctx, project, common.DevStatusPendingAgents, false)
 }
 
 // proceedToNextStage 进入下一阶段的通用方法
-func (s *projectStageService) proceedToNextStage(ctx context.Context, project *models.Project, currentStage common.DevStatus, requireConfirm bool) error {
+func (s *projectStageService) proceedToNextStage(ctx context.Context,
+	project *models.Project, currentStage common.DevStatus, requireConfirm bool) error {
 	// 优先使用项目级配置，其次用户级配置
 	autoGoNext := project.AutoGoNext
 	if !autoGoNext {
@@ -218,34 +218,35 @@ func (s *projectStageService) proceedToNextStage(ctx context.Context, project *m
 
 // getNextStage 获取下一阶段
 func (s *projectStageService) getNextStage(currentStage common.DevStatus) common.DevStatus {
-	switch currentStage {
-	case common.DevStatusPendingAgents:
-		return common.DevStatusCheckRequirement
-	case common.DevStatusCheckRequirement:
-		return common.DevStatusGeneratePRD
-	case common.DevStatusGeneratePRD:
-		return common.DevStatusDefineUXStandard
-	case common.DevStatusDefineUXStandard:
-		return common.DevStatusDesignArchitecture
-	case common.DevStatusDesignArchitecture:
-		return common.DevStatusPlanEpicAndStory
-	case common.DevStatusPlanEpicAndStory:
-		return common.DevStatusDefineDataModel
-	case common.DevStatusDefineDataModel:
-		return common.DevStatusDefineAPI
-	case common.DevStatusDefineAPI:
-		return common.DevStatusGeneratePages
-	case common.DevStatusGeneratePages:
-		return common.DevStatusDevelopStory
-	case common.DevStatusDevelopStory:
-		return common.DevStatusRunTest
-	case common.DevStatusRunTest:
-		return common.DevStatusDeploy
-	case common.DevStatusDeploy:
-		return "" // 没有下一阶段
-	default:
-		return ""
+	// 定义需要执行的阶段数组，方便调试过程中跳过耗时较多的故事实现等阶段
+	processStages := []common.DevStatus{
+		common.DevStatusPendingAgents,
+		common.DevStatusCheckRequirement,
+		common.DevStatusGeneratePRD,
+		common.DevStatusDefineUXStandard,
+		common.DevStatusDesignArchitecture,
+		common.DevStatusPlanEpicAndStory,
+		common.DevStatusDefineDataModel,
+		common.DevStatusDefineAPI,
+		common.DevStatusGeneratePages,
+		// 调试阶段跳过，common.DevStatusDevelopStory,
+		// 调试阶段跳过，common.DevStatusFixBug,
+		common.DevStatusRunTest,
+		common.DevStatusDeploy,
 	}
+
+	for index, processStage := range processStages {
+		if currentStage == processStage {
+			// 返回下一个
+			if index+1 < len(processStages) {
+				return processStages[index+1]
+			} else {
+				return ""
+			}
+		}
+	}
+	return ""
+
 }
 
 // createTaskForStage 为指定阶段创建任务
@@ -342,7 +343,7 @@ func (s *projectStageService) handleStageTask(ctx context.Context, t *asynq.Task
 			s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
 		}
 
-		return fmt.Errorf("Agent 服务不可用，无法继续执行阶段任务")
+		return fmt.Errorf("agent 服务不可用，无法继续执行阶段任务")
 	}
 
 	logger.Info("Agent 服务健康检查通过",
@@ -351,7 +352,7 @@ func (s *projectStageService) handleStageTask(ctx context.Context, t *asynq.Task
 
 	// 创建 Agent 客户端
 	if s.agentsURL == "" {
-		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://host.docker.internal:8088")
+		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:8088")
 	}
 	agentClient := client.NewAgentClient(s.agentsURL, 60*time.Minute)
 
@@ -740,9 +741,18 @@ func (s *projectStageService) pendingAgents(ctx context.Context,
 	} else {
 		devProjectStage = devStage
 		devProjectStage.SetStatus(common.CommonStatusInProgress)
+		devProjectStage.FailedReason = ""
 	}
 
 	s.notifyProjectStatusChange(ctx, project, nil, devProjectStage)
+
+	// 如果 agentClient 为 nil，则创建新的客户端
+	if agentClient == nil {
+		if s.agentsURL == "" {
+			s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:8088")
+		}
+		agentClient = client.NewAgentClient(s.agentsURL, 60*time.Minute)
+	}
 
 	// 设置 CLI 工具和模型配置，如果项目没有设置则使用用户的默认设置
 	cliTool := project.CliTool

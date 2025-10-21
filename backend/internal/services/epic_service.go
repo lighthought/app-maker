@@ -160,13 +160,13 @@ func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid st
 	// 获取项目信息
 	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
 	if err != nil {
-		return fmt.Errorf("获取项目信息失败: %w", err)
+		return fmt.Errorf("failed to get project info: %s", err.Error())
 	}
 
 	// 获取当前的 Epics 和 Stories
 	epics, err := s.epicRepo.GetByProjectGuid(ctx, projectGuid)
 	if err != nil {
-		return fmt.Errorf("获取 Epics 失败: %w", err)
+		return fmt.Errorf("failed to get Epics: %s", err.Error())
 	}
 
 	// 根据 action 处理不同的确认逻辑
@@ -174,14 +174,14 @@ func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid st
 	case "confirm":
 		// 确认并继续：同步到文件，然后触发下一阶段的执行
 		if err := s.fileService.SyncEpicsToFiles(ctx, project.ProjectPath, epics); err != nil {
-			return fmt.Errorf("同步 Epics 到文件失败: %w", err)
+			return fmt.Errorf("failed to sync Epics to files: %s", err.Error())
 		}
 
 		// 清除等待确认状态
 		project.WaitingForUserConfirm = false
 		project.ConfirmStage = ""
 		if err := s.projectRepo.Update(ctx, project); err != nil {
-			return fmt.Errorf("更新项目状态失败: %w", err)
+			return fmt.Errorf("failed to update project status: %s", err.Error())
 		}
 
 		// TODO: 触发下一阶段的执行
@@ -192,7 +192,7 @@ func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid st
 		project.WaitingForUserConfirm = false
 		project.ConfirmStage = ""
 		if err := s.projectRepo.Update(ctx, project); err != nil {
-			return fmt.Errorf("更新项目状态失败: %w", err)
+			return fmt.Errorf("failed to update project status: %s", err.Error())
 		}
 
 		// TODO: 触发下一阶段的执行
@@ -202,7 +202,7 @@ func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid st
 		// TODO: 实现重新生成逻辑
 
 	default:
-		return fmt.Errorf("未知的确认操作: %s", action)
+		return fmt.Errorf("unknown confirm action: %s", action)
 	}
 
 	return nil

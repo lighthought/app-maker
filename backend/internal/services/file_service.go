@@ -55,7 +55,7 @@ func NewFileService(asyncClient *asynq.Client, gitService GitService) FileServic
 func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*PreviewFilesConfig, error) {
 	projectPath := utils.GetProjectPath(userID, projectGuid)
 	if projectPath == "" {
-		return nil, fmt.Errorf("项目路径为空")
+		return nil, fmt.Errorf("project path is empty")
 	}
 
 	configPath := filepath.Join(projectPath, "preview_files.json")
@@ -72,12 +72,12 @@ func (s *fileService) loadPreviewFilesConfig(userID, projectGuid string) (*Previ
 	// 读取配置文件
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("读取预览文件配置失败: %w", err)
+		return nil, fmt.Errorf("failed to read preview files config: %s", err.Error())
 	}
 
 	var config PreviewFilesConfig
 	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("解析预览文件配置失败: %w", err)
+		return nil, fmt.Errorf("failed to parse preview files config: %s", err.Error())
 	}
 
 	return &config, nil
@@ -96,8 +96,8 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 
 	// 检查路径是否存在
 	if !utils.IsDirectoryExists(projectPath) {
-		logger.Info("项目的子目录路径不存在", logger.String("projectPath", projectPath))
-		return []models.FileItem{}, fmt.Errorf("项目的子目录路径不存在: %s", projectPath)
+		logger.Info("sub directory path does not exist", logger.String("projectPath", projectPath))
+		return []models.FileItem{}, fmt.Errorf("sub directory path does not exist: %s", projectPath)
 	}
 
 	// 刷新，重新从 git 上拉取最新的文档和代码
@@ -114,7 +114,7 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 	// 加载预览文件配置
 	config, err := s.loadPreviewFilesConfig(userID, projectGuid)
 	if err != nil {
-		return nil, fmt.Errorf("加载预览文件配置失败: %w", err)
+		return nil, fmt.Errorf("failed to load preview files config: %s", err.Error())
 	}
 
 	var files []models.FileItem
@@ -128,7 +128,7 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("获取文件列表失败: %w", err)
+		return nil, fmt.Errorf("failed to get file list: %s", err.Error())
 	}
 
 	return files, nil
@@ -267,24 +267,24 @@ func (s *fileService) isDirectoryNotEmpty(dirPath string) bool {
 // GetFileContent 获取文件内容
 func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, filePath, encoding string) (*models.FileContent, error) {
 	if filePath == "" {
-		return nil, fmt.Errorf("文件路径为空")
+		return nil, fmt.Errorf("filePath is empty")
 	}
 
 	// 构建完整文件路径
 	projectPath := utils.GetProjectPath(userID, projectGuid)
 	if projectPath == "" {
-		return nil, fmt.Errorf("项目文件路径为空")
+		return nil, fmt.Errorf("project file path is empty")
 	}
 
 	fullPath := filepath.Join(projectPath, filePath)
 	info, err := utils.GetFileInfo(fullPath)
 	if err != nil {
-		return nil, fmt.Errorf("获取文件信息失败: %w", err)
+		return nil, fmt.Errorf("failed to get file info: %s", err.Error())
 	}
 	// 读取文件内容
 	content, err := utils.GetFileContent(fullPath, encoding)
 	if err != nil {
-		return nil, fmt.Errorf("读取文件失败: %w", err)
+		return nil, fmt.Errorf("failed to read file: %s", err.Error())
 	}
 
 	return &models.FileContent{
@@ -301,7 +301,7 @@ func (s *fileService) SyncEpicsToFiles(ctx context.Context, projectPath string, 
 
 	// 确保 stories 目录存在
 	if err := os.MkdirAll(storiesDir, 0755); err != nil {
-		return fmt.Errorf("创建 stories 目录失败: %w", err)
+		return fmt.Errorf("failed to create stories directory: %s", err.Error())
 	}
 
 	// 1. 获取当前存在的所有 epic 文件
@@ -322,13 +322,13 @@ func (s *fileService) SyncEpicsToFiles(ctx context.Context, projectPath string, 
 		content := s.generateEpicMarkdown(epic)
 
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-			return fmt.Errorf("写入 Epic 文件失败: %w", err)
+			return fmt.Errorf("failed to write Epic file: %s", err.Error())
 		}
 
 		// 从待删除列表中移除
 		delete(existingFileMap, epic.FilePath)
 
-		logger.Info("Epic 文件已同步",
+		logger.Info("Epic file synchronized",
 			logger.String("epicName", epic.Name),
 			logger.String("filePath", filePath))
 	}
@@ -337,11 +337,11 @@ func (s *fileService) SyncEpicsToFiles(ctx context.Context, projectPath string, 
 	for fileName := range existingFileMap {
 		filePath := filepath.Join(storiesDir, fileName)
 		if err := os.Remove(filePath); err != nil {
-			logger.Warn("删除 Epic 文件失败",
+			logger.Warn("failed to delete Epic file",
 				logger.String("filePath", filePath),
 				logger.String("error", err.Error()))
 		} else {
-			logger.Info("Epic 文件已删除",
+			logger.Info("Epic file deleted",
 				logger.String("filePath", filePath))
 		}
 	}

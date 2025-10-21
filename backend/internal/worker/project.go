@@ -41,20 +41,20 @@ func (s *ProjectTaskHandler) HandleProjectBackupTask(ctx context.Context, t *asy
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 	resultWriter := t.ResultWriter()
-	logger.Info("处理项目备份任务", logger.String("taskID", resultWriter.TaskID()))
+	logger.Info("handle project backup task", logger.String("taskID", resultWriter.TaskID()))
 
 	resultPath, projectPath, err := s.zipProjectPath(t)
 	if err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "打包项目文件失败: "+err.Error())
-		return fmt.Errorf("打包项目文件失败: %w, projectID: %s", err, resultWriter.TaskID())
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "failed to zip project file: "+err.Error())
+		return fmt.Errorf("failed to zip project file: %s, projectID: %s", err.Error(), resultWriter.TaskID())
 	}
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "项目已打包到缓存")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 60, "project file zipped to cache")
 
 	// 删除项目目录
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 80, "正在删除项目目录")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 80, "deleting project directory")
 	if err := os.RemoveAll(projectPath); err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "删除项目目录失败: "+err.Error())
-		return fmt.Errorf("删除项目目录失败: %w, projectPath: %s", err, projectPath)
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "failed to delete project directory: "+err.Error())
+		return fmt.Errorf("failed to delete project directory: %s, projectPath: %s", err.Error(), projectPath)
 	}
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, resultPath)
 	return nil
@@ -63,11 +63,11 @@ func (s *ProjectTaskHandler) HandleProjectBackupTask(ctx context.Context, t *asy
 // HandleProjectDownloadTask 处理项目下载任务
 func (s *ProjectTaskHandler) HandleProjectDownloadTask(ctx context.Context, t *asynq.Task) error {
 	resultWriter := t.ResultWriter()
-	logger.Info("处理项目下载任务", logger.String("taskID", resultWriter.TaskID()))
+	logger.Info("handle project download task", logger.String("taskID", resultWriter.TaskID()))
 
 	resultPath, _, err := s.zipProjectPath(t)
 	if err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "打包项目文件失败: "+err.Error())
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "failed to zip project file: "+err.Error())
 	}
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, resultPath)
 	return nil
@@ -89,12 +89,12 @@ func (s *ProjectTaskHandler) zipProjectPath(t *asynq.Task) (string, string, erro
 	// 生成缓存文件名
 	cacheFileName := fmt.Sprintf("%s_%s", projectGuid, time.Now().Format("20060102_150405"))
 
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "正在打包项目文件...")
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "zipping project file...")
 	// 使用 utils 压缩到缓存
 	resultPath, err := utils.CompressDirectoryToDir(context.Background(), projectPath, cacheDir, cacheFileName)
 	if err != nil {
-		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "打包项目文件失败: "+err.Error())
-		return "", projectPath, fmt.Errorf("打包项目文件失败: %w, projectID: %s, projectGuid: %s", err, projectID, projectGuid)
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "failed to zip project file: "+err.Error())
+		return "", projectPath, fmt.Errorf("failed to zip project file: %s, projectID: %s, projectGuid: %s", err.Error(), projectID, projectGuid)
 	}
 	return resultPath, projectPath, nil
 }

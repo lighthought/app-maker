@@ -40,14 +40,14 @@ func (s *previewService) GeneratePreviewToken(ctx context.Context, projectID str
 	}
 
 	if err := s.tokenRepo.Create(ctx, token); err != nil {
-		logger.Error("生成预览令牌失败",
+		logger.Error("failed to generate preview token",
 			logger.String("projectID", projectID),
 			logger.String("error", err.Error()),
 		)
-		return nil, fmt.Errorf("生成预览令牌失败: %w", err)
+		return nil, fmt.Errorf("failed to generate preview token: %s", err.Error())
 	}
 
-	logger.Info("生成预览令牌成功",
+	logger.Info("preview token generated successfully",
 		logger.String("projectID", projectID),
 		logger.String("tokenID", token.ID),
 	)
@@ -58,11 +58,11 @@ func (s *previewService) GeneratePreviewToken(ctx context.Context, projectID str
 func (s *previewService) GetPreviewByToken(ctx context.Context, token string) (*models.PreviewToken, error) {
 	previewToken, err := s.tokenRepo.GetByToken(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("获取预览令牌失败: %w", err)
+		return nil, fmt.Errorf("failed to get preview token: %s", err.Error())
 	}
 
 	if previewToken.IsExpired() {
-		return nil, fmt.Errorf("预览令牌已过期")
+		return nil, fmt.Errorf("preview token expired")
 	}
 
 	return previewToken, nil
