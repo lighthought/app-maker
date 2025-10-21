@@ -16,12 +16,20 @@ help:
 	@echo "  network-create - Create Docker network (app-maker-network)"
 	@echo "  network-check  - Check if Docker network exists"
 	@echo "  external-services - Show external services configuration"
-	@echo "  build-dev     - Build development environment images"
+	@echo "  build-dev     - Build local development environment (Go + Node.js)"
+	@echo "  build-dev-docker - Build development environment images (Docker)"
 	@echo "  build-prod    - Build production environment images"
-	@echo "  run-dev       - Start development environment"
+	@echo "  run-dev       - Start hybrid dev environment (infra Docker + apps local)"
+	@echo "  run-dev-docker - Start development environment (Docker)"
 	@echo "  run-prod      - Start production environment"
-	@echo "  stop-dev      - Stop development environment"
-	@echo "  stop-prod     - Stop production environment"
+	@echo "  stop-dev      - Stop infrastructure services (Docker)"
+	@echo "  stop-dev-local - Stop application services (local)"
+	@echo "  stop-dev-all  - Stop all development services"
+	@echo "  restart-backend-local - Restart local backend server"
+	@echo "  restart-frontend-local - Restart local frontend server"
+	@echo "  status-local  - Show local development environment status"
+	@echo "  start-backend-local - Start only backend server locally"
+	@echo "  start-frontend-local - Start only frontend server locally"
 	@echo "  test          - Run tests"
 	@echo "  clean         - Clean build files (Will clean all unused Docker resources)"
 	@echo "  clean-safe    - Safe cleanup (only current project)"
@@ -162,30 +170,126 @@ external-services:
 	@echo "2. Add router and service configuration"
 	@echo "3. Restart Traefik: docker-compose restart traefik"
 
-# 生成Swagger文档
+# 生成Swagger文档（Docker方式）
 swagger:
 	@echo "Generating Swagger documentation..."
 	cd backend && swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
 
-# 构建开发环境镜像
-build-dev: docker-ensure network-create swagger docker-image-pull
+# 检查本地开发环境
+check-local-dev-env:
+	@echo "Checking local development environment..."
+	@echo "Checking Go installation..."
+	@go version >nul 2>&1 && echo "[OK] Go is installed" || ( \
+		echo "[ERROR] Go is not installed. Please install Go 1.24+" && \
+		exit /b 1 \
+	)
+	@echo "Checking Node.js installation..."
+	@node --version >nul 2>&1 && echo "[OK] Node.js is installed" || ( \
+		echo "[ERROR] Node.js is not installed. Please install Node.js 18+" && \
+		exit /b 1 \
+	)
+	@echo "Checking pnpm installation..."
+	@pnpm --version >nul 2>&1 && echo "[OK] pnpm is installed" || ( \
+		echo "[WARNING] pnpm not found, installing..." && \
+		npm install -g pnpm \
+	)
+	@echo "Checking PostgreSQL connection..."
+	@echo "[INFO] Please ensure PostgreSQL is running on localhost:5432"
+	@echo "Checking Redis connection..."
+	@echo "[INFO] Please ensure Redis is running on localhost:6379"
+	@echo "Local development environment check completed!"
+
+# 生成Swagger文档（本地方式）
+swagger-local:
+	@echo "Generating Swagger documentation locally..."
+	@echo "Checking if swag is installed..."
+	@swag version >nul 2>&1 && echo "[OK] swag is installed" || ( \
+		echo "[WARNING] swag not found, installing..." && \
+		go install github.com/swaggo/swag/cmd/swag@latest \
+	)
+	cd backend && swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
+
+# 构建开发环境镜像（Docker方式）
+build-dev-docker: docker-ensure network-create swagger docker-image-pull
 	@echo "Building development environment images..."
 	docker-compose build
+
+# 本地开发环境构建（无需Docker）
+build-dev: check-local-dev-env swagger-local
+	@echo "Building local development environment..."
+	@echo "Backend: Go modules and dependencies"
+	@echo "Frontend: Node.js dependencies"
+	@echo "Building backend dependencies..."
+	cd backend && go mod download && go mod tidy
+	@echo "Building frontend dependencies..."
+	cd frontend && pnpm install
+	@echo "Local development environment ready!"
 
 # 构建生产环境镜像
 build-prod: docker-ensure network-create swagger docker-image-pull
 	@echo "Building production environment images..."
 	docker-compose -f docker-compose.prod.yml build
 
-# 启动开发环境
-run-dev: docker-ensure network-create
-	@echo "Starting development environment..."
+# 启动开发环境（Docker方式）
+run-dev-docker: docker-ensure network-create
+	@echo "Starting development environment with Docker..."
 	@echo "Frontend: http://localhost:3000 (Direct) or http://app-maker.localhost (via Traefik)"
 	@echo "Backend API: http://localhost:8098 (Direct) or http://api.app-maker.localhost (via Traefik)"
 	@echo "Traefik Dashboard: http://localhost:8080 or http://traefik.app-maker.localhost"
 	@echo "Swagger Docs: http://localhost:8098/swagger/index.html" or http://api.app-maker.localhost/swagger/index.html
 	docker-compose up -d
 	@$(MAKE) print-ssh-pub
+
+# 启动本地服务（后端和前端）
+start-local-services:
+	@echo "Starting local services..."
+	@echo "Starting backend server in background..."
+	@cmd /c "cd backend && go run cmd/server/main.go" &
+	@timeout /t 3 /nobreak >nul
+	@echo "Starting frontend development server in background..."
+	@cmd /c "cd frontend && pnpm dev" &
+	@echo "Services started in background"
+	@echo "Backend: http://localhost:8088"
+	@echo "Frontend: http://localhost:3000"
+	@echo "Note: Services are running in background. Use 'make stop-dev-local' to stop them."
+
+# 启动本地后端服务
+start-backend-local:
+	@echo "Starting backend server locally..."
+	cd backend && go run cmd/server/main.go
+
+# 启动本地前端服务
+start-frontend-local:
+	@echo "Starting frontend development server locally..."
+	cd frontend && pnpm dev
+
+# 启动基础设施服务（Docker）
+start-infrastructure-services:
+	@echo "Starting infrastructure services with Docker..."
+	@echo "Starting PostgreSQL, Redis, GitLab, and Traefik..."
+	docker-compose up -d postgres redis gitlab traefik
+	@echo "Waiting for services to be ready..."
+	@timeout /t 10 /nobreak >nul
+	@echo "Infrastructure services started!"
+
+# 启动混合开发环境（基础服务Docker + 应用服务本地）
+run-dev: docker-ensure network-create start-infrastructure-services check-local-dev-env start-local-services
+	@echo "Starting hybrid development environment..."
+	@echo "Infrastructure services (Docker):"
+	@echo "  PostgreSQL: localhost:5432"
+	@echo "  Redis: localhost:6379"
+	@echo "  GitLab: localhost:8081"
+	@echo "  Traefik: localhost:8080"
+	@echo ""
+	@echo "Application services (Local):"
+	@echo "  Frontend: http://localhost:3000"
+	@echo "  Backend API: http://localhost:8088"
+	@echo "  Swagger Docs: http://localhost:8088/swagger/index.html"
+	@echo "=========================================="
+	@echo "Hybrid development environment is running!"
+	@echo "Use 'make stop-dev' to stop infrastructure services"
+	@echo "Use 'make stop-dev-local' to stop application services"
+	@echo "=========================================="
 
 # 启动生产环境
 run-prod: docker-ensure network-create
@@ -216,10 +320,53 @@ print-ssh-pub:
 	@echo ""
 	@echo "=========================================="
 
-# 停止开发环境
+# 停止本地开发环境
+stop-dev-local:
+	@echo "Stopping local development environment..."
+	@taskkill /F /IM "go.exe" >nul 2>&1 && echo "[OK] Backend stopped" || echo "[INFO] Backend was not running"
+	@taskkill /F /IM "node.exe" >nul 2>&1 && echo "[OK] Frontend stopped" || echo "[INFO] Frontend was not running"
+	@echo "Local development environment stopped!"
+
+# 重启本地后端
+restart-backend-local:
+	@echo "Restarting backend server..."
+	@taskkill /F /IM "go.exe" >nul 2>&1
+	@timeout /t 2 /nobreak >nul
+	@cmd /c "cd backend && start cmd /k go run cmd/server/main.go"
+	@echo "Backend server restarted!"
+
+# 重启本地前端
+restart-frontend-local:
+	@echo "Restarting frontend development server..."
+	@taskkill /F /IM "node.exe" >nul 2>&1
+	@timeout /t 2 /nobreak >nul
+	@cmd /c "cd frontend && start cmd /k pnpm dev"
+	@echo "Frontend server restarted!"
+
+# 查看本地服务状态
+status-local:
+	@echo "Local Development Environment Status:"
+	@echo "===================================="
+	@echo "Backend (Go):"
+	@tasklist /FI "IMAGENAME eq go.exe" 2>nul | findstr "go.exe" >nul && echo "[RUNNING] Backend server is running" || echo "[STOPPED] Backend server is not running"
+	@echo "Frontend (Node.js):"
+	@tasklist /FI "IMAGENAME eq node.exe" 2>nul | findstr "node.exe" >nul && echo "[RUNNING] Frontend server is running" || echo "[STOPPED] Frontend server is not running"
+	@echo "===================================="
+
+# 停止开发环境（只停止基础设施服务）
 stop-dev:
-	@echo "Stopping development environment..."
-	docker-compose down
+	@echo "Stopping infrastructure services..."
+	docker-compose stop postgres redis gitlab traefik
+	@echo "Infrastructure services stopped!"
+	@echo "Note: Local application services are still running."
+	@echo "Use 'make stop-dev-local' to stop application services."
+
+# 停止所有开发环境服务
+stop-dev-all:
+	@echo "Stopping all development environment services..."
+	@$(MAKE) stop-dev-local
+	@$(MAKE) stop-dev
+	@echo "All development services stopped!"
 
 # 停止生产环境
 stop-prod:
