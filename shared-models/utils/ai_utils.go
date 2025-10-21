@@ -106,7 +106,7 @@ func IsOllamaRunning() bool {
 	client := http.Client{
 		Timeout: 2 * time.Second,
 	}
-	baseURL := GetEnvOrDefault("OLLAMA_URL", "http://host.docker.internal:11434")
+	baseURL := GetEnvOrDefault("OLLAMA_URL", "http://localhost:11434")
 	resp, err := client.Get(baseURL + "/api/tags")
 	if err != nil {
 		return false
@@ -268,7 +268,7 @@ func CreateOllamaChatCompletion(req *deepseek.ChatCompletionRequest) (deepseek.C
 		return deepseek.ChatCompletionResponse{}, fmt.Errorf("request cannot be nil")
 	}
 
-	ollamaUrl := GetEnvOrDefault("OLLAMA_URL", "http://chat.app-maker.localhost:11434")
+	ollamaUrl := GetEnvOrDefault("OLLAMA_URL", "http://localhost:11434")
 	baseUrl, err := url.Parse(ollamaUrl)
 	if err != nil {
 		return deepseek.ChatCompletionResponse{}, fmt.Errorf("failed to parse ollama url: %w", err)

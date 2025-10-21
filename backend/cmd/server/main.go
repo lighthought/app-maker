@@ -35,6 +35,7 @@ import (
 	"autocodeweb-backend/internal/config"
 	"autocodeweb-backend/internal/container"
 	"autocodeweb-backend/internal/database"
+	"shared-models/common"
 	"shared-models/logger"
 
 	_ "autocodeweb-backend/docs"
@@ -87,7 +88,7 @@ func main() {
 	}
 
 	// 设置Gin模式
-	if cfg.App.Environment == "production" {
+	if cfg.App.Environment == common.EnvironmentProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 

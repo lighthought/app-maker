@@ -67,7 +67,7 @@ func HealthCheck(c *gin.Context) {
 	if version, err := checkCommandVersion("git", "--version"); err == nil {
 		tools = append(tools, agent.AgentToolInfo{
 			Name:    "git",
-			Version: version,
+			Version: strings.ReplaceAll(version, "git version ", ""),
 		})
 	}
 
@@ -75,7 +75,7 @@ func HealthCheck(c *gin.Context) {
 	if version, err := checkCommandVersion("claude", "--version"); err == nil {
 		tools = append(tools, agent.AgentToolInfo{
 			Name:    "claude-code",
-			Version: version,
+			Version: strings.ReplaceAll(version, " (Claude Code)", ""),
 		})
 	}
 

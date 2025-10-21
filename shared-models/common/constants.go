@@ -55,6 +55,7 @@ const (
 
 // 环境
 const (
+	EnvironmentLocalDebug  = "debugging"
 	EnvironmentDevelopment = "development"
 	EnvironmentProduction  = "production"
 )

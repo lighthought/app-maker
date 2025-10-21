@@ -194,6 +194,7 @@
           </template>
           
           <div class="status-list">
+            <!-- 后端服务状态 -->
             <div class="status-item">
               <n-icon 
                 size="16" 
@@ -204,17 +205,73 @@
               <span>{{ t('dashboard.backendService') }} {{ backendStatus === 'ok' ? t('dashboard.normal') : backendStatus === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
               <span v-if="backendVersion" class="version-info">v{{ backendVersion }}</span>
             </div>
+            
+            <!-- 数据库状态 -->
             <div class="status-item">
-              <n-icon size="16" color="#38A169">
+              <n-icon 
+                size="16" 
+                :color="getServiceStatusInfo('database').color"
+              >
                 <CheckIcon />
               </n-icon>
-              <span>{{ t('dashboard.database') }} {{ t('dashboard.normal') }}</span>
+              <span>{{ t('dashboard.database') }} {{ getServiceStatusInfo('database').status === 'ok' ? t('dashboard.normal') : getServiceStatusInfo('database').status === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
+              <span v-if="getServiceStatusInfo('database').version" class="version-info">v{{ getServiceStatusInfo('database').version }}</span>
             </div>
+            
+            <!-- Redis 状态 -->
             <div class="status-item">
-              <n-icon size="16" color="#38A169">
+              <n-icon 
+                size="16" 
+                :color="getServiceStatusInfo('redis').color"
+              >
                 <CheckIcon />
               </n-icon>
-              <span>{{ t('dashboard.agentOnline') }}</span>
+              <span>Redis {{ getServiceStatusInfo('redis').status === 'ok' ? t('dashboard.normal') : getServiceStatusInfo('redis').status === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
+              <span v-if="getServiceStatusInfo('redis').version" class="version-info">v{{ getServiceStatusInfo('redis').version }}</span>
+            </div>
+            
+            <!-- WebSocket 状态 -->
+            <div class="status-item">
+              <n-icon 
+                size="16" 
+                :color="getServiceStatusInfo('websocket').color"
+              >
+                <CheckIcon />
+              </n-icon>
+              <span>WebSocket {{ getServiceStatusInfo('websocket').status === 'ok' ? t('dashboard.normal') : getServiceStatusInfo('websocket').status === 'error' ? t('dashboard.abnormal') : t('dashboard.checking') }}</span>
+              <span v-if="getServiceStatusInfo('websocket').version" class="version-info">v{{ getServiceStatusInfo('websocket').version }}</span>
+            </div>
+            
+            <!-- AI Agent 状态 -->
+            <div class="status-item">
+              <n-icon 
+                size="16" 
+                :color="getAgentStatusInfo().color"
+              >
+                <CheckIcon />
+              </n-icon>
+              <span>{{ getAgentStatusInfo().message }}</span>
+              <span v-if="getAgentStatusInfo().version" class="version-info">v{{ getAgentStatusInfo().version }}</span>
+            </div>
+          </div>
+        </n-card>
+
+        <!-- AI Agent 工具信息 -->
+        <n-card v-if="agentStatus && agentStatus.tools && agentStatus.tools.length > 0" class="agent-tools-card">
+          <template #header>
+            <h3>AI Agent 工具</h3>
+          </template>
+          
+          <div class="tools-list">
+            <div 
+              v-for="tool in agentStatus.tools" 
+              :key="tool.name"
+              class="tool-item"
+            >
+              <div class="tool-info">
+                <span class="tool-name">{{ tool.name }}</span>
+                <span class="tool-version">{{ tool.version }}</span>
+              </div>
             </div>
           </div>
         </n-card>
@@ -306,7 +363,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useProjectStore } from '@/stores/project'
 import { useBackendStore } from '@/stores/backend'
-import type { BackendHealthResponse, ServiceStatus } from '@/types/health'
+import type { BackendHealthResponse, ServiceStatus, AgentHealthResponse } from '@/types/health'
 import TaskProgressModal from '@/components/TaskProgressModal.vue'
 import ProjectSettingsModal from '@/components/ProjectSettingsModal.vue'
 import { formatDateTime, formatDateShort } from '@/utils/time'
@@ -344,6 +401,8 @@ const currentProject = ref<Project | null>(null)
 const updateInterval = ref<number | null>(null)
 const backendStatus = ref<'ok' | 'error' | 'checking' | 'warning'>('checking')
 const backendVersion = ref('')
+const servicesStatus = ref<ServiceStatus[]>([])
+const agentStatus = ref<AgentHealthResponse | null>(null)
 
 // 统计数据（全部项目，不受过滤影响）
 const allProjectsStats = ref({
@@ -469,8 +528,7 @@ const handleDeleteProject = async (projectGuid: string) => {
 const checkBackendHealth = async () => {
   try {
     backendStatus.value = 'checking'
-    const response = await backendStore.healthCheck() 
-    const healthData = response as BackendHealthResponse
+    const healthData = await backendStore.healthCheck()
     
     // 根据整体状态设置后端状态
     if (healthData.status === 'healthy') {
@@ -482,6 +540,9 @@ const checkBackendHealth = async () => {
     }
     
     backendVersion.value = healthData.version
+    servicesStatus.value = healthData.services || []
+    agentStatus.value = healthData.agent || null
+    
     console.log('后端健康检查成功:', healthData)
     
     // 记录各个服务的状态
@@ -497,7 +558,64 @@ const checkBackendHealth = async () => {
     }
   } catch (error) {
     backendStatus.value = 'error'
+    servicesStatus.value = []
+    agentStatus.value = null
     console.error('后端健康检查失败:', error)
+  }
+}
+
+// 获取服务状态显示信息
+const getServiceStatusInfo = (serviceName: string) => {
+  const service = servicesStatus.value.find(s => s.name === serviceName)
+  if (!service) {
+    return {
+      status: 'checking',
+      message: '检查中...',
+      version: '',
+      color: '#D69E2E'
+    }
+  }
+  
+  const statusMap = {
+    healthy: { status: 'ok', color: '#38A169' },
+    unhealthy: { status: 'error', color: '#E53E3E' },
+    degraded: { status: 'warning', color: '#D69E2E' }
+  }
+  
+  const statusInfo = statusMap[service.status] || { status: 'checking', color: '#D69E2E' }
+  
+  return {
+    status: statusInfo.status,
+    message: service.message,
+    version: service.version,
+    color: statusInfo.color
+  }
+}
+
+// 获取 Agent 状态显示信息
+const getAgentStatusInfo = () => {
+  if (!agentStatus.value) {
+    return {
+      status: 'checking',
+      message: '检查中...',
+      version: '',
+      color: '#D69E2E'
+    }
+  }
+  
+  const statusMap: Record<string, { status: string; color: string }> = {
+    running: { status: 'ok', color: '#38A169' },
+    stopped: { status: 'error', color: '#E53E3E' },
+    degraded: { status: 'warning', color: '#D69E2E' }
+  }
+  
+  const statusInfo = statusMap[agentStatus.value.status] || { status: 'checking', color: '#D69E2E' }
+  
+  return {
+    status: statusInfo.status,
+    message: agentStatus.value.status === 'running' ? 'AI Agent 在线' : `AI Agent ${agentStatus.value.status}`,
+    version: agentStatus.value.version,
+    color: statusInfo.color
   }
 }
 
@@ -926,7 +1044,8 @@ onUnmounted(() => {
 
 .current-project-card,
 .system-status-card,
-.quick-actions-card {
+.quick-actions-card,
+.agent-tools-card {
   background: white;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
@@ -1035,6 +1154,41 @@ onUnmounted(() => {
   font-size: 0.8rem;
   color: var(--text-disabled);
   font-weight: 500;
+}
+
+/* AI Agent 工具样式 */
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.tool-item {
+  padding: var(--spacing-sm);
+  background: var(--background-color);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.tool-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tool-name {
+  font-weight: 500;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+.tool-version {
+  font-size: 0.8rem;
+  color: var(--text-disabled);
+  background: var(--background-color-secondary);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+  font-family: monospace;
 }
 
 /* 响应式设计 */
