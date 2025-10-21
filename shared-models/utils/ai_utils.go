@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
 
 	deepseek "github.com/cohesion-org/deepseek-go"
 	"github.com/cohesion-org/deepseek-go/constants"

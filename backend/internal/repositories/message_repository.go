@@ -1,9 +1,10 @@
 package repositories
 
 import (
-	"autocodeweb-backend/internal/models"
 	"context"
 	"fmt"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
 
 	"gorm.io/gorm"
 )

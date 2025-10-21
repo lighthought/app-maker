@@ -1,10 +1,11 @@
 package routes
 
 import (
-	"autocodeweb-backend/internal/api/middleware"
-	"autocodeweb-backend/internal/container"
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+
+	"github.com/lighthought/app-maker/backend/internal/api/middleware"
+	"github.com/lighthought/app-maker/backend/internal/container"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,10 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/tasks"
-	"shared-models/utils"
+
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/tasks"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"

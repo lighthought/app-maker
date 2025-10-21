@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"gorm.io/gorm"
 )

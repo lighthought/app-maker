@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"shared-models/agent"
-	"shared-models/client"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/client"
 )
 
 const (

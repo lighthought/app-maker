@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/tasks"
-	"shared-models/utils"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/tasks"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/hibiken/asynq"
 )

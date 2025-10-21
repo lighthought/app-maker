@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
 )
 
 type GitService interface {

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"shared-models/agent"
-	"shared-models/cache"
-	"shared-models/client"
-	"shared-models/logger"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/cache"
+	"github.com/lighthought/app-maker/shared-models/client"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"gorm.io/gorm"
 )

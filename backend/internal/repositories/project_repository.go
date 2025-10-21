@@ -7,9 +7,10 @@ import (
 	"slices"
 	"strings"
 
-	"autocodeweb-backend/internal/models"
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
 
 	"gorm.io/gorm"
 )

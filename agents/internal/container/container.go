@@ -1,16 +1,17 @@
 package container
 
 import (
-	"app-maker-agents/internal/api/handlers"
-	"app-maker-agents/internal/config"
-	"app-maker-agents/internal/services"
 	"fmt"
 	"log"
 
-	"shared-models/auth"
-	"shared-models/cache"
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/agents/internal/api/handlers"
+	"github.com/lighthought/app-maker/agents/internal/config"
+	"github.com/lighthought/app-maker/agents/internal/services"
+
+	"github.com/lighthought/app-maker/shared-models/auth"
+	"github.com/lighthought/app-maker/shared-models/cache"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"github.com/hibiken/asynq"
 )

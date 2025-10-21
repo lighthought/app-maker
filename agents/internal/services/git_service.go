@@ -3,7 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
-	"shared-models/logger"
+
+	"github.com/lighthought/app-maker/shared-models/logger"
 )
 
 type GitService interface {

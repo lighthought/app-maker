@@ -6,8 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"shared-models/logger"
 	"strings"
+
+	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/encoding/unicode"

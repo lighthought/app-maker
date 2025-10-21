@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"shared-models/agent"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/tasks"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/tasks"
 )
 
 // AgentClient Agent 服务客户端

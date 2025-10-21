@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"autocodeweb-backend/internal/services"
-	"shared-models/agent"
-	"shared-models/logger"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 )

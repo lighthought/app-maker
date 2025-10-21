@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"shared-models/agent"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/tasks"
-	"shared-models/utils"
 	"strings"
+
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/tasks"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/hibiken/asynq"
 )

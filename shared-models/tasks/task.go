@@ -1,12 +1,13 @@
 package tasks
 
 import (
-	"shared-models/agent"
-	"shared-models/common"
-	"shared-models/utils"
 	"time"
 
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"github.com/hibiken/asynq"
 )

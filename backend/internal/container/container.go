@@ -1,20 +1,21 @@
 package container
 
 import (
-	"autocodeweb-backend/internal/api/handlers"
-	"autocodeweb-backend/internal/config"
-	"autocodeweb-backend/internal/repositories"
-	"autocodeweb-backend/internal/services"
-	"autocodeweb-backend/internal/worker"
+	"github.com/lighthought/app-maker/backend/internal/api/handlers"
+	"github.com/lighthought/app-maker/backend/internal/config"
+	"github.com/lighthought/app-maker/backend/internal/repositories"
+	"github.com/lighthought/app-maker/backend/internal/services"
+	"github.com/lighthought/app-maker/backend/internal/worker"
 
 	"context"
 	"fmt"
 	"log"
-	"shared-models/auth"
-	"shared-models/cache"
-	"shared-models/common"
-	"shared-models/logger"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/auth"
+	"github.com/lighthought/app-maker/shared-models/cache"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"

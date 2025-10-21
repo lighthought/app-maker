@@ -2,9 +2,10 @@ package database
 
 import (
 	"log"
-	"shared-models/common"
 
-	"autocodeweb-backend/internal/models"
+	"github.com/lighthought/app-maker/shared-models/common"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
 
 	"gorm.io/gorm"
 )

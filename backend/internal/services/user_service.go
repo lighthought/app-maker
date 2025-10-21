@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/repositories"
-	"shared-models/auth"
-	"shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/auth"
+	"github.com/lighthought/app-maker/shared-models/common"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/repositories"
 
 	"golang.org/x/crypto/bcrypt"
 )

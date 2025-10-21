@@ -2,8 +2,9 @@ package services
 
 import (
 	"path/filepath"
-	"shared-models/common"
-	"shared-models/utils"
+
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
 )
 
 type FileService interface {

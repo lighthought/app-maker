@@ -6,10 +6,10 @@
 
 ```go
 import (
-    "shared-models/agent"      // Agent 请求响应模型
-    "shared-models/common"     // 通用响应和常量
-    "shared-models/client"     // HTTP 客户端
-    "shared-models/project"    // 项目相关模型
+    "github.com/lighthought/app-maker/shared-models/agent"      // Agent 请求响应模型
+    "github.com/lighthought/app-maker/shared-models/common"     // 通用响应和常量
+    "github.com/lighthought/app-maker/shared-models/client"     // HTTP 客户端
+    "github.com/lighthought/app-maker/shared-models/project"    // 项目相关模型
 )
 ```
 
@@ -21,9 +21,9 @@ import (
 // backend/internal/services/project_stage_service.go
 import (
     // ... 其他导入
-    "shared-models/agent"
-    "shared-models/client" 
-    "shared-models/common"
+    "github.com/lighthought/app-maker/shared-models/agent"
+    "github.com/lighthought/app-maker/shared-models/client" 
+    "github.com/lighthought/app-maker/shared-models/common"
 )
 
 type projectStageService struct {
@@ -81,7 +81,7 @@ func (s *projectStageService) generatePRD(ctx context.Context, project *models.P
 ```go
 // agents/internal/api/handlers/pm_handler.go
 import (
-    "shared-models/agent"  // 使用共享模型
+    "github.com/lighthought/app-maker/shared-models/agent"  // 使用共享模型
     // 删除 "app-maker-agents/internal/models"
 )
 

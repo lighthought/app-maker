@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"shared-models/agent"
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"github.com/redis/go-redis/v9"
 )

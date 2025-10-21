@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"shared-models/auth"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/utils"
 	"strings"
 	"time"
 
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/services"
+	"github.com/lighthought/app-maker/shared-models/auth"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"

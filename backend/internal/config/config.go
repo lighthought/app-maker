@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"shared-models/common"
-	"shared-models/utils"
 	"strconv"
 	"strings"
+
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/spf13/viper"
 )

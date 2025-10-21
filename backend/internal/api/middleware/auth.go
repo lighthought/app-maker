@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"net/http"
-	"shared-models/auth"
-	"shared-models/common"
-	"shared-models/utils"
 	"strings"
+
+	"github.com/lighthought/app-maker/shared-models/auth"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )

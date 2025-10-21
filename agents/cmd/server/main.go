@@ -29,13 +29,14 @@ import (
 	"syscall"
 	"time"
 
-	"app-maker-agents/internal/api/routes"
-	"app-maker-agents/internal/config"
-	"app-maker-agents/internal/container"
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
 
-	_ "app-maker-agents/docs"
+	"github.com/lighthought/app-maker/agents/internal/api/routes"
+	"github.com/lighthought/app-maker/agents/internal/config"
+	"github.com/lighthought/app-maker/agents/internal/container"
+
+	_ "github.com/lighthought/app-maker/agents/docs"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"

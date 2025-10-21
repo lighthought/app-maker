@@ -2,8 +2,9 @@ package auth
 
 import (
 	"errors"
-	"shared-models/common"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/common"
 
 	"github.com/golang-jwt/jwt/v5"
 )

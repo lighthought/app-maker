@@ -1,4 +1,4 @@
-module autocodeweb-backend
+module github.com/lighthought/app-maker/backend
 
 go 1.24.0
 
@@ -9,6 +9,7 @@ require (
 	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-gonic/gin v1.10.0
 	github.com/hibiken/asynq v0.25.1
+	github.com/lighthought/app-maker/shared-models v0.0.0
 	github.com/redis/go-redis/v9 v9.13.0
 	github.com/spf13/viper v1.16.0
 	github.com/swaggo/files v1.0.1
@@ -17,7 +18,6 @@ require (
 	golang.org/x/crypto v0.41.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
-	shared-models v0.0.0
 )
 
 require (
@@ -91,4 +91,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace shared-models => ../shared-models
+replace github.com/lighthought/app-maker/shared-models => ../shared-models

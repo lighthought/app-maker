@@ -1,8 +1,9 @@
 package common
 
 import (
-	"shared-models/agent"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/agent"
 )
 
 // 响应状态码

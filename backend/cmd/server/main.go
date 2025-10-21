@@ -30,15 +30,16 @@ import (
 	"syscall"
 	"time"
 
-	"autocodeweb-backend/internal/api/middleware"
-	"autocodeweb-backend/internal/api/routes"
-	"autocodeweb-backend/internal/config"
-	"autocodeweb-backend/internal/container"
-	"autocodeweb-backend/internal/database"
-	"shared-models/common"
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
 
-	_ "autocodeweb-backend/docs"
+	"github.com/lighthought/app-maker/backend/internal/api/middleware"
+	"github.com/lighthought/app-maker/backend/internal/api/routes"
+	"github.com/lighthought/app-maker/backend/internal/config"
+	"github.com/lighthought/app-maker/backend/internal/container"
+	"github.com/lighthought/app-maker/backend/internal/database"
+
+	_ "github.com/lighthought/app-maker/backend/docs"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"

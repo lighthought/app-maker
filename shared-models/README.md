@@ -60,11 +60,11 @@ go mod tidy
 
 ```go
 import (
-    "shared-models/agent"      // Agent 请求响应模型
-    "shared-models/common"      // 通用响应和常量
-    "shared-models/client"      // HTTP 客户端
-    "shared-models/auth"        // JWT认证服务
-    "shared-models/utils"       // 工具函数
+    "github.com/lighthought/app-maker/shared-models/agent"      // Agent 请求响应模型
+    "github.com/lighthought/app-maker/shared-models/common"      // 通用响应和常量
+    "github.com/lighthought/app-maker/shared-models/client"      // HTTP 客户端
+    "github.com/lighthought/app-maker/shared-models/auth"        // JWT认证服务
+    "github.com/lighthought/app-maker/shared-models/utils"       // 工具函数
 )
 ```
 

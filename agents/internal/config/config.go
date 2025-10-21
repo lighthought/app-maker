@@ -1,8 +1,9 @@
 package config
 
 import (
-	"shared-models/utils"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/spf13/viper"
 )

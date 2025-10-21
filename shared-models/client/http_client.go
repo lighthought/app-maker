@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/common"
 )
 
 // HTTPClient 封装的 HTTP 客户端

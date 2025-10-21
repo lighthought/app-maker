@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/common"
 )
 
 // GetSuccessResponse 获取成功响应

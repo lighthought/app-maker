@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"shared-models/cache"
-	"shared-models/common"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/cache"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )

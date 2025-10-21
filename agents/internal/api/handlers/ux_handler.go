@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"app-maker-agents/internal/services"
 	"net/http"
-	"shared-models/agent"
-	"shared-models/common"
-	"shared-models/utils"
+
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/agents/internal/services"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,10 +1,11 @@
 package repositories
 
 import (
-	"autocodeweb-backend/internal/models"
 	"context"
 
-	"shared-models/common"
+	"github.com/lighthought/app-maker/backend/internal/models"
+
+	"github.com/lighthought/app-maker/shared-models/common"
 
 	"gorm.io/gorm"
 )

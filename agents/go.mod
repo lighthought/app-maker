@@ -1,4 +1,4 @@
-module app-maker-agents
+module github.com/lighthought/app-maker/agents
 
 go 1.24.0
 
@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/hibiken/asynq v0.25.1
-	shared-models v0.0.0
+	github.com/lighthought/app-maker/shared-models v0.0.0
 )
 
 require (
@@ -87,4 +87,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace shared-models => ../shared-models
+replace github.com/lighthought/app-maker/shared-models => ../shared-models

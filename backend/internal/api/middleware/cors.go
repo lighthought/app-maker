@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"autocodeweb-backend/internal/config"
 	"time"
+
+	"github.com/lighthought/app-maker/backend/internal/config"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

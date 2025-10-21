@@ -1,8 +1,9 @@
 package models
 
 import (
-	"shared-models/common"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/common"
 
 	"gorm.io/gorm"
 )

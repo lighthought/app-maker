@@ -1,8 +1,9 @@
 package routes
 
 import (
-	"app-maker-agents/internal/container"
-	"shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/common"
+
+	"github.com/lighthought/app-maker/agents/internal/container"
 
 	"github.com/gin-gonic/gin"
 )

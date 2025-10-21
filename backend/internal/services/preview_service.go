@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/repositories"
+	"github.com/lighthought/app-maker/backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/repositories"
 
-	"shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/logger"
 )
 
 type PreviewService interface {

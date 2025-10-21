@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"app-maker-agents/internal/api/models"
-	"app-maker-agents/internal/config"
+	"github.com/lighthought/app-maker/agents/internal/api/models"
+	"github.com/lighthought/app-maker/agents/internal/config"
 )
 
 // CommandService 命令执行服务，负责按项目维护会话执行命令

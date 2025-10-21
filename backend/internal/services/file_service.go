@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"autocodeweb-backend/internal/models"
-	"shared-models/logger"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
 
 	"github.com/hibiken/asynq"
 )

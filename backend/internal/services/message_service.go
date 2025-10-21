@@ -1,10 +1,11 @@
 package services
 
 import (
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/repositories"
 	"context"
 	"fmt"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/repositories"
 )
 
 // MessageService 对话消息服务接口

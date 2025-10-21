@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"autocodeweb-backend/internal/config"
+	"github.com/lighthought/app-maker/backend/internal/config"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"

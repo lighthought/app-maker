@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"autocodeweb-backend/internal/models"
-	"shared-models/logger"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
 )
 
 // ProjectTemplateService 项目模板服务接口

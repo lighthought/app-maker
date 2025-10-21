@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"autocodeweb-backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/models"
 
 	"gorm.io/gorm"
 )

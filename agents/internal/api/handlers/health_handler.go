@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"shared-models/agent"
-	"shared-models/cache"
-	"shared-models/logger"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/cache"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/gin-gonic/gin"
 )

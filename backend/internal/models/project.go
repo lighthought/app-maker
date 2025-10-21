@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"shared-models/common"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"gorm.io/gorm"
 )

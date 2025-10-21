@@ -1,4 +1,4 @@
-module shared-models
+module github.com/lighthought/app-maker/shared-models
 
 go 1.24.0
 

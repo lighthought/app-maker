@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"net/http"
-	"shared-models/common"
-	"shared-models/utils"
 	"strconv"
 
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/services"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/services"
 
 	"github.com/gin-gonic/gin"
 )

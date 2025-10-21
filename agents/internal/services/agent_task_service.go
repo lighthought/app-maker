@@ -1,17 +1,19 @@
 package services
 
 import (
-	"app-maker-agents/internal/api/models"
 	"context"
 	"encoding/json"
 	"fmt"
-	"shared-models/agent"
-	"shared-models/cache"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/tasks"
-	"shared-models/utils"
 	"time"
+
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/cache"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/tasks"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/agents/internal/api/models"
 
 	"github.com/hibiken/asynq"
 )

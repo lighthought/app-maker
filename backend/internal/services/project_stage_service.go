@@ -7,14 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"autocodeweb-backend/internal/models"
-	"autocodeweb-backend/internal/repositories"
-	"shared-models/agent"
-	"shared-models/client"
-	"shared-models/common"
-	"shared-models/logger"
-	"shared-models/tasks"
-	"shared-models/utils"
+	"github.com/lighthought/app-maker/shared-models/agent"
+	"github.com/lighthought/app-maker/shared-models/client"
+	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/logger"
+	"github.com/lighthought/app-maker/shared-models/tasks"
+	"github.com/lighthought/app-maker/shared-models/utils"
+
+	"github.com/lighthought/app-maker/backend/internal/models"
+	"github.com/lighthought/app-maker/backend/internal/repositories"
 
 	"github.com/hibiken/asynq"
 )
