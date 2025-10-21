@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"shared-models/common"
 	"shared-models/utils"
 	"strconv"
 	"strings"
@@ -88,7 +89,17 @@ type OllamaConfig struct {
 }
 
 func Load() (*Config, error) {
-	viper.SetConfigName("config")
+	env := utils.GetEnvOrDefault("APP_ENVIRONMENT", "")
+	switch env {
+	case common.EnvironmentLocalDebug:
+		viper.SetConfigName("config.local")
+	case common.EnvironmentDevelopment:
+		viper.SetConfigName("config.dev")
+	case common.EnvironmentProduction:
+		viper.SetConfigName("config.prod")
+	default:
+		viper.SetConfigName("config")
+	}
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./configs")

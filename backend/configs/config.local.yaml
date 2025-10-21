@@ -1,0 +1,45 @@
+app:
+  environment: "debugging"
+  port: "8098"
+  secret_key: "AutoCodeWeb2024!@#"
+
+database:
+  host: "localhost"
+  port: 5434
+  user: "autocodeweb"
+  password: "AutoCodeWeb2024!@#"
+  name: "autocodeweb"
+  ssl_mode: "disable"
+  connect_timeout: 10
+  auto_migrate: true
+  seed_data: true
+
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+
+jwt:
+  secret_key: "AutoCodeWeb2024!@#"
+  expire_hours: 24
+
+bmad:
+  npm_package: "bmad-method"
+
+ai:
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "deepseek-r1:14b"
+    timeout: 30
+
+log:
+  level: "debug"
+  file: "./logs/app.log"
+
+
+asynq:
+  concurrency: 100
+
+agents:
+  url: "http://localhost:8088"

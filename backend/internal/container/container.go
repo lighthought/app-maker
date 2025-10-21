@@ -135,7 +135,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 
 	projectStageService := services.NewProjectStageService(projectRepository,
 		stageRepository, messageRepository, webSocketService, gitService, fileService, asyncClient,
-		epicRepository, storyRepository, environmentService)
+		epicRepository, storyRepository, environmentService, cfg.Agents.URL)
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
 		asyncClient, projectTemplateService, gitService, webSocketService, cfg)

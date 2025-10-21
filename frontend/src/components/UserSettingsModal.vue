@@ -1,6 +1,6 @@
 <template>
   <n-modal
-    v-model:show="show"
+    :show="show"
     preset="card"
     :title="t('header.userSettings')"
     :style="{ width: '500px' }"
@@ -9,6 +9,7 @@
     :auto-focus="false"
     :trap-focus="false"
     @close="handleClose"
+    @update:show="(value) => emit('update:show', value)"
   >
     <n-form
       ref="formRef"
