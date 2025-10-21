@@ -276,6 +276,7 @@ export const useUserStore = defineStore('user', () => {
           default_model_provider: string
           default_model_api_url: string
           default_api_token: string
+          auto_go_next: boolean
         }
       }>('/users/settings')
       
@@ -298,6 +299,7 @@ export const useUserStore = defineStore('user', () => {
     default_model_provider?: string
     default_model_api_url?: string
     default_api_token?: string
+    auto_go_next?: boolean
   }) => {
     try {
       const response = await httpService.put<{

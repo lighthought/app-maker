@@ -6,11 +6,12 @@ import (
 	"autocodeweb-backend/internal/repositories"
 	"autocodeweb-backend/internal/services"
 	"autocodeweb-backend/internal/worker"
-	"autocodeweb-backend/pkg/cache"
+
 	"context"
 	"fmt"
 	"log"
 	"shared-models/auth"
+	"shared-models/cache"
 	"shared-models/common"
 	"shared-models/logger"
 	"time"
@@ -73,17 +74,16 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	redisClientOpt := asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
+		DB:       common.CacheDbBackendAsynq,
 	}
 
 	if redis != nil {
 		// 创建缓存配置
 		cacheConfig := cache.Config{
-			Type:     cache.CacheTypeRedis,
 			Host:     cfg.Redis.Host,
 			Port:     cfg.Redis.Port,
 			Password: cfg.Redis.Password,
-			DB:       cfg.Redis.DB,
+			DB:       common.CacheDbDatabase,
 			PoolSize: 10,
 			MinIdle:  5,
 		}
@@ -101,7 +101,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 	asyncRedisClientOpt := &asynq.RedisClientOpt{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
+		DB:       common.CacheDbBackendAsynq,
 	}
 	asyncInspector := asynq.NewInspector(asyncRedisClientOpt)
 
@@ -124,9 +124,13 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 
 	userService := services.NewUserService(userRepository, jwtService, cfg.JWT.Expire)
 	gitService := services.NewGitService()
-	gitService.SetupSSH()
+	// 如果是本地主机运行，则不用执行，只有容器运行才需要初始化 SSH
+	if cfg.App.Environment != common.EnvironmentLocalDebug {
+		gitService.SetupSSH()
+	}
+
 	fileService := services.NewFileService(asyncClient, gitService)
-	environmentService := services.NewEnvironmentService(cfg.Agents.URL)
+	environmentService := services.NewEnvironmentService(cfg.Agents.URL, db, cacheInstance)
 	projectTemplateService := services.NewProjectTemplateService(fileService)
 
 	projectStageService := services.NewProjectStageService(projectRepository,
@@ -134,7 +138,7 @@ func NewContainer(cfg *config.Config, db *gorm.DB, redis *redis.Client) *Contain
 		epicRepository, storyRepository, environmentService)
 
 	projectService := services.NewProjectService(projectRepository, messageRepository, stageRepository,
-		asyncClient, projectTemplateService, gitService, webSocketService)
+		asyncClient, projectTemplateService, gitService, webSocketService, cfg)
 
 	previewService := services.NewPreviewService(previewTokenRepository)
 	epicService := services.NewEpicService(epicRepository, storyRepository, projectRepository, fileService)

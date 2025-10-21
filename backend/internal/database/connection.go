@@ -42,13 +42,13 @@ func Connect(cfg config.DatabaseConfig) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("连接数据库失败: %w", err)
+		return fmt.Errorf("failed to connect database: %s", err.Error())
 	}
 
 	// 获取底层sql.DB对象
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("获取sql.DB失败: %w", err)
+		return fmt.Errorf("failed to get sql.DB: %s", err.Error())
 	}
 
 	// 设置连接池参数
@@ -56,10 +56,10 @@ func Connect(cfg config.DatabaseConfig) error {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(3600 * time.Second) // 1小时
 
-	log.Println("数据库连接成功")
+	log.Println("database connected successfully")
 
 	// 暂时跳过迁移和种子数据，先确保基本连接正常
-	log.Println("跳过数据库迁移和种子数据，专注于基本连接")
+	log.Println("skip database migration and seed data, focus on basic connection")
 
 	return nil
 }
@@ -79,11 +79,11 @@ func ConnectRedis(cfg config.RedisConfig) error {
 	defer cancel()
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("连接Redis失败: %w", err)
+		return fmt.Errorf("failed to connect Redis: %s", err.Error())
 	}
 
 	redisClient = rdb
-	log.Println("Redis连接成功")
+	log.Println("Redis connected successfully")
 	return nil
 }
 

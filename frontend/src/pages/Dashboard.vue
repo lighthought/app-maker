@@ -699,14 +699,14 @@ const stopRealTimeUpdates = () => {
 
 // 生命周期
 onMounted(async () => {
-  // 初始健康检查
-  await checkBackendHealth()
-  
   // 获取统计数据（全部项目）
   await fetchAllProjectsStats()
   
   // 加载项目数据（带过滤）
   fetchProjectsWithFilters()
+
+  // 初始健康检查
+  await checkBackendHealth()
   
   // 启动实时更新
   startRealTimeUpdates()

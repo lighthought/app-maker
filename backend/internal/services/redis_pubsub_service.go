@@ -62,12 +62,12 @@ func (s *redisPubSubService) Start(ctx context.Context) error {
 func (s *redisPubSubService) Stop() error {
 	if s.pubsub != nil {
 		if err := s.pubsub.Close(); err != nil {
-			return fmt.Errorf("关闭 Pub/Sub 连接失败: %w", err)
+			return fmt.Errorf("failed to close Pub/Sub connection: %s", err.Error())
 		}
 	}
 
 	close(s.stopChan)
-	logger.Info("Redis Pub/Sub 服务已停止")
+	logger.Info("Redis Pub/Sub service stopped")
 
 	return nil
 }
@@ -110,10 +110,10 @@ func (s *redisPubSubService) messageHandler(ctx context.Context) {
 func (s *redisPubSubService) processMessage(ctx context.Context, payload string) error {
 	var statusMsg agent.AgentTaskStatusMessage
 	if err := json.Unmarshal([]byte(payload), &statusMsg); err != nil {
-		return fmt.Errorf("反序列化任务状态消息失败: %w", err)
+		return fmt.Errorf("failed to deserialize task status message: %s", err.Error())
 	}
 
-	logger.Info("收到 Agent 任务状态消息",
+	logger.Info("received Agent task status message",
 		logger.String("taskID", statusMsg.TaskID),
 		logger.String("projectGuid", statusMsg.ProjectGuid),
 		logger.String("agentType", statusMsg.AgentType),
@@ -127,19 +127,19 @@ func (s *redisPubSubService) processMessage(ctx context.Context, payload string)
 // HandleAgentTaskStatus 处理 Agent 任务状态消息
 func (s *redisPubSubService) HandleAgentTaskStatus(ctx context.Context, message *agent.AgentTaskStatusMessage) error {
 	if message == nil {
-		return fmt.Errorf("消息为空")
+		return fmt.Errorf("message is nil")
 	}
 
 	// 根据任务状态处理
 	switch message.Status {
-	case "running":
-		logger.Info("Agent 任务开始执行",
+	case common.CommonStatusInProgress:
+		logger.Info("Agent task started executing",
 			logger.String("taskID", message.TaskID),
 			logger.String("projectGuid", message.ProjectGuid),
 			logger.String("agentType", message.AgentType))
 
-	case "done":
-		logger.Info("Agent 任务执行完成",
+	case common.CommonStatusDone:
+		logger.Info("Agent task executed successfully",
 			logger.String("taskID", message.TaskID),
 			logger.String("projectGuid", message.ProjectGuid),
 			logger.String("agentType", message.AgentType))
@@ -148,7 +148,7 @@ func (s *redisPubSubService) HandleAgentTaskStatus(ctx context.Context, message 
 		// TODO: 这里我们需要一个机制来通知 ProjectStageService 任务已完成
 		// TODO: 由于我们已经重构了状态机，这里可以触发下一阶段的执行
 
-	case "failed":
+	case common.CommonStatusFailed:
 		logger.Error("Agent 任务执行失败",
 			logger.String("taskID", message.TaskID),
 			logger.String("projectGuid", message.ProjectGuid),

@@ -312,6 +312,12 @@ const (
 	TaskQueueLow      = 1 // 低优先级
 )
 
+const (
+	CacheDbBackendAsynq = 0
+	CacheDbAgentAsynq   = 1
+	CacheDbDatabase     = 2
+)
+
 // 缓存时长
 const (
 	CacheExpirationShort   = 5 * time.Minute
