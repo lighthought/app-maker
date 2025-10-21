@@ -43,3 +43,17 @@ asynq:
 
 agents:
   url: "http://localhost:8088"
+
+cors:
+  allowed_origins:
+    - "http://localhost:3000"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowed_headers:
+    - "*"
+  allow_credentials: false
+  max_age: 86400

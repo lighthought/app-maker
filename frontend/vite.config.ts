@@ -14,6 +14,20 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      // API 代理到本地后端服务
+      '/api': {
+        target: 'http://localhost:8098',
+        changeOrigin: true,
+        secure: false,
+      },
+      // WebSocket 代理到本地后端服务
+      '/ws': {
+        target: 'http://localhost:8098',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   // 可选：强制预构建某些 Worker 以避免开发阶段的问题
   optimizeDeps: {
