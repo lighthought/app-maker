@@ -57,9 +57,9 @@ const (
 
 // 环境
 const (
-	EnvironmentLocalDebug  = "debugging"
-	EnvironmentDevelopment = "development"
-	EnvironmentProduction  = "production"
+	EnvironmentLocalDebug  = "debugging"   // 本地调试
+	EnvironmentDevelopment = "development" // 开发 Docker 环境
+	EnvironmentProduction  = "production"  // 生产 Docker 环境
 )
 
 const (

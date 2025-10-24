@@ -119,7 +119,7 @@ func (c *Container) initServices(cfg *config.Config, db *gorm.DB) {
 
 	webSocketService := services.NewWebSocketService(asyncClientService, c.Repositories)
 	projectCommonService := services.NewProjectCommonService(c.Repositories,
-		webSocketService)
+		webSocketService, cfg.App.Environment)
 	projectDevService := services.NewProjectDevService(c.Repositories, asyncClientService, agentInteractService, projectCommonService)
 
 	c.GitService = gitService

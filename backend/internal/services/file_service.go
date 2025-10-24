@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/lighthought/app-maker/shared-models/logger"
 	"github.com/lighthought/app-maker/shared-models/utils"
@@ -141,11 +140,10 @@ func (s *fileService) getRootDirectoryFiles(projectPath string, config *PreviewF
 		fullPath := filepath.Join(projectPath, filePath)
 		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
 			files = append(files, models.FileItem{
-				Name:       info.Name(),
-				Path:       filePath,
-				Type:       "file",
-				Size:       info.Size(),
-				ModifiedAt: info.ModTime().Format(time.RFC3339),
+				Name: info.Name(),
+				Path: filePath,
+				Type: "file",
+				Size: info.Size(),
 			})
 		}
 	}
@@ -157,11 +155,10 @@ func (s *fileService) getRootDirectoryFiles(projectPath string, config *PreviewF
 			// 检查文件夹是否非空
 			if s.isDirectoryNotEmpty(fullPath) {
 				files = append(files, models.FileItem{
-					Name:       info.Name(),
-					Path:       folderPath,
-					Type:       "folder",
-					Size:       0,
-					ModifiedAt: info.ModTime().Format(time.RFC3339),
+					Name: info.Name(),
+					Path: folderPath,
+					Type: "folder",
+					Size: 0,
 				})
 			}
 		}
@@ -201,12 +198,12 @@ func (s *fileService) getSubDirectoryFiles(projectPath, currentPath string, conf
 			fileItemType = "folder"
 		}
 		if utils.IsPathInFolders(entryPath, config.Folders) {
-			files = append(files, *models.NewFileItem(entry.Name(), entryPath, fileItemType, 0, info.ModTime().Format(time.RFC3339)))
+			files = append(files, *models.NewFileItem(entry.Name(), entryPath, fileItemType, 0))
 			continue
 		}
 
 		if !bIsDir && utils.IsPathInFiles(entryPath, config.Files) {
-			files = append(files, *models.NewFileItem(entry.Name(), entryPath, fileItemType, info.Size(), info.ModTime().Format(time.RFC3339)))
+			files = append(files, *models.NewFileItem(entry.Name(), entryPath, fileItemType, info.Size()))
 		}
 	}
 	return files, nil
@@ -253,10 +250,9 @@ func (s *fileService) GetFileContent(ctx context.Context, userID, projectGuid, f
 	}
 
 	return &models.FileContent{
-		Path:       filePath,
-		Size:       info.Size(),
-		ModifiedAt: info.ModTime().Format(time.RFC3339),
-		Content:    content,
+		Path:    filePath,
+		Size:    info.Size(),
+		Content: content,
 	}, nil
 }
 

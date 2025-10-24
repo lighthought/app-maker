@@ -69,7 +69,7 @@ func (s *projectDevService) InitStageItems() {
 		{Name: common.DevStatusDesignArchitecture, Desc: "设计架构", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.DesignArchitecture, RespHandler: s.OnDesignArchitectureResponse},
 		{Name: common.DevStatusPlanEpicAndStory, Desc: "规划 Epic 和 Story", NeedConfirm: true,
-			ReqHandler: s.agentInteractService.PlanEpicsAndStories, RespHandler: s.OnPlanEpicsAndStoriesResponse, SkipInDevMode: true},
+			ReqHandler: s.agentInteractService.PlanEpicsAndStories, RespHandler: s.OnPlanEpicsAndStoriesResponse},
 		{Name: common.DevStatusDefineDataModel, Desc: "定义数据模型", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.DefineDataModel, RespHandler: s.OnDefineDataModelResponse, SkipInDevMode: true},
 		{Name: common.DevStatusDefineAPI, Desc: "定义 API", NeedConfirm: true,
@@ -105,6 +105,7 @@ func (s *projectDevService) ProceedToNextStage(ctx context.Context,
 	nextStage := s.getNextStage(currentStage)
 	if nextStage == nil {
 		s.commonService.UpdateProjectToStatus(ctx, project, common.CommonStatusDone) // 没有下一阶段，项目完成
+		s.commonService.EnsureProjectPrevieUrl(ctx, project.GUID)
 		return nil
 	}
 

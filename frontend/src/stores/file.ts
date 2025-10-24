@@ -7,7 +7,6 @@ export interface FileTreeNode {
   path: string
   type: 'file' | 'folder'
   size: number
-  modifiedAt: string
   children?: FileTreeNode[]
   expanded?: boolean
   loaded?: boolean
@@ -56,7 +55,6 @@ const downloadFile = async (filePath: string) => {
           path: string
           content: string
           size: number
-          modifiedAt: string
         }
       }>(`/files/filecontent/${projectGuid}`, {
         params: { filePath, encoding }
@@ -85,7 +83,6 @@ const downloadFile = async (filePath: string) => {
           path: string
           type: 'file' | 'folder'
           size: number
-          modifiedAt: string
         }>
       }>(`/files/files/${projectGuid}`, {
         params: path ? { path } : {}
@@ -112,7 +109,6 @@ const downloadFile = async (filePath: string) => {
     path: string
     type: 'file' | 'folder'
     size: number
-    modifiedAt: string
   }>): FileTreeNode[] => {
     const tree: FileTreeNode[] = []
     const pathMap = new Map<string, FileTreeNode>()
@@ -124,7 +120,6 @@ const downloadFile = async (filePath: string) => {
         path: file.path,
         type: file.type,
         size: file.size,
-        modifiedAt: file.modifiedAt,
         children: file.type === 'folder' ? [] : undefined,
         expanded: false,
         loaded: false
@@ -153,7 +148,6 @@ const downloadFile = async (filePath: string) => {
             path: parentPath,
             type: 'folder',
             size: 0,
-            modifiedAt: file.modifiedAt,
             children: [node],
             expanded: false,
             loaded: false
@@ -174,7 +168,6 @@ const downloadFile = async (filePath: string) => {
                 path: grandParentPath,
                 type: 'folder',
                 size: 0,
-                modifiedAt: file.modifiedAt,
                 children: [newParentNode],
                 expanded: false,
                 loaded: false
@@ -233,7 +226,6 @@ const downloadFile = async (filePath: string) => {
             path: file.path,
             type: file.type,
             size: file.size,
-            modifiedAt: file.modifiedAt,
             children: file.type === 'folder' ? [] : undefined,
             expanded: false,
             loaded: false

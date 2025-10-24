@@ -69,16 +69,19 @@ type ProjectCommonService interface {
 type projectCommonService struct {
 	repositories     *repositories.Repository
 	webSocketService WebSocketService
+	enviroment       string
 }
 
 // NewTaskExecutionService 创建任务执行服务
 func NewProjectCommonService(
 	repositories *repositories.Repository,
 	webSocketService WebSocketService,
+	enviroment string,
 ) ProjectCommonService {
 	return &projectCommonService{
 		repositories:     repositories,
 		webSocketService: webSocketService,
+		enviroment:       enviroment,
 	}
 }
 
@@ -169,16 +172,17 @@ func (s *projectCommonService) UpdateProjectToStatus(ctx context.Context, projec
 		return fmt.Errorf("%s", MESSAGE_PROJECT_IS_NIL)
 	}
 
-	if status == common.CommonStatusDone {
+	switch status {
+	case common.CommonStatusDone:
 		project.SetDevStatus(common.DevStatusDone)
 		project.Status = common.CommonStatusDone
-	} else if status == common.CommonStatusFailed {
+	case common.CommonStatusFailed:
 		project.SetDevStatus(common.DevStatusFailed)
 		project.Status = common.CommonStatusFailed
-	} else if status == common.CommonStatusPaused {
+	case common.CommonStatusPaused:
 		project.SetDevStatus(common.DevStatusPaused)
 		project.Status = common.CommonStatusPaused
-	} else if status == common.CommonStatusInProgress {
+	case common.CommonStatusInProgress:
 		project.Status = common.CommonStatusInProgress
 	}
 	s.repositories.ProjectRepo.Update(ctx, project)
@@ -193,12 +197,17 @@ func (s *projectCommonService) EnsureProjectPrevieUrl(ctx context.Context, proje
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
+	if project.PreviewUrl != "" {
+		return nil
+	}
 	// 设置预览 URL
-	if project.PreviewUrl == "" {
+	switch s.enviroment {
+	case common.EnvironmentLocalDebug:
+		project.PreviewUrl = fmt.Sprintf("http://localhost:%d", project.FrontendPort)
+	case common.EnvironmentDevelopment:
 		project.PreviewUrl = fmt.Sprintf("http://%s.app-maker.localhost", projectGuid)
-		if err := s.repositories.ProjectRepo.Update(ctx, project); err != nil {
-			return fmt.Errorf("更新项目预览URL失败: %w", err)
-		}
+	case common.EnvironmentProduction:
+		project.PreviewUrl = fmt.Sprintf("http://%s.app-maker.lighthought.com", projectGuid)
 	}
 	// 通知前端预览URL已设置
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
