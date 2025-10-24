@@ -58,7 +58,7 @@ func NewProjectDevService(
 // 开发调试阶段，修改每个阶段的 SkipInDevMode 属性就可以了
 func (s *projectDevService) InitStageItems() {
 	s.stageItems = []*models.DevStageItem{
-		{Name: common.DevStatusSetupEnvironment, Desc: "准备项目 Agents 环境", NeedConfirm: false,
+		{Name: common.DevStatusSetupAgents, Desc: "准备项目 Agents 环境", NeedConfirm: false,
 			ReqHandler: s.agentInteractService.SetupAgentsEnviroment, RespHandler: s.OnPendingAgentResponse},
 		{Name: common.DevStatusCheckRequirement, Desc: "检查需求", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.CheckRequirement, RespHandler: s.OnCheckRequirementResponse},

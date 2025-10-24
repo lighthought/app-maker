@@ -117,7 +117,7 @@ func (h *redisService) GetSessionByProjectGuid(projectGuid, agentType string) st
 	var sessionID string
 	err := h.cacheInstance.Get(key, &sessionID)
 	if err != nil {
-		logger.Error("Failed to get session from Redis",
+		logger.Info("Failed to get session from Redis",
 			logger.String("projectGuid", projectGuid),
 			logger.String("error", err.Error()))
 		return ""

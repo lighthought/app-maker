@@ -229,6 +229,7 @@ func (s *projectCommonService) UpdateProjectToStage(ctx context.Context, project
 		return fmt.Errorf("failed to update project: %s", err.Error())
 	}
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
+
 	return nil
 }
 

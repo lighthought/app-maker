@@ -325,7 +325,7 @@ export default {
   stage: {
     initializing: '初始化',
     setupEnvironment: '环境配置',
-    pendingAgents: 'Agent初始化',
+    setupAgents: 'Agent初始化',
     checkRequirement: '需求检查',
     generatePrd: '生成PRD',
     defineUxStandard: 'UX标准',
@@ -333,11 +333,14 @@ export default {
     defineDataModel: '数据模型',
     defineApi: 'API设计',
     planEpicAndStory: '任务规划',
+    generatePages: '生成前端页面',
     developStory: '功能开发',
     fixBug: '问题修复',
     runTest: '自动测试',
     deploy: '项目部署',
     done: '完成',
+    paused: '暂停',
+    unknown: '未知',
     failed: '失败'
   },
 

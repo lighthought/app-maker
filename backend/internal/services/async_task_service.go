@@ -84,23 +84,6 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 		return asynq.SkipRetry
 	}
 
-	// 获取或创建阶段记录
-	stage, isDone, err := s.commonService.CreateOrUpdateStage(ctx, project, resultWriter.TaskID(), payload.ProjectGuid, payload.StageName)
-	if err != nil {
-		logger.Error("failed to create or update stage", logger.String("error", err.Error()))
-		return asynq.SkipRetry
-	}
-	if isDone { // 当前阶段已经完成，直接跳到下一阶段
-		return s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName))
-	}
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "create stage")
-
-	// 更新项目状态
-	if err := s.commonService.UpdateProjectToStage(ctx, project, resultWriter.TaskID(), payload.StageName); err != nil {
-		logger.Error("failed to update project to stage", logger.String("error", err.Error()))
-		return asynq.SkipRetry
-	}
-	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "set project stage set to "+payload.StageName)
 	// 执行阶段
 	stageItem := s.devService.GetStageItem(common.DevStatus(payload.StageName))
 	if stageItem == nil {
@@ -112,6 +95,25 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 		s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName)) // 跳过阶段，直接执行下一阶段
 		return nil
 	}
+
+	// 获取或创建阶段记录
+	stage, isDone, err := s.commonService.CreateOrUpdateStage(ctx, project, resultWriter.TaskID(), payload.ProjectGuid, payload.StageName)
+	if err != nil {
+		logger.Error("failed to create or update stage", logger.String("error", err.Error()))
+		return asynq.SkipRetry
+	}
+	if isDone { // 当前阶段已经完成，直接跳到下一阶段
+		return s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName))
+	}
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "create stage")
+
+	s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusInProgress, "")
+	// 更新项目状态
+	if err := s.commonService.UpdateProjectToStage(ctx, project, resultWriter.TaskID(), payload.StageName); err != nil {
+		logger.Error("failed to update project to stage", logger.String("error", err.Error()))
+		return asynq.SkipRetry
+	}
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "set project stage set to "+payload.StageName)
 
 	taskID, err := stageItem.ReqHandler(ctx, project)
 	if err != nil {

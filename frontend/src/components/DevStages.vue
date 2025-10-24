@@ -98,7 +98,7 @@ const getStageDisplayName = (stageName: string) => {
   const nameMap: Record<string, string> = {
     'initializing': t('stage.initializing') ,
     'setup_environment': t('stage.setupEnvironment'),
-    'setup_agents': t('stage.pendingAgents'),
+    'setup_agents': t('stage.setupAgents'),
     'check_requirement': t('stage.checkRequirement'),
     'generate_prd': t('stage.generatePrd'),
     'define_ux_standard': t('stage.defineUxStandard'),
@@ -106,11 +106,14 @@ const getStageDisplayName = (stageName: string) => {
     'define_data_model': t('stage.defineDataModel'),
     'define_api': t('stage.defineApi'),
     'plan_epic_and_story': t('stage.planEpicAndStory'),
+    'generate_pages': t('stage.generatePages'),
     'develop_story': t('stage.developStory'),
     'fix_bug': t('stage.fixBug'),
     'run_test': t('stage.runTest'),
     'deploy': t('stage.deploy'),
     'done': t('stage.done'),
+    'paused': t('stage.paused'),
+    'unknown': t('stage.unknown'),
     'failed': t('stage.failed')
   }
   return nameMap[stageName] || stageName
@@ -207,6 +210,7 @@ const handleRetry = async () => {
 
   try {
     retrying.value = true
+    console.log('🔄 [DevStages] 重试任务ID:', currentStage.value.task_id)
     const result = await taskStore.retryTask(currentStage.value.task_id)
     
     if (result.success) {

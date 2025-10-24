@@ -325,7 +325,7 @@ export default {
   stage: {
     initializing: 'Initializing',
     setupEnvironment: 'Setup Environment',
-    pendingAgents: 'Setup Agents',
+    setupAgents: 'Setup Agents',
     checkRequirement: 'Check Requirement',
     generatePrd: 'Generate PRD',
     defineUxStandard: 'UX Standard',
@@ -333,11 +333,14 @@ export default {
     defineDataModel: 'Data Model',
     defineApi: 'API Design',
     planEpicAndStory: 'Task Planning',
+    generatePages: 'Generate Pages',
     developStory: 'Function Development',
     fixBug: 'Bug Fix',
     runTest: 'Auto Test',
     deploy: 'Project Deployment',
     done: 'Completed',
+    paused: 'Paused',
+    unknown: 'Unknown',
     failed: 'Failed'
   },
 

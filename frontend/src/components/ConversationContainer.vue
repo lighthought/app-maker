@@ -249,7 +249,8 @@ const syncWebSocketData = () => {
         existingStage.status !== wsStage.status ||
         existingStage.failed_reason !== wsStage.failed_reason ||
         existingStage.progress !== wsStage.progress ||
-        existingStage.description !== wsStage.description
+        existingStage.description !== wsStage.description ||
+        existingStage.task_id !== wsStage.task_id
       )
     })
     
