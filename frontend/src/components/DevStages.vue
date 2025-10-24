@@ -98,7 +98,7 @@ const getStageDisplayName = (stageName: string) => {
   const nameMap: Record<string, string> = {
     'initializing': t('stage.initializing') ,
     'setup_environment': t('stage.setupEnvironment'),
-    'pending_agents': t('stage.pendingAgents'),
+    'setup_agents': t('stage.pendingAgents'),
     'check_requirement': t('stage.checkRequirement'),
     'generate_prd': t('stage.generatePrd'),
     'define_ux_standard': t('stage.defineUxStandard'),

@@ -238,7 +238,9 @@ export default {
     modelApiUrlPlaceholder: 'Enter API URL',
     apiToken: 'API Token',
     apiTokenPlaceholder: 'Enter API Token (e.g.: sk-...)',
-    devSettingsNote: 'These settings will be used as the default configuration for new projects. '
+    autoGoNext: 'YOLO Mode',
+    autoGoNextDescription: 'Auto run to the next stage',
+    devSettingsNote: 'These settings will be used as the default configuration for new projects. '    
   },
 
   // Authentication related
@@ -323,7 +325,7 @@ export default {
   stage: {
     initializing: 'Initializing',
     setupEnvironment: 'Setup Environment',
-    pendingAgents: 'Pending Agents',
+    pendingAgents: 'Setup Agents',
     checkRequirement: 'Check Requirement',
     generatePrd: 'Generate PRD',
     defineUxStandard: 'UX Standard',
