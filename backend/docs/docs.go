@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginRequest"
                         }
                     }
                 ],
@@ -51,7 +51,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -107,7 +107,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -149,7 +149,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.RegisterRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.RegisterRequest"
                         }
                     }
                 ],
@@ -165,7 +165,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.LoginResponse"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginResponse"
                                         }
                                     }
                                 }
@@ -915,7 +915,7 @@ const docTemplate = `{
                                         "data": {
                                             "allOf": [
                                                 {
-                                                    "$ref": "#/definitions/autocodeweb-backend_internal_models.PaginationResponse"
+                                                    "$ref": "#/definitions/common.PaginationResponse"
                                                 },
                                                 {
                                                     "type": "object",
@@ -923,7 +923,7 @@ const docTemplate = `{
                                                         "data": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
+                                                                "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo"
                                                             }
                                                         }
                                                     }
@@ -979,7 +979,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.CreateProjectRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.CreateProjectRequest"
                         }
                     }
                 ],
@@ -995,7 +995,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -1129,7 +1129,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -1193,7 +1193,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateProjectRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateProjectRequest"
                         }
                     }
                 ],
@@ -1209,7 +1209,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ProjectInfo"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo"
                                         }
                                     }
                                 }
@@ -1434,7 +1434,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.ConfirmEpicsAndStoriesRequest"
                         }
                     }
                 ],
@@ -1487,7 +1487,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.BatchDeleteStoriesRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.BatchDeleteStoriesRequest"
                         }
                     }
                 ],
@@ -1547,7 +1547,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateEpicRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateEpicRequest"
                         }
                     }
                 ],
@@ -1656,7 +1656,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateEpicOrderRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateEpicOrderRequest"
                         }
                     }
                 ],
@@ -1723,7 +1723,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateStoryRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateStoryRequest"
                         }
                     }
                 ],
@@ -1846,7 +1846,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateStoryOrderRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateStoryOrderRequest"
                         }
                     }
                 ],
@@ -2191,7 +2191,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.PaginationResponse"
+                                            "$ref": "#/definitions/common.PaginationResponse"
                                         }
                                     }
                                 }
@@ -2238,7 +2238,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.ChangePasswordRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -2328,7 +2328,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserInfo"
                                         }
                                     }
                                 }
@@ -2373,7 +2373,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateProfileRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -2435,7 +2435,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UserSettingsResponse"
+                                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserSettingsResponse"
                                         }
                                     }
                                 }
@@ -2474,7 +2474,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/autocodeweb-backend_internal_models.UpdateUserSettingsRequest"
+                            "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateUserSettingsRequest"
                         }
                     }
                 ],
@@ -2628,105 +2628,24 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.BatchDeleteStoriesRequest": {
-            "type": "object",
-            "required": [
-                "story_ids"
-            ],
-            "properties": {
-                "story_ids": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "autocodeweb-backend_internal_models.ChangePasswordRequest": {
-            "type": "object",
-            "required": [
-                "new_password",
-                "old_password"
-            ],
-            "properties": {
-                "new_password": {
-                    "type": "string",
-                    "minLength": 6,
-                    "example": "newpassword123"
-                },
-                "old_password": {
-                    "type": "string",
-                    "example": "oldpassword123"
-                }
-            }
-        },
-        "autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest": {
-            "type": "object",
-            "required": [
-                "action"
-            ],
-            "properties": {
-                "action": {
-                    "description": "confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成",
-                    "type": "string",
-                    "enum": [
-                        "confirm",
-                        "skip",
-                        "regenerate"
-                    ]
-                }
-            }
-        },
-        "autocodeweb-backend_internal_models.CreateProjectRequest": {
-            "type": "object",
-            "required": [
-                "requirements"
-            ],
-            "properties": {
-                "requirements": {
-                    "type": "string",
-                    "example": "项目需求描述"
-                }
-            }
-        },
-        "autocodeweb-backend_internal_models.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 6,
-                    "example": "password123"
-                }
-            }
-        },
-        "autocodeweb-backend_internal_models.LoginResponse": {
+        "common.ErrorResponse": {
             "type": "object",
             "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "expires_in": {
+                "code": {
                     "type": "integer",
-                    "example": 3600
+                    "example": 400
                 },
-                "refresh_token": {
-                    "type": "string"
+                "message": {
+                    "type": "string",
+                    "example": "请求参数错误"
                 },
-                "user": {
-                    "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
                 }
             }
         },
-        "autocodeweb-backend_internal_models.PaginationResponse": {
+        "common.PaginationResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -2768,7 +2687,123 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.ProjectInfo": {
+        "common.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-08-29T10:00:00Z"
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.BatchDeleteStoriesRequest": {
+            "type": "object",
+            "required": [
+                "story_ids"
+            ],
+            "properties": {
+                "story_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "newpassword123"
+                },
+                "old_password": {
+                    "type": "string",
+                    "example": "oldpassword123"
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.ConfirmEpicsAndStoriesRequest": {
+            "type": "object",
+            "required": [
+                "action"
+            ],
+            "properties": {
+                "action": {
+                    "description": "confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成",
+                    "type": "string",
+                    "enum": [
+                        "confirm",
+                        "skip",
+                        "regenerate"
+                    ]
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.CreateProjectRequest": {
+            "type": "object",
+            "required": [
+                "requirements"
+            ],
+            "properties": {
+                "requirements": {
+                    "type": "string",
+                    "example": "项目需求描述"
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "password123"
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer",
+                    "example": 3600
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserInfo"
+                }
+            }
+        },
+        "github_com_lighthought_app-maker_backend_internal_models.ProjectInfo": {
             "type": "object",
             "properties": {
                 "backend_port": {
@@ -2814,7 +2849,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/autocodeweb-backend_internal_models.UserInfo"
+                    "$ref": "#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserInfo"
                 },
                 "user_id": {
                     "type": "string",
@@ -2822,7 +2857,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.RegisterRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -2847,7 +2882,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateEpicOrderRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateEpicOrderRequest": {
             "type": "object",
             "required": [
                 "order"
@@ -2859,7 +2894,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateEpicRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateEpicRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -2885,7 +2920,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateProfileRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateProfileRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -2900,7 +2935,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateProjectRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateProjectRequest": {
             "type": "object",
             "properties": {
                 "ai_model": {
@@ -2943,7 +2978,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateStoryOrderRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateStoryOrderRequest": {
             "type": "object",
             "required": [
                 "order"
@@ -2955,7 +2990,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateStoryRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateStoryRequest": {
             "type": "object",
             "properties": {
                 "acceptance_criteria": {
@@ -2993,7 +3028,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UpdateUserSettingsRequest": {
+        "github_com_lighthought_app-maker_backend_internal_models.UpdateUserSettingsRequest": {
             "type": "object",
             "properties": {
                 "auto_go_next": {
@@ -3035,7 +3070,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UserInfo": {
+        "github_com_lighthought_app-maker_backend_internal_models.UserInfo": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3063,7 +3098,7 @@ const docTemplate = `{
                 }
             }
         },
-        "autocodeweb-backend_internal_models.UserSettingsResponse": {
+        "github_com_lighthought_app-maker_backend_internal_models.UserSettingsResponse": {
             "type": "object",
             "properties": {
                 "auto_go_next": {
@@ -3091,41 +3126,6 @@ const docTemplate = `{
                 "default_model_provider": {
                     "type": "string",
                     "example": "zhipu"
-                }
-            }
-        },
-        "common.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 400
-                },
-                "message": {
-                    "type": "string",
-                    "example": "请求参数错误"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
-                }
-            }
-        },
-        "common.Response": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer",
-                    "example": 0
-                },
-                "data": {},
-                "message": {
-                    "type": "string",
-                    "example": "success"
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-08-29T10:00:00Z"
                 }
             }
         }

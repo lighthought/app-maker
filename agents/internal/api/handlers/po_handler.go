@@ -82,7 +82,8 @@ func (s *PoHandler) GetEpicsAndStories(c *gin.Context) {
 		"}\n" +
 		"```\n"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePO, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePO, message,
+		req.CliTool, common.DevStatusPlanEpicAndStory)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "获取史诗和用户故事任务失败: "+err.Error()))
 		return

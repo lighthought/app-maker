@@ -26,6 +26,32 @@ type ConversationMessage struct {
 	DeletedAt           gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
+func NewDevAgentMessage(projectGuid, content, markdown string) *ConversationMessage {
+	return &ConversationMessage{
+		ProjectGuid:     projectGuid,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentDev.Role,
+		AgentName:       common.AgentDev.Name,
+		Content:         content,
+		IsMarkdown:      true,
+		MarkdownContent: markdown,
+		IsExpanded:      true,
+	}
+}
+
+func NewUserChatMessage(projectGuid, content string) *ConversationMessage {
+	return &ConversationMessage{
+		ProjectGuid:     projectGuid,
+		Type:            common.ConversationTypeUser,
+		AgentRole:       common.AgentTypeUser,
+		AgentName:       common.AgentTypeUser,
+		Content:         content,
+		IsMarkdown:      false,
+		MarkdownContent: content,
+		IsExpanded:      false,
+	}
+}
+
 // TableName 指定表名
 func (ConversationMessage) TableName() string {
 	return "project_msgs"

@@ -101,11 +101,7 @@ func (c *RedisCache) DeleteMultiple(keys []string) error {
 
 // 发布消息到 Redis Pub/Sub
 func (c *RedisCache) Publish(channel string, message interface{}) error {
-	data, err := json.Marshal(message)
-	if err != nil {
-		return fmt.Errorf("failed to serialize message: %s", err.Error())
-	}
-	return c.client.Publish(c.ctx, channel, data).Err()
+	return c.client.Publish(c.ctx, channel, message).Err()
 }
 
 // 订阅消息

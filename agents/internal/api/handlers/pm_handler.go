@@ -56,7 +56,8 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 		"4. 不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
 		"5. 如果 docs/ 目录下已经有完善的 PRD.md 文件，直接返回概要信息，不用再尝试生成 PRD.md，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePM, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePM, message,
+		req.CliTool, common.DevStatusGeneratePRD)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "PRD 生成失败: "+err.Error()))
 		return

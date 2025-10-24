@@ -84,9 +84,9 @@ func loadConfigAndService() (*config.Config, error) {
 
 // setupContainer 初始化依赖注入容器
 func setupContainer(cfg *config.Config) (*container.Container, *gin.Engine) {
-	var the_container *container.Container
+	var theContainer *container.Container
 	if database.GetDB() != nil && database.GetRedis() != nil {
-		the_container = container.NewContainer(cfg, database.GetDB(), database.GetRedis())
+		theContainer = container.NewContainer(cfg, database.GetDB(), database.GetRedis())
 		logger.Info("依赖注入容器初始化成功")
 	} else {
 		logger.Warn("数据库未连接，部分功能不可用")
@@ -109,11 +109,11 @@ func setupContainer(cfg *config.Config) (*container.Container, *gin.Engine) {
 	// 添加Swagger文档路由
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// 注册路由
-	routes.Register(engine, the_container)
-	return the_container, engine
+	routes.Register(engine, theContainer)
+	return theContainer, engine
 }
 
-func startServer(cfg *config.Config, engine *gin.Engine, the_container *container.Container) {
+func startServer(cfg *config.Config, engine *gin.Engine, theContainer *container.Container) {
 	// 创建HTTP服务器
 	srv := &http.Server{
 		Addr:    ":" + cfg.App.Port,
@@ -133,7 +133,7 @@ func startServer(cfg *config.Config, engine *gin.Engine, the_container *containe
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	logger.Info("正在关闭服务器...")
-	the_container.Stop()
+	theContainer.Stop()
 
 	// 优雅关闭
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

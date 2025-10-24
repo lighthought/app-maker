@@ -221,7 +221,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 // @Security Bearer
 // @Param page query int false "页码" default(1)
 // @Param page_size query int false "每页数量" default(10)
-// @Success 200 {object} common.Response{data=models.PaginationResponse}
+// @Success 200 {object} common.Response{data=common.PaginationResponse}
 // @Failure 401 {object} common.ErrorResponse
 // @Failure 403 {object} common.ErrorResponse
 // @Router /api/v1/users [get]

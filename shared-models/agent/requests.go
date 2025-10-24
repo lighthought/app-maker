@@ -1,6 +1,8 @@
 package agent
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // 项目环境准备请求
 type SetupProjEnvReq struct {
@@ -126,6 +128,8 @@ type ChatReq struct {
 	ProjectGuid string `json:"project_guid" binding:"required" example:"1234567890"`
 	AgentType   string `json:"agent_type" binding:"required" example:"dev"`
 	Message     string `json:"message" binding:"required" example:"确认，继续执行"`
+	CliTool     string `json:"cli_tool" example:"claude-code"`
+	DevStage    string `json:"dev_stage" example:"initializing"`
 }
 
 func (a *ChatReq) ToBytes() []byte {

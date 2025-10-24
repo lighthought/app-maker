@@ -45,9 +45,9 @@ func parseResponseData(resp *common.Response, target interface{}) error {
 	return nil
 }
 
-// HealthCheck 健康检查
-func (c *AgentClient) HealthCheck(ctx context.Context) (*agent.AgentHealthResp, error) {
-	resp, err := c.httpClient.Get(ctx, "/api/v1/health")
+// CheckVersion 检查后台版本
+func (c *AgentClient) CheckVersion(ctx context.Context) (*agent.AgentHealthResp, error) {
+	resp, err := c.httpClient.Get(ctx, "/api/v1/version")
 	if err != nil {
 		return nil, err
 	}
@@ -64,9 +64,23 @@ func (c *AgentClient) HealthCheck(ctx context.Context) (*agent.AgentHealthResp, 
 	return result, nil
 }
 
+// CheckVersion 检查后台版本
+func (c *AgentClient) CheckHealth(ctx context.Context) error {
+	resp, err := c.httpClient.Get(ctx, "/api/v1/health")
+	if err != nil {
+		return err
+	}
+
+	if resp.Code != common.SUCCESS_CODE {
+		return fmt.Errorf("agent 健康检查失败: %s", resp.Message)
+	}
+
+	return nil
+}
+
 // 等待任务完成或失败
 // 注意：此方法使用独立的 background context，不受 HTTP 请求超时限制
-func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) (*tasks.TaskResult, error) {
+func (c *AgentClient) WaitForTaskCompletion(ctx context.Context, taskID string) (*tasks.TaskResult, error) {
 	// 使用 background context 替代传入的 ctx，避免 HTTP 请求超时导致长时间运行的任务被中断
 	// 原始的 ctx 仅用于检查是否被主动取消
 	bgCtx := context.Background()
@@ -135,81 +149,81 @@ func (c *AgentClient) waitForTaskCompletion(ctx context.Context, taskID string) 
 	return nil, fmt.Errorf("task timeout: waited %d seconds", iMaxRetryTimes*5)
 }
 
-func (c *AgentClient) syncPost(ctx context.Context, url string, req interface{}) (*tasks.TaskResult, error) {
+func (c *AgentClient) innerPost(ctx context.Context, url string, req interface{}) (string, error) {
 	resp, err := c.httpClient.Post(ctx, url, req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if resp.Code != common.SUCCESS_CODE {
-		return nil, fmt.Errorf("agent execution failed: %s", resp.Message)
+		return "", fmt.Errorf("agent execution failed: %s", resp.Message)
 	}
 
 	taskID := resp.Data.(string)
-	return c.waitForTaskCompletion(ctx, taskID)
+	return taskID, nil
 }
 
 // SetupProjectEnvironment 项目环境准备
-func (c *AgentClient) SetupProjectEnvironment(ctx context.Context, req *agent.SetupProjEnvReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/project/setup", req)
+func (c *AgentClient) SetupProjectEnvironment(ctx context.Context, req *agent.SetupProjEnvReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/project/setup", req)
 }
 
 // AnalyseProjectBrief 分析项目简介
-func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetProjBriefReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/analyse/project-brief", req)
+func (c *AgentClient) AnalyseProjectBrief(ctx context.Context, req *agent.GetProjBriefReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/analyse/project-brief", req)
 }
 
 // GetPRD 获取 PRD
-func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/pm/prd", req)
+func (c *AgentClient) GetPRD(ctx context.Context, req *agent.GetPRDReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/pm/prd", req)
 }
 
 // GetUXStandard 获取 UX 标准
-func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandardReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/ux-expert/ux-standard", req)
+func (c *AgentClient) GetUXStandard(ctx context.Context, req *agent.GetUXStandardReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/ux-expert/ux-standard", req)
 }
 
 // GetArchitecture 获取架构设计
-func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchitectureReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/architect/architect", req)
+func (c *AgentClient) GetArchitecture(ctx context.Context, req *agent.GetArchitectureReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/architect/architect", req)
 }
 
 // GetDatabaseDesign 获取数据库设计
-func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatabaseDesignReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/architect/database", req)
+func (c *AgentClient) GetDatabaseDesign(ctx context.Context, req *agent.GetDatabaseDesignReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/architect/database", req)
 }
 
 // GetAPIDefinition 获取 API 定义
-func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDefinitionReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/architect/apidefinition", req)
+func (c *AgentClient) GetAPIDefinition(ctx context.Context, req *agent.GetAPIDefinitionReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/architect/apidefinition", req)
 }
 
 // GetEpicsAndStories 获取史诗和故事
-func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpicsAndStoriesReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/po/epicsandstories", req)
+func (c *AgentClient) GetEpicsAndStories(ctx context.Context, req *agent.GetEpicsAndStoriesReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/po/epicsandstories", req)
 }
 
 // ImplementStory 实现用户故事
-func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementStoryReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/dev/implstory", req)
+func (c *AgentClient) ImplementStory(ctx context.Context, req *agent.ImplementStoryReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/dev/implstory", req)
 }
 
 // FixBug 修复 Bug
-func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/dev/fixbug", req)
+func (c *AgentClient) FixBug(ctx context.Context, req *agent.FixBugReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/dev/fixbug", req)
 }
 
 // RunTest 运行测试
-func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/dev/runtest", req)
+func (c *AgentClient) RunTest(ctx context.Context, req *agent.RunTestReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/dev/runtest", req)
 }
 
 // Deploy 部署项目
-func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/dev/deploy", req)
+func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/dev/deploy", req)
 }
 
 // ChatWithAgent 与 Agent 对话
-func (c *AgentClient) ChatWithAgent(ctx context.Context, req *agent.ChatReq) (*tasks.TaskResult, error) {
-	return c.syncPost(ctx, "/api/v1/agent/chat", req)
+func (c *AgentClient) ChatWithAgent(ctx context.Context, req *agent.ChatReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/chat", req)
 }

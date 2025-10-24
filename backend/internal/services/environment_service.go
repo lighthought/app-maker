@@ -7,7 +7,6 @@ import (
 
 	"github.com/lighthought/app-maker/shared-models/agent"
 	"github.com/lighthought/app-maker/shared-models/cache"
-	"github.com/lighthought/app-maker/shared-models/client"
 	"github.com/lighthought/app-maker/shared-models/logger"
 	"github.com/lighthought/app-maker/shared-models/utils"
 
@@ -16,12 +15,6 @@ import (
 
 // EnvironmentService 环境检查服务接口
 type EnvironmentService interface {
-	// CheckAgentHealth 检查 Agent 服务健康状态
-	CheckAgentHealth(ctx context.Context) (*agent.AgentHealthResp, error)
-
-	// IsAgentHealthy 检查 Agent 是否健康（简化版，返回布尔值）
-	IsAgentHealthy(ctx context.Context) bool
-
 	// CheckDatabaseHealth 检查数据库连接状态
 	CheckDatabaseHealth(ctx context.Context) (*agent.ServiceStatus, error)
 
@@ -31,69 +24,18 @@ type EnvironmentService interface {
 
 // environmentService 环境检查服务实现
 type environmentService struct {
-	agentsURL     string
-	db            *gorm.DB
-	cacheInstance cache.Cache
-	timeout       time.Duration
+	agentInteractService AgentInteractService
+	db                   *gorm.DB
+	cacheInstance        cache.Cache
 }
 
 // NewEnvironmentService 创建环境检查服务
-func NewEnvironmentService(agentsURL string, db *gorm.DB, cacheInstance cache.Cache) EnvironmentService {
+func NewEnvironmentService(agentInteractService AgentInteractService, db *gorm.DB, cacheInstance cache.Cache) EnvironmentService {
 	return &environmentService{
-		agentsURL:     agentsURL,
-		db:            db,
-		cacheInstance: cacheInstance,
-		timeout:       10 * time.Second, // 默认10秒超时
+		agentInteractService: agentInteractService,
+		db:                   db,
+		cacheInstance:        cacheInstance,
 	}
-}
-
-// CheckAgentHealth 检查 Agent 服务健康状态
-func (s *environmentService) CheckAgentHealth(ctx context.Context) (*agent.AgentHealthResp, error) {
-	if s.agentsURL == "" {
-		s.agentsURL = utils.GetEnvOrDefault("AGENTS_SERVER_URL", "http://localhost:8088")
-	}
-
-	logger.Info("开始检查 Agent 服务健康状态",
-		logger.String("agentsURL", s.agentsURL))
-
-	agentClient := client.NewAgentClient(s.agentsURL, s.timeout)
-
-	healthResp, err := agentClient.HealthCheck(ctx)
-	if err != nil {
-		logger.Error("agent health check failed",
-			logger.String("agentsURL", s.agentsURL),
-			logger.String("error", err.Error()))
-		return nil, fmt.Errorf("agent server is not available: %s", err.Error())
-	}
-
-	logger.Info("Agent 健康检查成功",
-		logger.String("status", healthResp.Status),
-		logger.String("version", healthResp.Version))
-
-	return healthResp, nil
-}
-
-// checkAgentHealthWithTimeout 带超时的 Agent 健康检查
-func (s *environmentService) checkAgentHealthWithTimeout(ctx context.Context, timeout time.Duration) (*agent.AgentHealthResp, error) {
-	// 创建带超时的上下文
-	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	return s.CheckAgentHealth(timeoutCtx)
-}
-
-// IsAgentHealthy 检查 Agent 是否健康（简化版，返回布尔值）
-func (s *environmentService) IsAgentHealthy(ctx context.Context) bool {
-	// 使用较短的超时时间进行快速检查
-	healthResp, err := s.checkAgentHealthWithTimeout(ctx, 5*time.Second)
-	if err != nil {
-		logger.Warn("Agent 服务健康检查失败",
-			logger.String("error", err.Error()))
-		return false
-	}
-
-	// 检查状态是否为 "healthy" 或 "ok"
-	return healthResp.Status == "healthy" || healthResp.Status == "ok" || healthResp.Status == "running"
 }
 
 // CheckDatabaseHealth 检查数据库连接状态

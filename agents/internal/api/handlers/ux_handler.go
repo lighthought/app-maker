@@ -53,7 +53,8 @@ func (s *UxHandler) GetUXStandard(c *gin.Context) {
 		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。例如: 'page-prompt.md' 而不是'页面提示词.md'。\n" +
 		"3. 如果 docs/ux/ 目录下已经有完善的 UX Spec 和页面提示词，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeUX, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeUX, message,
+		req.CliTool, common.DevStatusDefineUXStandard)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "UX标准生成任务失败: "+err.Error()))
 		return

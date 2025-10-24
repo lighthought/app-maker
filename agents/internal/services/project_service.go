@@ -16,16 +16,19 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// ProjectService 项目服务
 type ProjectService interface {
 	ProcessTask(ctx context.Context, task *asynq.Task) error
 }
 
+// projectService 项目服务实现
 type projectService struct {
 	commandService   CommandService
 	agentTaskService AgentTaskService
 	fileService      FileService
 }
 
+// NewProjectService 创建项目服务
 func NewProjectService(commandService CommandService,
 	agentTaskService AgentTaskService,
 	fileService FileService) ProjectService {
@@ -39,8 +42,10 @@ func NewProjectService(commandService CommandService,
 // ProcessTask 处理任务
 func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
+	// 项目环境准备
 	case common.TaskTypeAgentSetup:
 		return s.agentSetupProject(ctx, task)
+	// 部署项目
 	case common.TaskTypeProjectDeploy:
 		return s.projectDeploy(ctx, task)
 	default:
@@ -48,7 +53,7 @@ func (s *projectService) ProcessTask(ctx context.Context, task *asynq.Task) erro
 	}
 }
 
-// 检查项目的 gitlab 环境
+// checkGitRepository 检查项目的 gitlab 环境
 func (s *projectService) checkGitRepository(ctx context.Context, task *asynq.Task, req agent.SetupProjEnvReq,
 	projectPath string) (string, error) {
 	var markdownResult string = "项目开发环境初始化：\n"
@@ -124,6 +129,7 @@ func (s *projectService) installBmad(ctx context.Context, task *asynq.Task, req 
 // 安装代码依赖
 func (s *projectService) installCodeDependencies(ctx context.Context, task *asynq.Task, req agent.SetupProjEnvReq,
 	projectPath, markdownResult string) (string, error) {
+	// 安装 frontend 代码依赖
 	var frontendModulePath = filepath.Join(projectPath, "frontend", "node_modules")
 	if !utils.IsDirectoryExists(frontendModulePath) {
 		subPath := req.ProjectGuid + "/frontend"
@@ -140,6 +146,7 @@ func (s *projectService) installCodeDependencies(ctx context.Context, task *asyn
 		markdownResult += "* frontend 已安装过\n"
 	}
 
+	// 安装 backend 代码依赖
 	if !utils.IsFileExists(filepath.Join(projectPath, "backend", "server")) {
 		subPath := req.ProjectGuid + "/backend"
 		goMod := s.commandService.SimpleExecute(ctx, subPath, "go", "mod", "download")
@@ -188,7 +195,8 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 	return nil
 }
 
-func (s *projectService) chatAfterExecuteFailed(ctx context.Context, task *asynq.Task, projectGuid, cmdDesc, process string, cmd ...string) (string, error) {
+// chatAfterExecuteFailed 聊天后执行失败
+func (s *projectService) chatAfterExecuteFailed(ctx context.Context, projectGuid, cmdDesc, process string, cmd ...string) (string, error) {
 	logger.Info("执行命令",
 		logger.String("projectGuid", projectGuid),
 		logger.String("process", process),
@@ -225,7 +233,7 @@ func (s *projectService) projectDeploy(ctx context.Context, task *asynq.Task) er
 	logger.Info("开始执行项目部署", logger.String("projectGuid", req.ProjectGuid))
 
 	// 1. 执行 make build-dev 构建项目
-	buildResult, err2 := s.chatAfterExecuteFailed(ctx, task, req.ProjectGuid, "构建项目", "make", "build-dev")
+	buildResult, err2 := s.chatAfterExecuteFailed(ctx, req.ProjectGuid, "构建项目", "make", "build-dev")
 	if err2 != nil {
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "构建项目失败: "+err2.Error())
 		return err2
@@ -233,7 +241,7 @@ func (s *projectService) projectDeploy(ctx context.Context, task *asynq.Task) er
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 50, buildResult)
 
 	// 2. 执行 make run-dev 启动项目
-	buildResult, err3 := s.chatAfterExecuteFailed(ctx, task, req.ProjectGuid, "启动项目", "make", "run-dev")
+	buildResult, err3 := s.chatAfterExecuteFailed(ctx, req.ProjectGuid, "启动项目", "make", "run-dev")
 	if err3 != nil {
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, "启动项目失败: "+err3.Error())
 		return err3

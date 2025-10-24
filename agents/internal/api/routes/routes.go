@@ -103,7 +103,8 @@ func registerAgentApiRoutes(routers *gin.RouterGroup, container *container.Conta
 func Register(engine *gin.Engine, container *container.Container) {
 	routers := engine.Group(common.DefaultApiPrefix)
 	{
-		routers.GET("/health", container.HealthHandler.HealthCheck)
+		routers.GET("/version", container.HealthHandler.CheckVersion)
+		routers.GET("/health", container.HealthHandler.CheckHealth)
 
 		projectHandler := container.ProjectHandler
 		project := routers.Group("/project") // 项目API路由

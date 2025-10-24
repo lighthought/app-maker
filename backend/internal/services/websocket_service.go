@@ -43,25 +43,19 @@ type WebSocketService interface {
 
 // webSocketService WebSocket 服务实现
 type webSocketService struct {
-	hub         *models.WebSocketHub
-	asyncClient *asynq.Client
-	stageRepo   repositories.StageRepository
-	messageRepo repositories.MessageRepository
-	projectRepo repositories.ProjectRepository
+	hub                *models.WebSocketHub
+	asyncClientService AsyncClientService
+	repositories       *repositories.Repository
 }
 
 // NewWebSocketService 创建 WebSocket 服务
-func NewWebSocketService(asyncClient *asynq.Client,
-	stageRepo repositories.StageRepository,
-	messageRepo repositories.MessageRepository,
-	projectRepo repositories.ProjectRepository,
+func NewWebSocketService(asyncClientService AsyncClientService,
+	repositories *repositories.Repository,
 ) WebSocketService {
 	return &webSocketService{
-		hub:         models.NewWebSocketHub(),
-		asyncClient: asyncClient,
-		stageRepo:   stageRepo,
-		messageRepo: messageRepo,
-		projectRepo: projectRepo,
+		hub:                models.NewWebSocketHub(),
+		asyncClientService: asyncClientService,
+		repositories:       repositories,
 	}
 }
 
@@ -137,7 +131,7 @@ func (s *webSocketService) broadcastProjectStage(ctx context.Context, projectGUI
 		return fmt.Errorf("项目阶段ID或项目GUID为空")
 	}
 
-	stage, err := s.stageRepo.GetByID(ctx, stageID)
+	stage, err := s.repositories.ProjectStageRepo.GetByID(ctx, stageID)
 	if err != nil {
 		logger.Error("获取项目阶段失败", logger.String("error", err.Error()))
 		return fmt.Errorf("获取项目阶段失败: %w", err)
@@ -163,7 +157,7 @@ func (s *webSocketService) broadcastProjectMessage(ctx context.Context, projectG
 		return fmt.Errorf("项目消息ID或项目GUID为空")
 	}
 
-	message, err := s.messageRepo.GetByID(ctx, messageID)
+	message, err := s.repositories.MessageRepo.GetByID(ctx, messageID)
 	if err != nil {
 		logger.Error("获取项目消息失败", logger.String("error", err.Error()))
 		return fmt.Errorf("获取项目消息失败: %w", err)
@@ -186,7 +180,7 @@ func (s *webSocketService) broadcastProjectInfoUpdate(ctx context.Context, proje
 		return fmt.Errorf("项目ID或项目GUID为空")
 	}
 
-	project, err := s.projectRepo.GetByID(ctx, projectID)
+	project, err := s.repositories.ProjectRepo.GetByID(ctx, projectID)
 	if err != nil {
 		logger.Error("获取项目失败", logger.String("error", err.Error()))
 		return fmt.Errorf("获取项目失败: %w", err)
@@ -207,11 +201,9 @@ func (s *webSocketService) broadcastProjectInfoUpdate(ctx context.Context, proje
 
 // NotifyProjectStageUpdate 通知项目阶段更新
 func (s *webSocketService) NotifyProjectStageUpdate(ctx context.Context, projectGUID string, stage *models.DevStage) {
-	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectStageUpdate, stage.ID),
-	)
+	taskID, err := s.asyncClientService.EnqueueWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectStageUpdate, stage.ID)
 	if err != nil {
-		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
+		logger.Error("failed to create WebSocket message broadcast task", logger.String("error", err.Error()))
 
 		// 异步失败，改为同步
 		s.broadcastProjectStage(ctx, projectGUID, stage.ID)
@@ -223,15 +215,13 @@ func (s *webSocketService) NotifyProjectStageUpdate(ctx context.Context, project
 		logger.String("stageID", stage.ID),
 		logger.String("stageName", stage.Name),
 		logger.String("status", stage.Status),
-		logger.String("taskID", taskInfo.ID),
+		logger.String("taskID", taskID),
 	)
 }
 
 // NotifyProjectMessage 通知项目新消息
 func (s *webSocketService) NotifyProjectMessage(ctx context.Context, projectGUID string, message *models.ConversationMessage) {
-	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectMessage, message.ID),
-	)
+	taskID, err := s.asyncClientService.EnqueueWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectMessage, message.ID)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
 
@@ -244,15 +234,13 @@ func (s *webSocketService) NotifyProjectMessage(ctx context.Context, projectGUID
 		logger.String("projectGUID", projectGUID),
 		logger.String("messageID", message.ID),
 		logger.String("messageType", message.Type),
-		logger.String("taskID", taskInfo.ID),
+		logger.String("taskID", taskID),
 	)
 }
 
 // NotifyProjectInfoUpdate 通知项目信息更新
 func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectGUID string, project *models.Project) {
-	taskInfo, err := s.asyncClient.Enqueue(
-		tasks.NewWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectInfoUpdate, project.ID),
-	)
+	taskID, err := s.asyncClientService.EnqueueWebSocketBroadcastTask(projectGUID, common.WebSocketMessageTypeProjectInfoUpdate, project.ID)
 	if err != nil {
 		logger.Error("创建WebSocket消息广播任务失败", logger.String("error", err.Error()))
 
@@ -265,7 +253,7 @@ func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectG
 		logger.String("projectGUID", projectGUID),
 		logger.String("name", project.Name),
 		logger.String("type", common.WebSocketMessageTypeProjectInfoUpdate),
-		logger.String("taskID", taskInfo.ID),
+		logger.String("taskID", taskID),
 	)
 }
 
@@ -283,7 +271,7 @@ func (s *webSocketService) NotifyUserConfirmRequired(ctx context.Context, projec
 	}
 
 	// 保存消息到数据库
-	if err := s.messageRepo.Create(ctx, message); err != nil {
+	if err := s.repositories.MessageRepo.Create(ctx, message); err != nil {
 		logger.Error("保存用户确认消息失败", logger.String("error", err.Error()))
 	}
 
@@ -342,16 +330,6 @@ func (s *webSocketService) GetStats() map[string]interface{} {
 	}
 
 	return stats
-}
-
-// serializeMessage 序列化消息
-func (s *webSocketService) serializeMessage(message *models.WebSocketMessage) []byte {
-	data, err := json.Marshal(message)
-	if err != nil {
-		logger.Error("消息序列化失败", logger.String("error", err.Error()))
-		return nil
-	}
-	return data
 }
 
 // startHeartbeat 启动心跳检测

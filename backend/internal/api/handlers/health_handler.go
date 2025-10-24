@@ -16,15 +16,19 @@ import (
 
 // HealthHandler 健康检查处理器
 type HealthHandler struct {
-	environmentService services.EnvironmentService
-	webSocketService   services.WebSocketService
+	environmentService   services.EnvironmentService
+	agentInteractService services.AgentInteractService
+	webSocketService     services.WebSocketService
 }
 
 // NewHealthHandler 创建健康处理器实例
-func NewHealthHandler(environmentService services.EnvironmentService, webSocketService services.WebSocketService) *HealthHandler {
+func NewHealthHandler(environmentService services.EnvironmentService,
+	agentInteractService services.AgentInteractService,
+	webSocketService services.WebSocketService) *HealthHandler {
 	return &HealthHandler{
-		environmentService: environmentService,
-		webSocketService:   webSocketService,
+		environmentService:   environmentService,
+		agentInteractService: agentInteractService,
+		webSocketService:     webSocketService,
 	}
 }
 
@@ -89,7 +93,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 
 	// 检查 Agent 服务状态
 	agentStartTime := time.Now()
-	agentHealth, err := h.environmentService.CheckAgentHealth(c.Request.Context())
+	agentVersion, err := h.agentInteractService.CheckAgentVersion(c.Request.Context())
 	if err != nil {
 		logger.Error("Agent健康检查失败", logger.String("error", err.Error()))
 		healthResp.Status = "degraded"
@@ -98,7 +102,7 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	logger.Info("Agent健康检查完成", logger.String("duration", agentDuration.String()))
 
 	healthResp.Services = services
-	healthResp.Agent = agentHealth
+	healthResp.Agent = agentVersion
 	healthResp.Timestamp = utils.GetCurrentTime()
 
 	totalDuration := time.Since(startTime)

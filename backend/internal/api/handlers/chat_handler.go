@@ -16,10 +16,10 @@ import (
 
 // ChatHandler 对话消息处理器
 type ChatHandler struct {
-	messageService      services.MessageService
-	fileService         services.FileService
-	projectService      services.ProjectService
-	projectStageService services.ProjectStageService
+	messageService     services.MessageService
+	fileService        services.FileService
+	projectService     services.ProjectService
+	asyncClientService services.AsyncClientService
 }
 
 // NewChatHandler 创建对话消息处理器
@@ -27,13 +27,13 @@ func NewChatHandler(
 	messageService services.MessageService,
 	fileService services.FileService,
 	projectService services.ProjectService,
-	projectStageService services.ProjectStageService,
+	asyncClientService services.AsyncClientService,
 ) *ChatHandler {
 	return &ChatHandler{
-		messageService:      messageService,
-		fileService:         fileService,
-		projectService:      projectService,
-		projectStageService: projectStageService,
+		messageService:     messageService,
+		fileService:        fileService,
+		projectService:     projectService,
+		asyncClientService: asyncClientService,
 	}
 }
 
@@ -213,7 +213,7 @@ func (h *ChatHandler) SendMessageToAgent(c *gin.Context) {
 		Message:     req.Content,
 	}
 
-	err = h.projectStageService.ChatWithAgent(c.Request.Context(), chatReq)
+	_, err = h.asyncClientService.EnqueueAgentChatTask(chatReq)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "与 Agent 对话失败: "+err.Error()))
 		return

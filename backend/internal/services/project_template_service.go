@@ -38,11 +38,7 @@ func NewProjectTemplateService(fileService FileService) ProjectTemplateService {
 // InitializeProject 初始化项目
 func (s *projectTemplateService) InitializeProject(ctx context.Context, project *models.Project) error {
 	templatePath := utils.GetTemplatePath()
-	logger.Info("==> enter. 开始初始化项目模板",
-		logger.String("projectID", project.ID),
-		logger.String("projectPath", project.ProjectPath),
-		logger.String("templatePath", templatePath),
-	)
+	logger.Info("==> enter. 开始初始化项目模板", logger.String("projectPath", project.ProjectPath), logger.String("templatePath", templatePath))
 
 	// 检查模板文件是否存在
 	if !utils.IsFileExists(templatePath) {
@@ -53,41 +49,24 @@ func (s *projectTemplateService) InitializeProject(ctx context.Context, project 
 	// 1. 解压模板
 	logger.Info("==> 1. 开始解压模板文件")
 	if err := s.ExtractTemplate(ctx, project.ID, project.ProjectPath); err != nil {
-		logger.Error("解压模板失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		logger.Error("解压模板失败", logger.String("error", err.Error()), logger.String("projectID", project.ID))
 		return fmt.Errorf("failed to extract template: %w", err)
 	}
-	logger.Info("模板解压完成", logger.String("projectID", project.ID))
 
 	// 2. 替换占位符
 	logger.Info("==> 2. 开始替换文件占位符", logger.String("projectID", project.ID))
 	if err := s.ReplacePlaceholders(ctx, project.ProjectPath, project); err != nil {
-		logger.Error("替换占位符失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		logger.Error("替换占位符失败", logger.String("error", err.Error()), logger.String("projectID", project.ID))
 		return fmt.Errorf("failed to replace placeholders: %w", err)
 	}
-	logger.Info("占位符替换完成", logger.String("projectID", project.ID))
 
 	// 3. 重命名文件
 	logger.Info("==> 3. 开始重命名文件", logger.String("projectID", project.ID))
 	if err := s.RenameFiles(ctx, project.ProjectPath, project); err != nil {
-		logger.Error("重命名文件失败",
-			logger.String("error", err.Error()),
-			logger.String("projectID", project.ID),
-		)
+		logger.Error("重命名文件失败", logger.String("error", err.Error()), logger.String("projectID", project.ID))
 		return fmt.Errorf("failed to rename files: %w", err)
 	}
-	logger.Info("文件重命名完成", logger.String("projectID", project.ID))
-
-	logger.Info("==> exit. 项目模板初始化完成",
-		logger.String("projectID", project.ID),
-		logger.String("projectPath", project.ProjectPath),
-	)
-
+	logger.Info("==> exit. 项目模板初始化完成", logger.String("projectID", project.ID), logger.String("projectPath", project.ProjectPath))
 	return nil
 }
 
@@ -218,60 +197,45 @@ func (s *projectTemplateService) replaceInFile(filePath string, project *models.
 		"${USER_ID}":           project.UserID,
 	}
 
-	// 执行替换
 	newContent := string(content)
 	for placeholder, value := range replacements {
-		newContent = strings.ReplaceAll(newContent, placeholder, value)
+		newContent = strings.ReplaceAll(newContent, placeholder, value) // 执行替换
 	}
-
-	// 如果内容有变化，写回文件
 	if newContent != string(content) {
-		if err := os.WriteFile(filePath, []byte(newContent), 0644); err != nil {
+		if err := os.WriteFile(filePath, []byte(newContent), 0644); err != nil { // 如果内容有变化，写回文件
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 	}
-
 	return nil
 }
 
 // RenameFiles 重命名文件
 func (s *projectTemplateService) RenameFiles(ctx context.Context, projectPath string, project *models.Project) error {
-	// 读取rename.txt文件，获取需要替换的文件列表
 	renameFilePath := filepath.Join(projectPath, "rename.txt")
 	renameFile, err := os.ReadFile(renameFilePath)
 	if err != nil {
-		// 写文件日志
-		logger.Error("读取rename.txt文件失败",
-			logger.String("error", err.Error()),
-			logger.String("renameFilePath", renameFilePath),
-		)
+		logger.Error("读取rename.txt文件失败", logger.String("error", err.Error()), logger.String("renameFilePath", renameFilePath))
 		return nil
 	}
 
-	// 解析需要重命名的文件列表
-	fileList := strings.Split(string(renameFile), "\n")
-
-	// 重命名每个文件
-	for _, filePath := range fileList {
-		filePath := strings.TrimSpace(filePath)
+	fileList := strings.Split(string(renameFile), "\n") // 解析需要重命名的文件列表
+	for _, filePath := range fileList {                 // 重命名每个文件
+		filePath := strings.TrimSpace(filePath) // 去除空格
 		if filePath == "" {
 			continue
 		}
 
 		// 将 Windows 路径分隔符转换为 Linux 路径分隔符
 		filePath = strings.ReplaceAll(filePath, "\\", "/")
-
-		from_to_paths := strings.Split(filePath, ",")
-		if len(from_to_paths) != 2 {
-			logger.Error("重命名文件格式错误",
-				logger.String("filePath", filePath),
-			)
+		fromToPaths := strings.Split(filePath, ",")
+		if len(fromToPaths) != 2 {
+			logger.Error("重命名文件格式错误", logger.String("filePath", filePath))
 			continue
 		}
 
 		// 重命名文件
-		fromPath := filepath.Join(projectPath, strings.TrimSpace(from_to_paths[0]))
-		toPath := filepath.Join(projectPath, strings.TrimSpace(from_to_paths[1]))
+		fromPath := filepath.Join(projectPath, strings.TrimSpace(fromToPaths[0]))
+		toPath := filepath.Join(projectPath, strings.TrimSpace(fromToPaths[1]))
 		if err := os.Rename(fromPath, toPath); err != nil {
 			logger.Error("重命名文件失败",
 				logger.String("error", err.Error()),
@@ -281,9 +245,6 @@ func (s *projectTemplateService) RenameFiles(ctx context.Context, projectPath st
 			continue
 		}
 	}
-
-	// 删除rename.txt文件
-	os.Remove(renameFilePath)
-
+	os.Remove(renameFilePath) // 删除rename.txt文件
 	return nil
 }

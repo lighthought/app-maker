@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/lighthought/app-maker/shared-models/agent"
 	"github.com/lighthought/app-maker/shared-models/cache"
@@ -22,9 +21,9 @@ type AgentTaskService interface {
 	// 处理任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
 	// Agent 执行任务
-	Enqueue(projectGuid, agentType, message string) (*asynq.TaskInfo, error)
+	//Enqueue(projectGuid, agentType, message, stageName string) (*asynq.TaskInfo, error)
 	// Agent 执行任务（带CLI工具）
-	EnqueueWithCli(projectGuid, agentType, message, cliTool string) (*asynq.TaskInfo, error)
+	EnqueueWithCli(projectGuid, agentType, message, cliTool string, stageName common.DevStatus) (*asynq.TaskInfo, error)
 	// 项目环境准备
 	EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error)
 	// 部署项目
@@ -33,8 +32,6 @@ type AgentTaskService interface {
 	EnqueueChatWithAgent(req *agent.ChatReq) (*asynq.TaskInfo, error)
 	// 与指定代理对话
 	ChatWithAgent(ctx context.Context, projectGuid, agentType, message string) (*models.CommandResult, error)
-	// 发布任务状态消息
-	PublishTaskStatus(taskID, projectGuid, agentType, status, message string) error
 }
 
 type agentTaskService struct {
@@ -44,6 +41,11 @@ type agentTaskService struct {
 	asyncClient    *asynq.Client
 	cacheInstance  cache.Cache
 }
+
+const (
+	ASYNC_IS_NIL         = "async client is nil"
+	UNEXPECTED_TASK_TYPE = "unexpected task type "
+)
 
 func NewAgentTaskService(commandService CommandService,
 	fileService FileService,
@@ -82,6 +84,7 @@ func (h *agentTaskService) getSessionByProjectGuid(projectGuid, agentType string
 	return sessionID
 }
 
+// 把会话ID保存到缓存中
 func (h *agentTaskService) saveSessionByProjectGuid(projectGuid, agentType, sessionID string) {
 	if h.cacheInstance == nil {
 		logger.Warn("Redis client is nil, cannot save session",
@@ -119,25 +122,25 @@ func (h *agentTaskService) saveSessionByProjectGuid(projectGuid, agentType, sess
 }
 
 // Enqueue 创建代理执行任务
-func (h *agentTaskService) Enqueue(projectGuid, agentType, message string) (*asynq.TaskInfo, error) {
+func (h *agentTaskService) Enqueue(projectGuid, agentType, message string, stageName common.DevStatus) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
-		return nil, fmt.Errorf("async client is nil")
+		return nil, fmt.Errorf("%s", ASYNC_IS_NIL)
 	}
-	return h.asyncClient.Enqueue(tasks.NewAgentExecuteTask(projectGuid, agentType, message))
+	return h.asyncClient.Enqueue(tasks.NewAgentExecuteTask(projectGuid, agentType, message, stageName))
 }
 
 // EnqueueWithCli 创建带CLI工具的代理执行任务
-func (h *agentTaskService) EnqueueWithCli(projectGuid, agentType, message, cliTool string) (*asynq.TaskInfo, error) {
+func (h *agentTaskService) EnqueueWithCli(projectGuid, agentType, message, cliTool string, stageName common.DevStatus) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
-		return nil, fmt.Errorf("async client is nil")
+		return nil, fmt.Errorf("%s", ASYNC_IS_NIL)
 	}
-	return h.asyncClient.Enqueue(tasks.NewAgentExecuteTaskWithCli(projectGuid, agentType, message, cliTool))
+	return h.asyncClient.Enqueue(tasks.NewAgentExecuteTaskWithCli(projectGuid, agentType, message, cliTool, stageName))
 }
 
 // EnqueueReq 创建项目环境准备任务
 func (h *agentTaskService) EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
-		return nil, fmt.Errorf("async client is nil")
+		return nil, fmt.Errorf("%s", ASYNC_IS_NIL)
 	}
 	if req == nil {
 		return nil, fmt.Errorf("EnqueueSetupReq, req is nil")
@@ -148,7 +151,7 @@ func (h *agentTaskService) EnqueueSetupReq(req *agent.SetupProjEnvReq) (*asynq.T
 // 部署项目
 func (h *agentTaskService) EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
-		return nil, fmt.Errorf("async client is nil")
+		return nil, fmt.Errorf("%s", ASYNC_IS_NIL)
 	}
 	if req == nil {
 		return nil, fmt.Errorf("EnqueueDeployReq, req is nil")
@@ -159,7 +162,7 @@ func (h *agentTaskService) EnqueueDeployReq(req *agent.DeployReq) (*asynq.TaskIn
 // 与 Agent 对话
 func (h *agentTaskService) EnqueueChatWithAgent(req *agent.ChatReq) (*asynq.TaskInfo, error) {
 	if h.asyncClient == nil {
-		return nil, fmt.Errorf("async client is nil")
+		return nil, fmt.Errorf("%s", ASYNC_IS_NIL)
 	}
 	if req == nil {
 		return nil, fmt.Errorf("EnqueueDeployReq, req is nil")
@@ -175,14 +178,14 @@ func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 	case common.TaskTypeAgentChat:
 		return h.innerProcessAgentChatTask(ctx, task)
 	default:
-		return fmt.Errorf("unexpected task type %s", task.Type())
+		return fmt.Errorf("%s%s", UNEXPECTED_TASK_TYPE, task.Type())
 	}
 }
 
 // 处理代理执行任务
 func (h *agentTaskService) innerProcessAgentExecuteTask(ctx context.Context, task *asynq.Task) error {
 	if task.Type() != common.TaskTypeAgentExecute {
-		return fmt.Errorf("unexpected task type %s", task.Type())
+		return fmt.Errorf("%s%s", UNEXPECTED_TASK_TYPE, task.Type())
 	}
 
 	payload := tasks.AgentExecuteTaskPayload{}
@@ -198,9 +201,10 @@ func (h *agentTaskService) innerProcessAgentExecuteTask(ctx context.Context, tas
 	return nil
 }
 
+// 处理与 Agent 对话任务
 func (h *agentTaskService) innerProcessAgentChatTask(ctx context.Context, task *asynq.Task) error {
 	if task.Type() != common.TaskTypeAgentChat {
-		return fmt.Errorf("unexpected task type %s", task.Type())
+		return fmt.Errorf("%s%s", UNEXPECTED_TASK_TYPE, task.Type())
 	}
 
 	var req agent.ChatReq
@@ -212,12 +216,64 @@ func (h *agentTaskService) innerProcessAgentChatTask(ctx context.Context, task *
 		ProjectGUID: req.ProjectGuid,
 		AgentType:   req.AgentType,
 		Message:     req.Message,
+		DevStage:    common.DevStatus(req.DevStage),
+		CliTool:     req.CliTool,
 	}
 	_, err := h.innerProcessTask(ctx, payload, task)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// 构建 CLI 命令
+func (h *agentTaskService) buildCliCommand(cliTool, sessionID, message string) (string, []string, bool) {
+	var cliCommand string
+	var args []string
+	var useJsonOutput bool
+
+	switch cliTool {
+	case common.CliToolQwenCode:
+		cliCommand = "qwen"
+		useJsonOutput = false
+		args = []string{"-y", "-p", "\"" + message + "\""}
+
+	case common.CliToolGemini:
+		cliCommand = "gemini"
+		useJsonOutput = false
+		args = []string{"-y", "-p", "\"" + message + "\""}
+
+	default:
+		cliCommand = "claude"
+		useJsonOutput = true
+		if sessionID == "" {
+			args = []string{"--dangerously-skip-permissions", "--output-format", "json", "-p", "\"" + message + "\""}
+		} else {
+			args = []string{"--dangerously-skip-permissions", "--resume", sessionID, "--output-format", "json", "-p", "\"" + message + "\""}
+		}
+	}
+
+	return cliCommand, args, useJsonOutput
+}
+
+// 处理情况
+func (h *agentTaskService) handleAgentExecuteFailed(task *asynq.Task, payload tasks.AgentExecuteTaskPayload, result models.CommandResult) {
+	if task != nil {
+		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, result.Error)
+		// 发布任务失败状态
+		h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
+			common.CommonStatusFailed, result.Error, payload.DevStage)
+		logger.Error("代理任务执行失败",
+			logger.String("taskID", task.ResultWriter().TaskID()),
+			logger.String("agentType", payload.AgentType),
+			logger.String("message", payload.Message),
+			logger.String("error", result.Error))
+	} else {
+		logger.Error("代理任务执行失败",
+			logger.String("agentType", payload.AgentType),
+			logger.String("message", payload.Message),
+			logger.String("error", result.Error))
+	}
 }
 
 // 异步任务本身、对话方法公用这个内部方法
@@ -234,8 +290,8 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 
 	// 发布任务开始状态
 	if task != nil {
-		h.PublishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-			common.CommonStatusInProgress, "任务开始执行")
+		h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
+			common.CommonStatusInProgress, "任务开始执行", payload.DevStage)
 	}
 
 	// 从 payload 或项目检测获取 CLI 类型
@@ -245,40 +301,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 	}
 
 	// 根据 CLI 类型构建命令
-	var cliCommand string
-	var args []string
-	var useJsonOutput bool
-
-	switch cliTool {
-	case common.CliToolClaudeCode:
-		cliCommand = "claude"
-		useJsonOutput = true
-		if sessionID == "" {
-			args = []string{"--dangerously-skip-permissions", "--output-format", "json", "-p", "\"" + payload.Message + "\""}
-		} else {
-			args = []string{"--dangerously-skip-permissions", "--resume", sessionID, "--output-format", "json", "-p", "\"" + payload.Message + "\""}
-		}
-
-	case common.CliToolQwenCode:
-		cliCommand = "qwen"
-		useJsonOutput = false
-		args = []string{"-y", "-p", "\"" + payload.Message + "\""}
-
-	case common.CliToolGemini:
-		cliCommand = "gemini"
-		useJsonOutput = false
-		args = []string{"-y", "-p", "\"" + payload.Message + "\""}
-
-	default:
-		cliCommand = "claude"
-		useJsonOutput = true
-		if sessionID == "" {
-			args = []string{"--dangerously-skip-permissions", "--output-format", "json", "-p", "\"" + payload.Message + "\""}
-		} else {
-			args = []string{"--dangerously-skip-permissions", "--resume", sessionID, "--output-format", "json", "-p", "\"" + payload.Message + "\""}
-		}
-	}
-
+	cliCommand, args, useJsonOutput := h.buildCliCommand(cliTool, sessionID, payload.Message)
 	result = h.commandService.SimpleExecute(ctx, payload.ProjectGUID, cliCommand, args...)
 
 	logger.Info("\n===> 代理任务执行完成",
@@ -291,23 +314,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 	duration := timeAfter.Sub(timeBefor)
 	durationMs := int(duration.Milliseconds())
 	if !result.Success {
-		if task != nil {
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, result.Error)
-			// 发布任务失败状态
-			h.PublishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-				common.CommonStatusFailed, result.Error)
-			logger.Error("代理任务执行失败",
-				logger.String("taskID", task.ResultWriter().TaskID()),
-				logger.String("agentType", payload.AgentType),
-				logger.String("message", payload.Message),
-				logger.String("error", result.Error))
-		} else {
-			logger.Error("代理任务执行失败",
-				logger.String("agentType", payload.AgentType),
-				logger.String("message", payload.Message),
-				logger.String("error", result.Error))
-		}
-
+		h.handleAgentExecuteFailed(task, payload, result)
 		return nil, fmt.Errorf("agent execute task failed: %s", result.Error)
 	}
 
@@ -339,21 +346,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 	}
 
 	if claudeResponse.IsError {
-		if task != nil {
-			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, claudeResponse.Result)
-			logger.Error("代理任务执行失败, claude failed",
-				logger.String("taskID", task.ResultWriter().TaskID()),
-				logger.String("agentType", payload.AgentType),
-				logger.String("message", payload.Message),
-				logger.String("error", claudeResponse.Result))
-		} else {
-			logger.Error("代理任务执行失败, claude failed",
-				logger.String("agentType", payload.AgentType),
-				logger.String("message", payload.Message),
-				logger.String("error", claudeResponse.Result))
-		}
-		h.PublishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-			common.CommonStatusFailed, claudeResponse.Result)
+		h.handleAgentExecuteFailed(task, payload, result)
 		return nil, fmt.Errorf("agent execute task, claude failed: %s", claudeResponse.Result)
 	}
 
@@ -375,8 +368,8 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 		if task != nil {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, err.Error())
 			// 发布任务失败状态
-			h.PublishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-				common.CommonStatusFailed, "项目文档、代码提交并推送失败: "+err.Error())
+			h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
+				common.CommonStatusFailed, "项目文档、代码提交并推送失败: "+err.Error(), payload.DevStage)
 		}
 		return nil, fmt.Errorf("项目文档、代码提交并推送失败: %w", err)
 	}
@@ -384,8 +377,8 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 	if task != nil {
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, claudeResponse.Result)
 		// 发布任务完成状态
-		h.PublishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-			common.CommonStatusDone, "任务执行完成")
+		h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
+			common.CommonStatusDone, "任务执行完成", payload.DevStage)
 	}
 	return &result, nil
 }
@@ -400,12 +393,13 @@ func (h *agentTaskService) ChatWithAgent(ctx context.Context, projectGuid, agent
 		ProjectGUID: projectGuid,
 		AgentType:   agentType,
 		Message:     message,
+		DevStage:    common.DevStatusUnknown, // 阵列用 Unknown 表示聊天
 	}
 	return h.innerProcessTask(ctx, payload, nil)
 }
 
-// PublishTaskStatus 发布任务状态消息到 Redis Pub/Sub
-func (h *agentTaskService) PublishTaskStatus(taskID, projectGuid, agentType, status, message string) error {
+// publishTaskStatus 发布任务状态消息到 Redis Pub/Sub
+func (h *agentTaskService) publishTaskStatus(taskID, projectGuid, agentType, status, message string, devStage common.DevStatus) error {
 	if h.cacheInstance == nil {
 		return fmt.Errorf("cache instance is nil")
 	}
@@ -416,7 +410,8 @@ func (h *agentTaskService) PublishTaskStatus(taskID, projectGuid, agentType, sta
 		AgentType:   agentType,
 		Status:      status,
 		Message:     message,
-		Timestamp:   time.Now().Format(time.RFC3339),
+		DevStage:    string(devStage),
+		Timestamp:   utils.GetCurrentTime(),
 	}
 
 	// 发布到 Redis Pub/Sub
@@ -432,6 +427,5 @@ func (h *agentTaskService) PublishTaskStatus(taskID, projectGuid, agentType, sta
 		logger.String("status", status),
 		logger.String("message", message),
 	)
-
 	return nil
 }

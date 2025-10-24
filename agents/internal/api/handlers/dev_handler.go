@@ -71,7 +71,8 @@ func (h *DevHandler) ImplementStory(c *gin.Context) {
 		"6. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"7. 每次实现完，记得修复编译问题，至少要保障项目能够 make build-dev 编译通过。"
 
-	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message, req.CliTool)
+	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message,
+		req.CliTool, common.DevStatusDevelopStory)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "实现用户故事任务失败: "+err.Error()))
 		return
@@ -115,7 +116,8 @@ func (h *DevHandler) FixBug(c *gin.Context) {
 		"2. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程。docs 目录下的架构、API、数据库和UX文档可以帮助你理解\n" +
 		"3. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message, req.CliTool)
+	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message,
+		req.CliTool, common.DevStatusFixBug)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "修复Bug任务失败: "+err.Error()))
 		return
@@ -155,7 +157,8 @@ func (h *DevHandler) RunTest(c *gin.Context) {
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"2. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
 
-	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message, req.CliTool)
+	taskInfo, err := h.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeDev, message,
+		req.CliTool, common.DevStatusRunTest)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "运行测试任务失败: "+err.Error()))
 		return

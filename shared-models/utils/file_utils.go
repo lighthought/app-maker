@@ -263,16 +263,33 @@ func GetSafeFilePath(filePath string) (string, error) {
 	safeFilename := strings.ReplaceAll(filePath, "..", "")
 	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
 	// 2. 拼接完整的文件路径
-	full_path := filepath.Join(baseDir, safeFilename)
+	fullPath := filepath.Join(baseDir, safeFilename)
 	logger.Info("获取安全路径",
 		logger.String("filePath", filePath),
-		logger.String("full_path", full_path),
+		logger.String("fullPath", fullPath),
 	)
 
 	// 4. 检查文件是否存在
-	if !IsFileExists(full_path) {
+	if !IsFileExists(fullPath) {
 		return "", fmt.Errorf("文件不存在")
 	}
 
-	return full_path, nil
+	return fullPath, nil
+}
+
+// GetRelativeFiles 获取相对路径的文件列表
+func GetRelativeFiles(projectPath, subFolder string) ([]string, error) {
+	var fileNames []string
+
+	entries, err := os.ReadDir(filepath.Join(projectPath, subFolder))
+	if err != nil {
+		logger.Error("读取目录内容失败", logger.String("projectPath", projectPath), logger.String("subFolder", subFolder))
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		fileNames = append(fileNames, entry.Name())
+	}
+
+	return fileNames, nil
 }

@@ -1,5 +1,7 @@
 package agent
 
+import "encoding/json"
+
 // EnvironmentInfo 环境信息结构体
 type EnvironmentInfo struct {
 	OS           string `json:"os"`           // 操作系统
@@ -71,7 +73,16 @@ type AgentTaskStatusMessage struct {
 	TaskID      string `json:"task_id"`      // 任务ID
 	ProjectGuid string `json:"project_guid"` // 项目GUID
 	AgentType   string `json:"agent_type"`   // Agent类型
-	Status      string `json:"status"`       // 任务状态：running, done, failed
+	Status      string `json:"status"`       // 任务状态
+	DevStage    string `json:"dev_stage"`    // 开发阶段：initializing, preparing, developing, testing, deploying, completed, failed
 	Message     string `json:"message"`      // 状态消息
 	Timestamp   string `json:"timestamp"`    // 时间戳
+}
+
+func (a *AgentTaskStatusMessage) ToBytes() []byte {
+	bytes, err := json.Marshal(a)
+	if err != nil {
+		return nil
+	}
+	return bytes
 }

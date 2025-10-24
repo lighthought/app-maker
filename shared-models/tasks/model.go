@@ -1,6 +1,10 @@
 package tasks
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/lighthought/app-maker/shared-models/common"
+)
 
 // 用于传递任务结果的结构
 type TaskResult struct {
@@ -35,6 +39,21 @@ func (p *ProjectTaskPayload) ToBytes() []byte {
 	return bytes
 }
 
+// 只有项目阶段名称的负载
+type ProjectStageTaskPayload struct {
+	ProjectGuid    string `json:"project_guid"`
+	StageName      string `json:"stage_name"`
+	RequireConfirm bool   `json:"require_confirm"`
+}
+
+func (p *ProjectStageTaskPayload) ToBytes() []byte {
+	bytes, err := json.Marshal(p)
+	if err != nil {
+		return nil
+	}
+	return bytes
+}
+
 // WebSocket消息广播任务负载
 type WebSocketTaskPayload struct {
 	ProjectGUID string `json:"project_guid"` // 项目GUID
@@ -54,10 +73,11 @@ func (p *WebSocketTaskPayload) ToBytes() []byte {
 
 // 代理执行任务负载
 type AgentExecuteTaskPayload struct {
-	ProjectGUID string `json:"project_guid"`
-	AgentType   string `json:"agent_type"`
-	Message     string `json:"message"`
-	CliTool     string `json:"cli_tool"`
+	ProjectGUID string           `json:"project_guid"`
+	AgentType   string           `json:"agent_type"`
+	Message     string           `json:"message"`
+	DevStage    common.DevStatus `json:"dev_stage"`
+	CliTool     string           `json:"cli_tool"`
 }
 
 func (a *AgentExecuteTaskPayload) ToBytes() []byte {

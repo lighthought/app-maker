@@ -22,18 +22,10 @@ import (
 	api "github.com/ollama/ollama/api"
 )
 
-// ContainsQuestion 检测文本中是否包含问题
-// 支持检测中英文问号、常见问题关键词等
-func ContainsQuestion(text string) bool {
-	if text == "" {
-		return false
-	}
-
-	// 转换为小写以便检测
-	lowerText := strings.ToLower(text)
-
+// 关键词检测
+func hasQuestionKeyWords(lowerText string) bool {
 	// 检测问号（中英文）
-	if strings.Contains(text, "?") || strings.Contains(text, "？") {
+	if strings.Contains(lowerText, "?") || strings.Contains(lowerText, "？") {
 		return true
 	}
 
@@ -53,22 +45,41 @@ func ContainsQuestion(text string) bool {
 			return true
 		}
 	}
+	return false
+}
 
-	// 检测疑问句模式
+// 匹配猜测的句子
+func hasQuestionPattern(lowerText string) bool {
 	questionPatterns := []string{
 		"什么.*？", "怎么.*？", "如何.*？", "为什么.*？", "哪里.*？", "哪个.*？",
 		"what.*\\?", "how.*\\?", "why.*\\?", "where.*\\?", "which.*\\?",
 		"when.*\\?", "who.*\\?", "whose.*\\?",
 	}
-
 	for _, pattern := range questionPatterns {
-		matched, _ := regexp.MatchString(pattern, text)
+		matched, _ := regexp.MatchString(pattern, lowerText)
 		if matched {
 			return true
 		}
 	}
-
 	return false
+}
+
+// ContainsQuestion 检测文本中是否包含问题
+// 支持检测中英文问号、常见问题关键词等
+func ContainsQuestion(text string) bool {
+	if text == "" {
+		return false
+	}
+
+	// 转换为小写以便检测
+	lowerText := strings.ToLower(text)
+	// 检测常见问题关键词
+	if hasQuestionKeyWords(lowerText) {
+		return true
+	}
+
+	// 检测疑问句模式
+	return hasQuestionPattern(lowerText)
 }
 
 // ProjectSummaryResponse 项目总结响应结构
@@ -144,7 +155,6 @@ func (s *ollamaCompletionStream) Recv() (*deepseek.StreamChatCompletionResponse,
 			}
 			return nil, fmt.Errorf("error reading stream: %w", err)
 		}
-
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -169,11 +179,9 @@ func (s *ollamaCompletionStream) Recv() (*deepseek.StreamChatCompletionResponse,
 				},
 			},
 		}
-
 		if ollamaResp.Done && ollamaResp.Message.Content == "" {
 			return nil, io.EOF
 		}
-
 		return response, nil
 	}
 }
@@ -194,7 +202,7 @@ func CreateOllamaChatCompletionStream(
 	request *deepseek.StreamChatCompletionRequest,
 ) (*ollamaCompletionStream, error) {
 	if !IsOllamaRunning() {
-		return &ollamaCompletionStream{}, fmt.Errorf("Ollama server is not running")
+		return &ollamaCompletionStream{}, fmt.Errorf("ollama server is not running")
 	}
 	if request == nil {
 		return nil, fmt.Errorf("request cannot be nil")
@@ -204,19 +212,16 @@ func CreateOllamaChatCompletionStream(
 		BaseURL: GetEnvOrDefault("OLLAMA_URL", "http://chat.app-maker.localhost:11434"),
 	}
 	var s bool = true
-	// Convert messages to Ollama format
-	ollamaRequest := &api.ChatRequest{
+	ollamaRequest := &api.ChatRequest{ // 转换为 Ollama 格式
 		Model:    request.Model,
 		Messages: convertToOllamaMessages(request.Messages),
 		Stream:   &s,
 	}
-
 	req, err := deepseekUtils.NewRequestBuilder(c.AuthToken).
 		SetBaseURL(c.BaseURL).
 		SetPath("/api/chat/").
 		SetBodyFromStruct(ollamaRequest).
 		Build(ctx)
-
 	if err != nil {
 		return nil, fmt.Errorf("error building request: %w", err)
 	}
@@ -225,12 +230,11 @@ func CreateOllamaChatCompletionStream(
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
-
 	if resp.StatusCode >= 400 {
 		return nil, deepseek.HandleAPIError(resp)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(ctx) // 创建上下文和取消函数
 	stream := &ollamaCompletionStream{
 		ctx:    ctx,
 		cancel: cancel,

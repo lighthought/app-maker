@@ -13,8 +13,6 @@ import (
 	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/lighthought/app-maker/backend/internal/models"
-
-	"github.com/hibiken/asynq"
 )
 
 // PreviewFilesConfig 预览项目文件配置
@@ -31,24 +29,19 @@ type FileService interface {
 	// GetFileContent 获取文件内容
 	GetFileContent(ctx context.Context, userID, projectGuid, filePath, encoding string) (*models.FileContent, error)
 
-	// GetRelativeFiles 获取相对路径的文件列表
-	GetRelativeFiles(projectPath, subFolder string) ([]string, error)
-
 	// SyncEpicsToFiles 将数据库中的 Epics 和 Stories 同步到项目文件
 	SyncEpicsToFiles(ctx context.Context, projectPath string, epics []*models.Epic) error
 }
 
 // projectFileService 项目文件服务实现
 type fileService struct {
-	asyncClient *asynq.Client
-	gitService  GitService
+	gitService GitService
 }
 
 // NewProjectFileService 创建项目文件服务
-func NewFileService(asyncClient *asynq.Client, gitService GitService) FileService {
+func NewFileService(gitService GitService) FileService {
 	return &fileService{
-		asyncClient: asyncClient,
-		gitService:  gitService,
+		gitService: gitService,
 	}
 }
 
@@ -175,23 +168,6 @@ func (s *fileService) getRootDirectoryFiles(projectPath string, config *PreviewF
 	}
 
 	return files, nil
-}
-
-// GetRelativeFiles 获取相对路径的文件列表
-func (s *fileService) GetRelativeFiles(projectPath, subFolder string) ([]string, error) {
-	var fileNames []string
-
-	entries, err := os.ReadDir(filepath.Join(projectPath, subFolder))
-	if err != nil {
-		logger.Error("读取目录内容失败", logger.String("projectPath", projectPath), logger.String("subFolder", subFolder))
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		fileNames = append(fileNames, entry.Name())
-	}
-
-	return fileNames, nil
 }
 
 // getSubDirectoryFiles 获取子目录文件

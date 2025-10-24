@@ -17,17 +17,22 @@ import (
 
 // ProjectHandler 项目处理器
 type ProjectHandler struct {
-	projectService      services.ProjectService
-	projectStageService services.ProjectStageService
-	previewService      services.PreviewService
+	projectService     services.ProjectService
+	asyncClientService services.AsyncClientService
+	commonService      services.ProjectCommonService
+	previewService     services.PreviewService
 }
 
 // NewProjectHandler 创建项目处理器实例
-func NewProjectHandler(projectService services.ProjectService, projectStageService services.ProjectStageService, previewService services.PreviewService) *ProjectHandler {
+func NewProjectHandler(projectService services.ProjectService,
+	asyncClientService services.AsyncClientService,
+	commonService services.ProjectCommonService,
+	previewService services.PreviewService) *ProjectHandler {
 	return &ProjectHandler{
-		projectService:      projectService,
-		projectStageService: projectStageService,
-		previewService:      previewService,
+		projectService:     projectService,
+		asyncClientService: asyncClientService,
+		commonService:      commonService,
+		previewService:     previewService,
 	}
 }
 
@@ -239,7 +244,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 // @Param page_size query int false "每页数量" default(10)
 // @Param status query string false "项目状态" Enums(draft, in_progress, completed, failed)
 // @Param search query string false "搜索关键词"
-// @Success 200 {object} common.Response{data=models.PaginationResponse{data=[]models.ProjectInfo}} "获取项目列表成功"
+// @Success 200 {object} common.Response{data=common.PaginationResponse{data=[]models.ProjectInfo}} "获取项目列表成功"
 // @Failure 400 {object} common.ErrorResponse "请求参数错误"
 // @Failure 401 {object} common.ErrorResponse "未授权"
 // @Failure 500 {object} common.ErrorResponse "服务器内部错误"
@@ -294,7 +299,7 @@ func (h *ProjectHandler) GetProjectStages(c *gin.Context) {
 		return
 	}
 
-	stages, err := h.projectStageService.GetProjectStages(c.Request.Context(), projectGuid)
+	stages, err := h.commonService.GetProjectStages(c.Request.Context(), projectGuid)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "获取开发阶段失败: "+err.Error()))
 		return
@@ -339,8 +344,15 @@ func (h *ProjectHandler) DownloadProject(c *gin.Context) {
 		return
 	}
 
-	// 生成项目压缩任务
-	taskID, err := h.projectService.CreateDownloadProjectTask(c.Request.Context(), project.ID, projectGuid, project.ProjectPath)
+	// 检查项目路径是否存在
+	if !utils.IsDirectoryExists(project.ProjectPath) {
+		logger.Error("project path is empty", logger.String("projectPath", project.ProjectPath))
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.INTERNAL_ERROR, "项目路径不存在: "+project.ProjectPath))
+		return
+	}
+
+	// 异步方法，返回任务 ID
+	taskID, err := h.asyncClientService.EnqueueProjectDownloadTask(project.ID, project.GUID, project.ProjectPath)
 	if err != nil {
 		logger.Error("生成项目压缩任务失败",
 			logger.String("error", err.Error()),
@@ -378,7 +390,7 @@ func (h *ProjectHandler) DeployProject(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	// 验证用户权限
-	project, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
+	_, err := h.projectService.CheckProjectAccess(c.Request.Context(), projectGuid, userID)
 	if err != nil {
 		if err.Error() == common.MESSAGE_ACCESS_DENIED {
 			c.JSON(http.StatusForbidden, utils.GetErrorResponse(common.FORBIDDEN, "访问被拒绝"))
@@ -388,7 +400,7 @@ func (h *ProjectHandler) DeployProject(c *gin.Context) {
 		return
 	}
 
-	taskID, err := h.projectService.CreateDeployProjectTask(c.Request.Context(), project)
+	taskID, err := h.asyncClientService.EnqueueProjectDeployTask(projectGuid, "dev")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.GetErrorResponse(common.INTERNAL_ERROR, "创建部署项目任务失败: "+err.Error()))
 		return

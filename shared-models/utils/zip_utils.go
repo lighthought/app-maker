@@ -60,11 +60,7 @@ func CompressDirectory(ctx context.Context, sourceDir, outputPath string, workin
 // fileName: 缓存文件名（不包含扩展名）
 // workingDir: 工作目录（可选，默认为sourceDir）
 func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName string, workingDir ...string) (string, error) {
-	logger.Info("开始压缩目录到缓存",
-		logger.String("sourceDir", sourceDir),
-		logger.String("cacheDir", cacheDir),
-		logger.String("fileName", fileName),
-	)
+	logger.Info("开始压缩目录到缓存", logger.String("sourceDir", sourceDir), logger.String("cacheDir", cacheDir), logger.String("fileName", fileName))
 
 	// 检查源目录是否存在
 	if !IsDirectoryExists(sourceDir) {
@@ -94,7 +90,6 @@ func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName s
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to execute zip command: %w", err)
 	}
-
 	logger.Info("目录压缩到缓存完成", logger.String("sourceDir", sourceDir), logger.String("cacheFilePath", cacheFilePath))
 
 	// 从 cacheFilePath 中去掉 baseDir 前缀

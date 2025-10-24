@@ -1,9 +1,12 @@
 package models
 
 import (
+	"context"
 	"time"
 
+	"github.com/lighthought/app-maker/shared-models/agent"
 	"github.com/lighthought/app-maker/shared-models/common"
+	"github.com/lighthought/app-maker/shared-models/tasks"
 
 	"gorm.io/gorm"
 )
@@ -84,6 +87,7 @@ func NewDevStage(project *Project, stageName common.DevStatus, status string) *D
 func (ds *DevStage) SetStatus(status string) {
 	ds.Status = status
 	ds.Progress = common.GetProgressByCommonStatus(status)
+	ds.FailedReason = ""
 }
 
 // BeforeCreate 创建前的钩子
@@ -97,4 +101,14 @@ func (ds *DevStage) BeforeCreate(tx *gorm.DB) error {
 		ds.ID = result
 	}
 	return nil
+}
+
+// DevStageItem 开发阶段项
+type DevStageItem struct {
+	Name          common.DevStatus                                                              // 阶段名称
+	Desc          string                                                                        // 阶段描述
+	NeedConfirm   bool                                                                          // 是否需要确认
+	SkipInDevMode bool                                                                          // 在开发模式下是否跳过，跳过则不执行
+	ReqHandler    func(context.Context, *Project) (string, error)                               // 阶段执行器
+	RespHandler   func(context.Context, *agent.AgentTaskStatusMessage, *tasks.TaskResult) error // 阶段响应处理器
 }

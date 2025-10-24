@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lighthought/app-maker/backend/internal/config"
 	"github.com/lighthought/app-maker/shared-models/agent"
 	"github.com/lighthought/app-maker/shared-models/common"
 	"github.com/lighthought/app-maker/shared-models/logger"
@@ -25,18 +26,23 @@ type RedisPubSubService interface {
 
 // redisPubSubService Redis Pub/Sub 服务实现
 type redisPubSubService struct {
-	redisClient         *redis.Client
-	projectStageService ProjectStageService
-	pubsub              *redis.PubSub
-	stopChan            chan struct{}
+	redisClient  *redis.Client
+	asyncService AsyncClientService
+	pubsub       *redis.PubSub
+	stopChan     chan struct{}
 }
 
 // NewRedisPubSubService 创建 Redis Pub/Sub 服务
-func NewRedisPubSubService(redisClient *redis.Client, projectStageService ProjectStageService) RedisPubSubService {
+func NewRedisPubSubService(asyncService AsyncClientService, cfg *config.Config) RedisPubSubService {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       common.CacheDbAgentAsynq,
+	})
 	return &redisPubSubService{
-		redisClient:         redisClient,
-		projectStageService: projectStageService,
-		stopChan:            make(chan struct{}),
+		redisClient:  redisClient,
+		asyncService: asyncService,
+		stopChan:     make(chan struct{}),
 	}
 }
 
@@ -137,6 +143,7 @@ func (s *redisPubSubService) HandleAgentTaskStatus(ctx context.Context, message 
 			logger.String("taskID", message.TaskID),
 			logger.String("projectGuid", message.ProjectGuid),
 			logger.String("agentType", message.AgentType))
+		return nil
 
 	case common.CommonStatusDone:
 		logger.Info("Agent task executed successfully",
@@ -144,9 +151,11 @@ func (s *redisPubSubService) HandleAgentTaskStatus(ctx context.Context, message 
 			logger.String("projectGuid", message.ProjectGuid),
 			logger.String("agentType", message.AgentType))
 
-		// 任务完成，通知 ProjectStageService 继续下一阶段
-		// TODO: 这里我们需要一个机制来通知 ProjectStageService 任务已完成
-		// TODO: 由于我们已经重构了状态机，这里可以触发下一阶段的执行
+		_, err := s.asyncService.EnqueueAgentTaskResponseTask(message)
+		if err != nil {
+			return fmt.Errorf("failed to enqueue agent task response task: %s", err.Error())
+		}
+		return nil
 
 	case common.CommonStatusFailed:
 		logger.Error("Agent 任务执行失败",
@@ -155,7 +164,11 @@ func (s *redisPubSubService) HandleAgentTaskStatus(ctx context.Context, message 
 			logger.String("agentType", message.AgentType),
 			logger.String("error", message.Message))
 
-		// 任务失败，需要处理失败逻辑
+		_, err := s.asyncService.EnqueueAgentTaskResponseTask(message)
+		if err != nil {
+			return fmt.Errorf("failed to enqueue agent task response task: %s", err.Error())
+		}
+		return nil
 
 	default:
 		logger.Warn("未知的 Agent 任务状态",

@@ -32,52 +32,46 @@ type EpicService interface {
 }
 
 type epicService struct {
-	epicRepo    repositories.EpicRepository
-	storyRepo   repositories.StoryRepository
-	projectRepo repositories.ProjectRepository
-	fileService FileService
+	repositories *repositories.Repository
+	fileService  FileService
 }
 
 func NewEpicService(
-	epicRepo repositories.EpicRepository,
-	storyRepo repositories.StoryRepository,
-	projectRepo repositories.ProjectRepository,
+	repositories *repositories.Repository,
 	fileService FileService,
 ) EpicService {
 	return &epicService{
-		epicRepo:    epicRepo,
-		storyRepo:   storyRepo,
-		projectRepo: projectRepo,
-		fileService: fileService,
+		repositories: repositories,
+		fileService:  fileService,
 	}
 }
 
 func (s *epicService) GetByProjectGuid(ctx context.Context, projectGuid string) ([]*models.Epic, error) {
-	return s.epicRepo.GetByProjectGuid(ctx, projectGuid)
+	return s.repositories.EpicRepo.GetByProjectGuid(ctx, projectGuid)
 }
 
 func (s *epicService) GetMvpEpicsByProjectGuid(ctx context.Context, projectGuid string) ([]*models.Epic, error) {
 	// 先获取项目
-	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
+	project, err := s.repositories.ProjectRepo.GetByGUID(ctx, projectGuid)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.epicRepo.GetMvpEpicsByProject(ctx, project.ID)
+	return s.repositories.EpicRepo.GetMvpEpicsByProject(ctx, project.ID)
 }
 
 func (s *epicService) UpdateStoryStatus(ctx context.Context, storyID string, status string) error {
-	return s.storyRepo.UpdateStatus(ctx, storyID, status)
+	return s.repositories.StoryRepo.UpdateStatus(ctx, storyID, status)
 }
 
 // UpdateEpicOrder 更新 Epic 排序
 func (s *epicService) UpdateEpicOrder(ctx context.Context, epicID string, order int) error {
-	return s.epicRepo.UpdateDisplayOrder(ctx, epicID, order)
+	return s.repositories.EpicRepo.UpdateDisplayOrder(ctx, epicID, order)
 }
 
 // UpdateEpic 更新 Epic 内容
 func (s *epicService) UpdateEpic(ctx context.Context, epicID string, req *models.UpdateEpicRequest) error {
-	epic, err := s.epicRepo.GetByID(ctx, epicID)
+	epic, err := s.repositories.EpicRepo.GetByID(ctx, epicID)
 	if err != nil {
 		return err
 	}
@@ -96,22 +90,22 @@ func (s *epicService) UpdateEpic(ctx context.Context, epicID string, req *models
 		epic.EstimatedDays = *req.EstimatedDays
 	}
 
-	return s.epicRepo.Update(ctx, epic)
+	return s.repositories.EpicRepo.Update(ctx, epic)
 }
 
 // DeleteEpic 删除 Epic
 func (s *epicService) DeleteEpic(ctx context.Context, epicID string) error {
-	return s.epicRepo.Delete(ctx, epicID)
+	return s.repositories.EpicRepo.Delete(ctx, epicID)
 }
 
 // UpdateStoryOrder 更新 Story 排序
 func (s *epicService) UpdateStoryOrder(ctx context.Context, storyID string, order int) error {
-	return s.storyRepo.UpdateDisplayOrder(ctx, storyID, order)
+	return s.repositories.StoryRepo.UpdateDisplayOrder(ctx, storyID, order)
 }
 
 // UpdateStory 更新 Story 内容
 func (s *epicService) UpdateStory(ctx context.Context, storyID string, req *models.UpdateStoryRequest) error {
-	story, err := s.storyRepo.GetByID(ctx, storyID)
+	story, err := s.repositories.StoryRepo.GetByID(ctx, storyID)
 	if err != nil {
 		return err
 	}
@@ -142,29 +136,29 @@ func (s *epicService) UpdateStory(ctx context.Context, storyID string, req *mode
 		story.AcceptanceCriteria = *req.AcceptanceCriteria
 	}
 
-	return s.storyRepo.Update(ctx, story)
+	return s.repositories.StoryRepo.Update(ctx, story)
 }
 
 // DeleteStory 删除 Story
 func (s *epicService) DeleteStory(ctx context.Context, storyID string) error {
-	return s.storyRepo.Delete(ctx, storyID)
+	return s.repositories.StoryRepo.Delete(ctx, storyID)
 }
 
 // BatchDeleteStories 批量删除 Stories
 func (s *epicService) BatchDeleteStories(ctx context.Context, storyIDs []string) error {
-	return s.storyRepo.BatchDelete(ctx, storyIDs)
+	return s.repositories.StoryRepo.BatchDelete(ctx, storyIDs)
 }
 
 // ConfirmEpicsAndStories 确认 Epics 和 Stories
 func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid string, action string) error {
 	// 获取项目信息
-	project, err := s.projectRepo.GetByGUID(ctx, projectGuid)
+	project, err := s.repositories.ProjectRepo.GetByGUID(ctx, projectGuid)
 	if err != nil {
 		return fmt.Errorf("failed to get project info: %s", err.Error())
 	}
 
 	// 获取当前的 Epics 和 Stories
-	epics, err := s.epicRepo.GetByProjectGuid(ctx, projectGuid)
+	epics, err := s.repositories.EpicRepo.GetByProjectGuid(ctx, projectGuid)
 	if err != nil {
 		return fmt.Errorf("failed to get Epics: %s", err.Error())
 	}
@@ -180,7 +174,7 @@ func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid st
 		// 清除等待确认状态
 		project.WaitingForUserConfirm = false
 		project.ConfirmStage = ""
-		if err := s.projectRepo.Update(ctx, project); err != nil {
+		if err := s.repositories.ProjectRepo.Update(ctx, project); err != nil {
 			return fmt.Errorf("failed to update project status: %s", err.Error())
 		}
 
@@ -191,7 +185,7 @@ func (s *epicService) ConfirmEpicsAndStories(ctx context.Context, projectGuid st
 		// 跳过确认：直接继续下一阶段
 		project.WaitingForUserConfirm = false
 		project.ConfirmStage = ""
-		if err := s.projectRepo.Update(ctx, project); err != nil {
+		if err := s.repositories.ProjectRepo.Update(ctx, project); err != nil {
 			return fmt.Errorf("failed to update project status: %s", err.Error())
 		}
 

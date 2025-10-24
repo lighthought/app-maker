@@ -56,7 +56,8 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 		"4. 当前项目使用的模板技术架构是：\n" + req.TemplateArchDescription +
 		"5. 如果 docs/arch/ 目录下已经有完善的架构设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message,
+		req.CliTool, common.DevStatusDesignArchitecture)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "异步任务压入失败: "+err.Error()))
 		return
@@ -97,7 +98,8 @@ func (s *ArchitectHandler) GetDatabaseDesign(c *gin.Context) {
 		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
 		"3. 如果 docs/db/ 目录下已经有完善的数据模型设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message,
+		req.CliTool, common.DevStatusDefineDataModel)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "设计数据库任务失败: "+err.Error()))
 		return
@@ -137,7 +139,8 @@ func (s *ArchitectHandler) GetAPIDefinition(c *gin.Context) {
 		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
 		"3. 如果 docs/api/ 目录下已经有完善的 API 接口定义，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message,
+		req.CliTool, common.DevStatusDefineAPI)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "设计 API 接口定义任务失败: "+err.Error()))
 		return

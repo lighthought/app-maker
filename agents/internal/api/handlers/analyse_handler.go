@@ -56,7 +56,8 @@ func (s *AnalyseHandler) ProjectBrief(c *gin.Context) {
 		"4. 不要问我任何问题，请基于我的需求判断我想要开发的应用或网站类型。\n" +
 		"5. 市场研究文档的内容包括：竞争对手分析、目标市场规模、用户需求分析、商业模式可行性。"
 
-	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeAnalyse, message, req.CliTool)
+	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeAnalyse, message,
+		req.CliTool, common.DevStatusCheckRequirement)
 	if err != nil {
 		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "异步任务压入失败: "+err.Error()))
 		return

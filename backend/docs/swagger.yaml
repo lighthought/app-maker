@@ -49,75 +49,19 @@ definitions:
       version:
         type: string
     type: object
-  autocodeweb-backend_internal_models.BatchDeleteStoriesRequest:
+  common.ErrorResponse:
     properties:
-      story_ids:
-        items:
-          type: string
-        minItems: 1
-        type: array
-    required:
-    - story_ids
-    type: object
-  autocodeweb-backend_internal_models.ChangePasswordRequest:
-    properties:
-      new_password:
-        example: newpassword123
-        minLength: 6
-        type: string
-      old_password:
-        example: oldpassword123
-        type: string
-    required:
-    - new_password
-    - old_password
-    type: object
-  autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest:
-    properties:
-      action:
-        description: 'confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成'
-        enum:
-        - confirm
-        - skip
-        - regenerate
-        type: string
-    required:
-    - action
-    type: object
-  autocodeweb-backend_internal_models.CreateProjectRequest:
-    properties:
-      requirements:
-        example: 项目需求描述
-        type: string
-    required:
-    - requirements
-    type: object
-  autocodeweb-backend_internal_models.LoginRequest:
-    properties:
-      email:
-        example: user@example.com
-        type: string
-      password:
-        example: password123
-        minLength: 6
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  autocodeweb-backend_internal_models.LoginResponse:
-    properties:
-      access_token:
-        type: string
-      expires_in:
-        example: 3600
+      code:
+        example: 400
         type: integer
-      refresh_token:
+      message:
+        example: 请求参数错误
         type: string
-      user:
-        $ref: '#/definitions/autocodeweb-backend_internal_models.UserInfo'
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
     type: object
-  autocodeweb-backend_internal_models.PaginationResponse:
+  common.PaginationResponse:
     properties:
       code:
         example: 0
@@ -148,7 +92,88 @@ definitions:
         example: 10
         type: integer
     type: object
-  autocodeweb-backend_internal_models.ProjectInfo:
+  common.Response:
+    properties:
+      code:
+        example: 0
+        type: integer
+      data: {}
+      message:
+        example: success
+        type: string
+      timestamp:
+        example: "2025-08-29T10:00:00Z"
+        type: string
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.BatchDeleteStoriesRequest:
+    properties:
+      story_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - story_ids
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.ChangePasswordRequest:
+    properties:
+      new_password:
+        example: newpassword123
+        minLength: 6
+        type: string
+      old_password:
+        example: oldpassword123
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.ConfirmEpicsAndStoriesRequest:
+    properties:
+      action:
+        description: 'confirm: 确认并继续, skip: 跳过确认, regenerate: 重新生成'
+        enum:
+        - confirm
+        - skip
+        - regenerate
+        type: string
+    required:
+    - action
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.CreateProjectRequest:
+    properties:
+      requirements:
+        example: 项目需求描述
+        type: string
+    required:
+    - requirements
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.LoginRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        example: 3600
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserInfo'
+    type: object
+  github_com_lighthought_app-maker_backend_internal_models.ProjectInfo:
     properties:
       backend_port:
         example: 8080
@@ -182,12 +207,12 @@ definitions:
       updated_at:
         type: string
       user:
-        $ref: '#/definitions/autocodeweb-backend_internal_models.UserInfo'
+        $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserInfo'
       user_id:
         example: USER_00000000001
         type: string
     type: object
-  autocodeweb-backend_internal_models.RegisterRequest:
+  github_com_lighthought_app-maker_backend_internal_models.RegisterRequest:
     properties:
       email:
         example: user@example.com
@@ -206,7 +231,7 @@ definitions:
     - password
     - username
     type: object
-  autocodeweb-backend_internal_models.UpdateEpicOrderRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateEpicOrderRequest:
     properties:
       order:
         minimum: 0
@@ -214,7 +239,7 @@ definitions:
     required:
     - order
     type: object
-  autocodeweb-backend_internal_models.UpdateEpicRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateEpicRequest:
     properties:
       description:
         type: string
@@ -233,7 +258,7 @@ definitions:
         - P3
         type: string
     type: object
-  autocodeweb-backend_internal_models.UpdateProfileRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateProfileRequest:
     properties:
       email:
         example: newemail@example.com
@@ -244,7 +269,7 @@ definitions:
         minLength: 3
         type: string
     type: object
-  autocodeweb-backend_internal_models.UpdateProjectRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateProjectRequest:
     properties:
       ai_model:
         example: glm-4.6
@@ -277,7 +302,7 @@ definitions:
         minLength: 1
         type: string
     type: object
-  autocodeweb-backend_internal_models.UpdateStoryOrderRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateStoryOrderRequest:
     properties:
       order:
         minimum: 0
@@ -285,7 +310,7 @@ definitions:
     required:
     - order
     type: object
-  autocodeweb-backend_internal_models.UpdateStoryRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateStoryRequest:
     properties:
       acceptance_criteria:
         type: string
@@ -312,7 +337,7 @@ definitions:
         minLength: 1
         type: string
     type: object
-  autocodeweb-backend_internal_models.UpdateUserSettingsRequest:
+  github_com_lighthought_app-maker_backend_internal_models.UpdateUserSettingsRequest:
     properties:
       auto_go_next:
         description: 自动进入下一阶段配置
@@ -344,7 +369,7 @@ definitions:
         example: zhipu
         type: string
     type: object
-  autocodeweb-backend_internal_models.UserInfo:
+  github_com_lighthought_app-maker_backend_internal_models.UserInfo:
     properties:
       created_at:
         type: string
@@ -364,7 +389,7 @@ definitions:
         example: username
         type: string
     type: object
-  autocodeweb-backend_internal_models.UserSettingsResponse:
+  github_com_lighthought_app-maker_backend_internal_models.UserSettingsResponse:
     properties:
       auto_go_next:
         description: 自动进入下一阶段配置
@@ -387,31 +412,6 @@ definitions:
         example: zhipu
         type: string
     type: object
-  common.ErrorResponse:
-    properties:
-      code:
-        example: 400
-        type: integer
-      message:
-        example: 请求参数错误
-        type: string
-      timestamp:
-        example: "2025-08-29T10:00:00Z"
-        type: string
-    type: object
-  common.Response:
-    properties:
-      code:
-        example: 0
-        type: integer
-      data: {}
-      message:
-        example: success
-        type: string
-      timestamp:
-        example: "2025-08-29T10:00:00Z"
-        type: string
-    type: object
 info:
   contact: {}
 paths:
@@ -426,7 +426,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.LoginRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginRequest'
       produces:
       - application/json
       responses:
@@ -437,7 +437,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.LoginResponse'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginResponse'
               type: object
         "400":
           description: Bad Request
@@ -471,7 +471,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.LoginResponse'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginResponse'
               type: object
         "400":
           description: Bad Request
@@ -495,7 +495,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.RegisterRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -506,7 +506,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.LoginResponse'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.LoginResponse'
               type: object
         "400":
           description: Bad Request
@@ -988,11 +988,11 @@ paths:
             - properties:
                 data:
                   allOf:
-                  - $ref: '#/definitions/autocodeweb-backend_internal_models.PaginationResponse'
+                  - $ref: '#/definitions/common.PaginationResponse'
                   - properties:
                       data:
                         items:
-                          $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
+                          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo'
                         type: array
                     type: object
               type: object
@@ -1023,7 +1023,7 @@ paths:
         name: project
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.CreateProjectRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.CreateProjectRequest'
       produces:
       - application/json
       responses:
@@ -1034,7 +1034,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo'
               type: object
         "400":
           description: 请求参数错误
@@ -1112,7 +1112,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo'
               type: object
         "400":
           description: 请求参数错误
@@ -1150,7 +1150,7 @@ paths:
         name: project
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateProjectRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateProjectRequest'
       produces:
       - application/json
       responses:
@@ -1161,7 +1161,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.ProjectInfo'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.ProjectInfo'
               type: object
         "400":
           description: 请求参数错误
@@ -1306,7 +1306,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateEpicRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateEpicRequest'
       produces:
       - application/json
       responses:
@@ -1346,7 +1346,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateEpicOrderRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateEpicOrderRequest'
       produces:
       - application/json
       responses:
@@ -1429,7 +1429,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateStoryRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateStoryRequest'
       produces:
       - application/json
       responses:
@@ -1474,7 +1474,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateStoryOrderRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateStoryOrderRequest'
       produces:
       - application/json
       responses:
@@ -1509,7 +1509,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.ConfirmEpicsAndStoriesRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.ConfirmEpicsAndStoriesRequest'
       produces:
       - application/json
       responses:
@@ -1544,7 +1544,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.BatchDeleteStoriesRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.BatchDeleteStoriesRequest'
       produces:
       - application/json
       responses:
@@ -1805,7 +1805,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.PaginationResponse'
+                  $ref: '#/definitions/common.PaginationResponse'
               type: object
         "401":
           description: Unauthorized
@@ -1862,7 +1862,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.ChangePasswordRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.ChangePasswordRequest'
       produces:
       - application/json
       responses:
@@ -1919,7 +1919,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.UserInfo'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserInfo'
               type: object
         "401":
           description: Unauthorized
@@ -1944,7 +1944,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateProfileRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateProfileRequest'
       produces:
       - application/json
       responses:
@@ -1984,7 +1984,7 @@ paths:
             - $ref: '#/definitions/common.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/autocodeweb-backend_internal_models.UserSettingsResponse'
+                  $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UserSettingsResponse'
               type: object
         "401":
           description: Unauthorized
@@ -2005,7 +2005,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/autocodeweb-backend_internal_models.UpdateUserSettingsRequest'
+          $ref: '#/definitions/github_com_lighthought_app-maker_backend_internal_models.UpdateUserSettingsRequest'
       produces:
       - application/json
       responses:

@@ -28,6 +28,8 @@ help:
 	@echo "  restart-backend-local - Restart local backend server"
 	@echo "  restart-frontend-local - Restart local frontend server"
 	@echo "  status-local  - Show local development environment status"
+	@echo "  start-infrastructure-services - Start infrastructure services (Docker)"
+	@echo "  start-local-services - Start local services (backend and frontend)"
 	@echo "  start-backend-local - Start only backend server locally"
 	@echo "  start-frontend-local - Start only frontend server locally"
 	@echo "  test          - Run tests"
@@ -264,7 +266,7 @@ start-frontend-local:
 	cd frontend && pnpm dev
 
 # 启动基础设施服务（Docker）
-start-infrastructure-services:
+start-infrastructure-services: docker-ensure network-create
 	@echo "Starting infrastructure services with Docker..."
 	@echo "Starting PostgreSQL, Redis, GitLab, and Traefik..."
 	docker-compose up -d postgres redis gitlab traefik
