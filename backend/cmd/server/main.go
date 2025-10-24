@@ -68,7 +68,6 @@ func loadConfigAndService() (*config.Config, error) {
 		logger.Fatal("连接数据库失败", logger.String("error", err.Error()))
 		return nil, fmt.Errorf("连接数据库失败: %v", err)
 	}
-	defer database.Close()
 	logger.Info("数据库连接成功")
 
 	// 连接Redis
@@ -78,7 +77,6 @@ func loadConfigAndService() (*config.Config, error) {
 	}
 
 	logger.Info("Redis连接成功")
-	defer database.CloseRedis()
 	return cfg, nil
 }
 
@@ -141,6 +139,9 @@ func startServer(cfg *config.Config, engine *gin.Engine, theContainer *container
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Fatal("服务器强制关闭", logger.String("error", err.Error()))
 	}
+
+	defer database.Close()
+	defer database.CloseRedis()
 
 	logger.Info("服务器已关闭")
 }
