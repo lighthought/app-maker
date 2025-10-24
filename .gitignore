@@ -41,6 +41,7 @@ docs/stories/
 
 #backend
 backend/logs/
+backend/app/
 backend/bin/
 /backend/main
 /backend/server

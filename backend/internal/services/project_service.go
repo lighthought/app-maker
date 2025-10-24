@@ -384,7 +384,7 @@ func (s *projectService) commitProject(ctx context.Context, project *models.Proj
 // startDevelopingStage 调用AgentServer
 func (s *projectService) startDevelopingStage(ctx context.Context, project *models.Project) error {
 	//异步创建项目开发任务
-	taskID, err := s.asyncClientService.EnqueueProjectStageTask(false, project.GUID, string(common.DevStatusPendingAgents))
+	taskID, err := s.asyncClientService.EnqueueProjectStageTask(false, project.GUID, string(common.DevStatusSetupAgents))
 	if err != nil {
 		logger.Error("failed to create waiting agents task",
 			logger.String("error", err.Error()),

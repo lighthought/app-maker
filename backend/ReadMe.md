@@ -142,7 +142,7 @@ backend/
 const (
     DevStatusInitializing       = "initializing"        // 等待开始
     DevStatusSetupEnvironment   = "setup_environment"   // 环境准备
-    DevStatusPendingAgents      = "pending_agents"      // 等待Agents处理
+    DevStatusSetupAgents        = "setup_agents"      // 等待Agents处理
     DevStatusCheckRequirement   = "check_requirement"   // 需求检查
     DevStatusGeneratePRD        = "generate_prd"        // 生成PRD
     DevStatusDefineUXStandard   = "define_ux_standard"  // UX标准定义

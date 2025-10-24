@@ -28,6 +28,7 @@ type Container struct {
 	CommandService   services.CommandService
 	GitService       services.GitService
 	FileService      services.FileService
+	RedisService     services.RedisService
 	AgentTaskService services.AgentTaskService
 	ProjectService   services.ProjectService
 
@@ -56,7 +57,7 @@ func NewContainer(cfg *config.Config) *Container {
 		Host:     cfg.Redis.Host,
 		Port:     cfg.Redis.Port,
 		Password: cfg.Redis.Password,
-		DB:       2,
+		DB:       common.CacheDbDatabase,
 		PoolSize: 10,
 		MinIdle:  5,
 	})
@@ -66,10 +67,10 @@ func NewContainer(cfg *config.Config) *Container {
 
 	commandSvc := services.NewCommandService(cfg.Command, cfg.App.WorkspacePath)
 	gitService := services.NewGitService(commandSvc)
-
+	redisService := services.NewRedisService(cacheInstance)
 	fileSvc := services.NewFileService(commandSvc, cfg.App.WorkspacePath)
-	agentTaskService := services.NewAgentTaskService(commandSvc, fileSvc, gitService, asyncClient, cacheInstance)
-	projectSvc := services.NewProjectService(commandSvc, agentTaskService, fileSvc)
+	agentTaskService := services.NewAgentTaskService(commandSvc, fileSvc, gitService, redisService, asyncClient)
+	projectSvc := services.NewProjectService(commandSvc, agentTaskService, redisService, fileSvc)
 
 	asynqServer := initAsynqWorker(&asyncOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
@@ -91,6 +92,7 @@ func NewContainer(cfg *config.Config) *Container {
 		AsyncServer:      asynqServer,
 		CommandService:   commandSvc,
 		GitService:       gitService,
+		RedisService:     redisService,
 		CacheInstance:    cacheInstance,
 		ProjectHandler:   projectHandler,
 		ChatHandler:      chatHandler,

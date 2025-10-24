@@ -72,7 +72,7 @@ func (s *projectStageService) proceedToNextStage(ctx context.Context, project *m
         project.WaitingForUserConfirm = true
         project.ConfirmStage = string(currentStage)
         s.projectRepo.Update(ctx, project)
-        s.webSocketService.NotifyUserConfirmRequired(project.GUID, currentStage)
+        s.webSocketService.NotifyUserConfirmRequired(project.GUID, currentStage, message)
         return nil
     }
     

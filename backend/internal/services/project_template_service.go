@@ -173,7 +173,8 @@ func (s *projectTemplateService) replaceInFile(filePath string, project *models.
 	// 读取文件内容
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		logger.Error("模板有异常需要调整！！！ 替换文件内容时，读取文件失败：", logger.String("error", err.Error()), logger.String("filePath", filePath))
+		return nil
 	}
 
 	// 定义替换映射

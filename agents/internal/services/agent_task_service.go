@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/lighthought/app-maker/shared-models/agent"
-	"github.com/lighthought/app-maker/shared-models/cache"
 	"github.com/lighthought/app-maker/shared-models/common"
 	"github.com/lighthought/app-maker/shared-models/logger"
 	"github.com/lighthought/app-maker/shared-models/tasks"
@@ -20,8 +19,6 @@ import (
 type AgentTaskService interface {
 	// 处理任务
 	ProcessTask(ctx context.Context, task *asynq.Task) error
-	// Agent 执行任务
-	//Enqueue(projectGuid, agentType, message, stageName string) (*asynq.TaskInfo, error)
 	// Agent 执行任务（带CLI工具）
 	EnqueueWithCli(projectGuid, agentType, message, cliTool string, stageName common.DevStatus) (*asynq.TaskInfo, error)
 	// 项目环境准备
@@ -38,8 +35,8 @@ type agentTaskService struct {
 	commandService CommandService
 	fileService    FileService
 	gitService     GitService
+	redisService   RedisService
 	asyncClient    *asynq.Client
-	cacheInstance  cache.Cache
 }
 
 const (
@@ -50,75 +47,15 @@ const (
 func NewAgentTaskService(commandService CommandService,
 	fileService FileService,
 	gitService GitService,
-	asyncClient *asynq.Client,
-	cacheInstance cache.Cache) AgentTaskService {
+	redisService RedisService,
+	asyncClient *asynq.Client) AgentTaskService {
 	return &agentTaskService{
 		commandService: commandService,
 		fileService:    fileService,
 		gitService:     gitService,
 		asyncClient:    asyncClient,
-		cacheInstance:  cacheInstance,
+		redisService:   redisService,
 	}
-}
-
-// 根据projectGuid从缓存中获取 sessionId
-func (h *agentTaskService) getSessionByProjectGuid(projectGuid, agentType string) string {
-	if h.cacheInstance == nil {
-		logger.Warn("Cache instance is nil, cannot get session", logger.String("projectGuid", projectGuid))
-		return ""
-	}
-
-	key := cache.GetProjectAgentSessionCacheKey(projectGuid, agentType)
-	var sessionID string
-	err := h.cacheInstance.Get(key, &sessionID)
-	if err != nil {
-		logger.Error("Failed to get session from Redis",
-			logger.String("projectGuid", projectGuid),
-			logger.String("error", err.Error()))
-		return ""
-	}
-
-	logger.Info("Retrieved session for project",
-		logger.String("projectGuid", projectGuid),
-		logger.String("sessionID", sessionID))
-	return sessionID
-}
-
-// 把会话ID保存到缓存中
-func (h *agentTaskService) saveSessionByProjectGuid(projectGuid, agentType, sessionID string) {
-	if h.cacheInstance == nil {
-		logger.Warn("Redis client is nil, cannot save session",
-			logger.String("projectGuid", projectGuid),
-			logger.String("sessionID", sessionID))
-		return
-	}
-
-	if projectGuid == "" || sessionID == "" {
-		logger.Warn("Invalid parameters for saving session",
-			logger.String("projectGuid", projectGuid),
-			logger.String("sessionID", sessionID))
-		return
-	}
-
-	key := cache.GetProjectAgentSessionCacheKey(projectGuid, agentType)
-	// 设置过期时间为 24 小时，避免会话数据永久占用内存
-	expiration := common.CacheExpirationDay
-
-	err := h.cacheInstance.Set(key, sessionID, expiration)
-	if err != nil {
-		logger.Error("Failed to save session to cache",
-			logger.String("projectGuid", projectGuid),
-			logger.String("sessionID", sessionID),
-			logger.String("error", err.Error()),
-		)
-		return
-	}
-
-	logger.Info("Saved session for project",
-		logger.String("projectGuid", projectGuid),
-		logger.String("sessionID", sessionID),
-		logger.String("expiration", expiration.String()),
-	)
 }
 
 // Enqueue 创建代理执行任务
@@ -183,7 +120,7 @@ func (h *agentTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 }
 
 // 处理代理执行任务
-func (h *agentTaskService) innerProcessAgentExecuteTask(ctx context.Context, task *asynq.Task) error {
+func (s *agentTaskService) innerProcessAgentExecuteTask(ctx context.Context, task *asynq.Task) error {
 	if task.Type() != common.TaskTypeAgentExecute {
 		return fmt.Errorf("%s%s", UNEXPECTED_TASK_TYPE, task.Type())
 	}
@@ -193,8 +130,9 @@ func (h *agentTaskService) innerProcessAgentExecuteTask(ctx context.Context, tas
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 	tasks.UpdateResult(task.ResultWriter(), common.CommonStatusInProgress, 5, "正在执行代理任务...")
+	s.redisService.PublishTaskStatus(&payload, task.ResultWriter().TaskID(), common.CommonStatusInProgress, "正在执行代理任务...")
 
-	_, err := h.innerProcessTask(ctx, payload, task)
+	_, err := s.innerProcessTask(ctx, payload, task)
 	if err != nil {
 		return err
 	}
@@ -261,8 +199,7 @@ func (h *agentTaskService) handleAgentExecuteFailed(task *asynq.Task, payload ta
 	if task != nil {
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, result.Error)
 		// 发布任务失败状态
-		h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-			common.CommonStatusFailed, result.Error, payload.DevStage)
+		h.redisService.PublishTaskStatus(&payload, task.ResultWriter().TaskID(), common.CommonStatusFailed, result.Error)
 		logger.Error("代理任务执行失败",
 			logger.String("taskID", task.ResultWriter().TaskID()),
 			logger.String("agentType", payload.AgentType),
@@ -280,7 +217,7 @@ func (h *agentTaskService) handleAgentExecuteFailed(task *asynq.Task, payload ta
 func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.AgentExecuteTaskPayload, task *asynq.Task) (*models.CommandResult, error) {
 	var result models.CommandResult
 	timeBefor := utils.GetTimeNow()
-	sessionID := h.getSessionByProjectGuid(payload.ProjectGUID, payload.AgentType)
+	sessionID := h.redisService.GetSessionByProjectGuid(payload.ProjectGUID, payload.AgentType)
 
 	logger.Info("\n===> 开始执行代理任务",
 		logger.String("startTime", utils.GetCurrentTime()),
@@ -290,8 +227,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 
 	// 发布任务开始状态
 	if task != nil {
-		h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-			common.CommonStatusInProgress, "任务开始执行", payload.DevStage)
+		h.redisService.PublishTaskStatus(&payload, task.ResultWriter().TaskID(), common.CommonStatusInProgress, "任务开始执行")
 	}
 
 	// 从 payload 或项目检测获取 CLI 类型
@@ -352,7 +288,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 
 	// 保存会话ID
 	if claudeResponse.SessionID != "" {
-		h.saveSessionByProjectGuid(payload.ProjectGUID, payload.AgentType, claudeResponse.SessionID)
+		h.redisService.SaveSessionByProjectGuid(payload.ProjectGUID, payload.AgentType, claudeResponse.SessionID)
 	}
 	logger.Info(" ===> 代理任务执行成功",
 		logger.String("agentType", payload.AgentType),
@@ -368,8 +304,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 		if task != nil {
 			tasks.UpdateResult(task.ResultWriter(), common.CommonStatusFailed, 0, err.Error())
 			// 发布任务失败状态
-			h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-				common.CommonStatusFailed, "项目文档、代码提交并推送失败: "+err.Error(), payload.DevStage)
+			h.redisService.PublishTaskStatus(&payload, task.ResultWriter().TaskID(), common.CommonStatusFailed, "项目文档、代码提交并推送失败: "+err.Error())
 		}
 		return nil, fmt.Errorf("项目文档、代码提交并推送失败: %w", err)
 	}
@@ -377,8 +312,7 @@ func (h *agentTaskService) innerProcessTask(ctx context.Context, payload tasks.A
 	if task != nil {
 		tasks.UpdateResult(task.ResultWriter(), common.CommonStatusDone, 100, claudeResponse.Result)
 		// 发布任务完成状态
-		h.publishTaskStatus(task.ResultWriter().TaskID(), payload.ProjectGUID, payload.AgentType,
-			common.CommonStatusDone, "任务执行完成", payload.DevStage)
+		h.redisService.PublishTaskStatus(&payload, task.ResultWriter().TaskID(), common.CommonStatusDone, "任务执行完成")
 	}
 	return &result, nil
 }
@@ -396,36 +330,4 @@ func (h *agentTaskService) ChatWithAgent(ctx context.Context, projectGuid, agent
 		DevStage:    common.DevStatusUnknown, // 阵列用 Unknown 表示聊天
 	}
 	return h.innerProcessTask(ctx, payload, nil)
-}
-
-// publishTaskStatus 发布任务状态消息到 Redis Pub/Sub
-func (h *agentTaskService) publishTaskStatus(taskID, projectGuid, agentType, status, message string, devStage common.DevStatus) error {
-	if h.cacheInstance == nil {
-		return fmt.Errorf("cache instance is nil")
-	}
-
-	statusMsg := &agent.AgentTaskStatusMessage{
-		TaskID:      taskID,
-		ProjectGuid: projectGuid,
-		AgentType:   agentType,
-		Status:      status,
-		Message:     message,
-		DevStage:    string(devStage),
-		Timestamp:   utils.GetCurrentTime(),
-	}
-
-	// 发布到 Redis Pub/Sub
-	err := h.cacheInstance.Publish(common.RedisPubSubChannelAgentTask, statusMsg)
-	if err != nil {
-		return fmt.Errorf("发布任务状态消息失败: %w", err)
-	}
-
-	logger.Info("任务状态消息已发布",
-		logger.String("taskID", taskID),
-		logger.String("projectGuid", projectGuid),
-		logger.String("agentType", agentType),
-		logger.String("status", status),
-		logger.String("message", message),
-	)
-	return nil
 }

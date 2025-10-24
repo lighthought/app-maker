@@ -27,7 +27,7 @@ type ProjectDevService interface {
 
 	// 进入下一阶段的通用方法
 	ProceedToNextStage(ctx context.Context,
-		project *models.Project, currentStage common.DevStatus, requireConfirm bool) error
+		project *models.Project, currentStage common.DevStatus) error
 }
 
 // 项目开发业务实现
@@ -58,8 +58,8 @@ func NewProjectDevService(
 // 开发调试阶段，修改每个阶段的 SkipInDevMode 属性就可以了
 func (s *projectDevService) InitStageItems() {
 	s.stageItems = []*models.DevStageItem{
-		{Name: common.DevStatusPendingAgents, Desc: "等待Agents处理", NeedConfirm: false,
-			ReqHandler: s.agentInteractService.PendingAgents, RespHandler: s.OnPendingAgentResponse},
+		{Name: common.DevStatusSetupEnvironment, Desc: "准备项目 Agents 环境", NeedConfirm: false,
+			ReqHandler: s.agentInteractService.SetupAgentsEnviroment, RespHandler: s.OnPendingAgentResponse},
 		{Name: common.DevStatusCheckRequirement, Desc: "检查需求", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.CheckRequirement, RespHandler: s.OnCheckRequirementResponse},
 		{Name: common.DevStatusGeneratePRD, Desc: "生成PRD", NeedConfirm: true,
@@ -89,17 +89,17 @@ func (s *projectDevService) InitStageItems() {
 
 // ProceedToNextStage 进入下一阶段的通用方法
 func (s *projectDevService) ProceedToNextStage(ctx context.Context,
-	project *models.Project, currentStage common.DevStatus, requireConfirm bool) error {
+	project *models.Project, currentStage common.DevStatus) error {
 	// 优先使用项目级配置，其次用户级配置
-	autoGoNext := project.AutoGoNext
-	if !autoGoNext {
-		autoGoNext = project.User.AutoGoNext
-	}
+	// autoGoNext := project.AutoGoNext
+	// if !autoGoNext {
+	// 	autoGoNext = project.User.AutoGoNext
+	// }
 
-	if requireConfirm && !autoGoNext {
-		s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, currentStage)
-		return nil
-	}
+	// if requireConfirm && !autoGoNext {
+	// 	s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, currentStage)
+	// 	return nil
+	// }
 
 	// 自动进入下一阶段
 	nextStage := s.getNextStage(currentStage)

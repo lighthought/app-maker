@@ -28,7 +28,7 @@ type WebSocketService interface {
 	NotifyProjectStageUpdate(ctx context.Context, projectGUID string, stage *models.DevStage)
 	NotifyProjectMessage(ctx context.Context, projectGUID string, message *models.ConversationMessage)
 	NotifyProjectInfoUpdate(ctx context.Context, projectGUID string, info *models.Project)
-	NotifyUserConfirmRequired(ctx context.Context, projectGUID string, stage common.DevStatus)
+	NotifyUserConfirmRequired(ctx context.Context, projectGUID string, stage common.DevStatus, message string)
 
 	// 启动和停止
 	Start(ctx context.Context) error
@@ -258,25 +258,26 @@ func (s *webSocketService) NotifyProjectInfoUpdate(ctx context.Context, projectG
 }
 
 // NotifyUserConfirmRequired 通知用户确认需求
-func (s *webSocketService) NotifyUserConfirmRequired(ctx context.Context, projectGUID string, stage common.DevStatus) {
+func (s *webSocketService) NotifyUserConfirmRequired(ctx context.Context, projectGUID string, stage common.DevStatus, message string) {
 	// 创建用户确认需求的消息
-	message := &models.ConversationMessage{
-		ProjectGuid: projectGUID,
-		Type:        common.ConversationTypeAgent,
-		AgentRole:   common.AgentPM.Role,
-		AgentName:   common.AgentPM.Name,
-		Content:     fmt.Sprintf("阶段 %s 已完成，需要您的确认", common.GetDevStageDescription(stage)),
-		IsMarkdown:  false,
-		IsExpanded:  true,
+	agentMessage := &models.ConversationMessage{
+		ProjectGuid:     projectGUID,
+		Type:            common.ConversationTypeAgent,
+		AgentRole:       common.AgentPM.Role,
+		AgentName:       common.AgentPM.Name,
+		Content:         fmt.Sprintf("%s，需要您的确认", common.GetDevStageDescription(stage)),
+		IsMarkdown:      true,
+		MarkdownContent: message,
+		IsExpanded:      true,
 	}
 
 	// 保存消息到数据库
-	if err := s.repositories.MessageRepo.Create(ctx, message); err != nil {
+	if err := s.repositories.MessageRepo.Create(ctx, agentMessage); err != nil {
 		logger.Error("保存用户确认消息失败", logger.String("error", err.Error()))
 	}
 
 	// 广播消息
-	s.broadcastProjectMessage(ctx, projectGUID, message.ID)
+	s.broadcastProjectMessage(ctx, projectGUID, agentMessage.ID)
 
 	logger.Info("用户确认需求通知已发送",
 		logger.String("projectGUID", projectGUID),

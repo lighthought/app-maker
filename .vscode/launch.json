@@ -6,7 +6,7 @@
     "configurations": [
     
         {
-            "name": "Debug Server",
+            "name": "Debug Backend",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -15,6 +15,20 @@
             "env": {
                 "APP_ENVIRONMENT": "debugging",
                 "APP_DATA_HOME": "${workspaceFolder}/backend/app/data"
+            },
+            "args": [],
+            "showLog": true,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Agent",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/agents/cmd/server/main.go",
+            "cwd": "${workspaceFolder}/agents",
+            "env": {
+                "APP_ENVIRONMENT": "debugging",
             },
             "args": [],
             "showLog": true,

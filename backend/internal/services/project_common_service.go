@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/lighthought/app-maker/shared-models/common"
 	"github.com/lighthought/app-maker/shared-models/logger"
@@ -33,7 +32,7 @@ type ProjectCommonService interface {
 
 	// 更新项目状态为等待用户确认
 	UpdateProjectWaitingForUserConfirm(ctx context.Context, project *models.Project,
-		stage common.DevStatus)
+		stage common.DevStatus, message string)
 
 	// 创建并通知用户消息
 	CreateAndNotifyMessage(ctx context.Context, projectGuid string,
@@ -61,10 +60,6 @@ type ProjectCommonService interface {
 
 	// 更新阶段状态
 	UpdateStageStatus(ctx context.Context, stage *models.DevStage, status, failedReason string) error
-
-	// 通知项目状态变化
-	NotifyProjectStatusChange(ctx context.Context,
-		project *models.Project, message *models.ConversationMessage, stage *models.DevStage)
 
 	// 恢复项目和阶段
 	ResumeProjectAndStage(ctx context.Context, projectGuid string) (*models.Project, *models.DevStage, error)
@@ -94,15 +89,16 @@ func (s *projectCommonService) GetProjectStages(ctx context.Context, projectGuid
 
 // UpdateProjectWaitingForUserConfirm 更新项目状态为等待用户确认
 func (s *projectCommonService) UpdateProjectWaitingForUserConfirm(ctx context.Context, project *models.Project,
-	stage common.DevStatus) {
+	stage common.DevStatus, message string) {
 	// 设置项目状态为等待用户确认
 	project.WaitingForUserConfirm = true
+	project.Status = common.CommonStatusPaused
 	project.ConfirmStage = string(stage)
 	s.repositories.ProjectRepo.Update(ctx, project)
 	s.webSocketService.NotifyProjectInfoUpdate(ctx, project.GUID, project)
 
 	// 通过 WebSocket 通知前端
-	s.webSocketService.NotifyUserConfirmRequired(ctx, project.GUID, stage)
+	s.webSocketService.NotifyUserConfirmRequired(ctx, project.GUID, stage, message)
 }
 
 // CreateAndNotifyMessage 创建并通知用户消息
@@ -127,24 +123,22 @@ func (s *projectCommonService) CreateOrUpdateStage(ctx context.Context, project 
 	// 查找已有的阶段信息
 	devProjectStage, err := s.repositories.ProjectStageRepo.GetByProjectGuidAndName(ctx, projectGuid, stageName)
 	if err != nil {
-		devProjectStage = &models.DevStage{
-			ProjectGuid: projectGuid,
-			Name:        stageName,
-			Status:      common.CommonStatusInProgress,
-			TaskID:      taskID,
-		}
+		devProjectStage = models.NewDevStage(project, common.DevStatus(stageName), common.CommonStatusInProgress)
+		devProjectStage.TaskID = taskID
+
 		if err := s.repositories.ProjectStageRepo.Create(ctx, devProjectStage); err != nil {
 			return nil, false, fmt.Errorf("创建阶段记录失败: %w", err)
 		}
+		devProjectStage, _ = s.repositories.ProjectStageRepo.GetByProjectGuidAndName(ctx, projectGuid, stageName)
 	} else if devProjectStage.Status == common.CommonStatusDone {
 		return devProjectStage, true, nil
 	} else {
 		devProjectStage.TaskID = taskID
 		devProjectStage.SetStatus(common.CommonStatusInProgress)
 		s.repositories.ProjectStageRepo.Update(ctx, devProjectStage)
-		s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
-
 	}
+
+	s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, devProjectStage)
 	return devProjectStage, false, nil
 }
 
@@ -243,16 +237,18 @@ func (s *projectCommonService) UpdateStageStatus(ctx context.Context, stage *mod
 	if stage == nil {
 		return fmt.Errorf("stage is nil")
 	}
-	if status == common.CommonStatusDone {
+
+	switch status {
+	case common.CommonStatusDone:
 		now := utils.GetTimeNow()
 		stage.SetStatus(common.CommonStatusDone)
 		stage.CompletedAt = &now
-	} else if status == common.CommonStatusFailed {
+	case common.CommonStatusFailed:
 		stage.SetStatus(common.CommonStatusFailed)
 		stage.FailedReason = failedReason
-	} else if status == common.CommonStatusInProgress {
+	case common.CommonStatusInProgress:
 		stage.SetStatus(common.CommonStatusInProgress)
-	} else if status == common.CommonStatusPaused {
+	case common.CommonStatusPaused:
 		stage.SetStatus(common.CommonStatusPaused)
 	}
 	if err := s.repositories.ProjectStageRepo.Update(ctx, stage); err != nil {
@@ -300,68 +296,4 @@ func (s *projectCommonService) ResumeProjectAndStage(ctx context.Context, projec
 	}
 
 	return project, currentStage, nil
-}
-
-// CheckAgentQuestion 检查 agent 响应是否需要反馈
-func (s *projectCommonService) CheckAgentQuestion(project *models.Project, stage *models.DevStage, message *models.ConversationMessage) bool {
-	if message.Type == common.ConversationTypeAgent {
-		hasQuestion := utils.ContainsQuestion(message.Content) || utils.ContainsQuestion(message.MarkdownContent)
-		if hasQuestion {
-			message.HasQuestion = true
-			message.WaitingUserResponse = true
-			message.Content = strings.Replace(message.Content, "已完成", "需要反馈", 1)
-
-			// 暂停项目和当前阶段
-			project.Status = common.CommonStatusPaused
-			if stage != nil {
-				stage.Status = common.CommonStatusPaused
-			}
-
-			logger.Info("检测到 Agent 问题，暂停项目执行",
-				logger.String("projectID", project.ID),
-				logger.String("agentRole", message.AgentRole),
-				logger.String("agentName", message.AgentName),
-			)
-			return true
-		}
-	}
-	return false
-}
-
-// NotifyProjectStatusChange 统一由这个函数更新项目状态
-func (s *projectCommonService) NotifyProjectStatusChange(ctx context.Context,
-	project *models.Project, message *models.ConversationMessage, stage *models.DevStage) {
-	if message != nil {
-		s.CheckAgentQuestion(project, stage, message)                           // 检查是否需要暂停（Agent 消息包含问题）
-		if err := s.repositories.MessageRepo.Create(ctx, message); err != nil { // 保存用户消息
-			logger.Error("保存项目消息失败", logger.String("error", err.Error()), logger.String("projectID", project.ID))
-		}
-		s.webSocketService.NotifyProjectMessage(ctx, project.GUID, message)
-	}
-
-	if stage == nil {
-		return
-	}
-
-	if stage.ID == "" { // 插入项目阶段
-		if err := s.repositories.ProjectStageRepo.Create(ctx, stage); err != nil {
-			logger.Error("插入项目阶段失败", logger.String("error", err.Error()), logger.String("projectID", project.ID))
-		}
-		s.UpdateProjectToStage(ctx, project, stage.TaskID, stage.Name)
-		logger.Info("插入项目阶段成功", logger.String("projectID", project.ID), logger.String("stageID", stage.ID))
-	} else {
-		stage.ProjectID = project.ID
-		stage.ProjectGuid = project.GUID
-		if err := s.repositories.ProjectStageRepo.Update(ctx, stage); err != nil {
-			logger.Error("更新项目阶段失败",
-				logger.String("error", err.Error()),
-				logger.String("projectID", project.ID),
-				logger.String("stageID", stage.ID),
-				logger.String("stageName", stage.Name),
-				logger.String("status", stage.Status),
-			)
-		}
-		s.webSocketService.NotifyProjectStageUpdate(ctx, project.GUID, stage)
-		logger.Info("更新项目阶段成功", logger.String("projectID", project.ID), logger.String("stageID", stage.ID))
-	}
 }

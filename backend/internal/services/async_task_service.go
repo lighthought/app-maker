@@ -91,13 +91,16 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 		return asynq.SkipRetry
 	}
 	if isDone { // 当前阶段已经完成，直接跳到下一阶段
-		return s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName), false)
+		return s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName))
 	}
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "create stage")
+
 	// 更新项目状态
 	if err := s.commonService.UpdateProjectToStage(ctx, project, resultWriter.TaskID(), payload.StageName); err != nil {
 		logger.Error("failed to update project to stage", logger.String("error", err.Error()))
 		return asynq.SkipRetry
 	}
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "set project stage set to "+payload.StageName)
 	// 执行阶段
 	stageItem := s.devService.GetStageItem(common.DevStatus(payload.StageName))
 	if stageItem == nil {
@@ -106,7 +109,7 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 
 	if stageItem.SkipInDevMode && utils.IsDevEnvironment() {
 		logger.Info("开发模式：跳过阶段", logger.String("stageName", payload.StageName))
-		s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName), false) // 跳过阶段，直接执行下一阶段
+		s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName)) // 跳过阶段，直接执行下一阶段
 		return nil
 	}
 
@@ -118,6 +121,7 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 		return err
 	}
 
+	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, payload.StageName+" has request to agent")
 	logger.Info("阶段任务执行成功", logger.String("AgentTaskID", taskID))
 	return nil
 }
@@ -167,28 +171,35 @@ func (s *asyncTaskService) handleAgentResponseTask(ctx context.Context, t *asynq
 		return asynq.SkipRetry
 	}
 
+	resultWriter := t.ResultWriter()
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "获取 Agent 任务结果...")
 	response, err := s.agentService.WaitForTaskCompletion(ctx, message.TaskID)
 	if err != nil {
 		return fmt.Errorf("waiting for task completion failed: %s", err.Error())
 	}
 
 	if message.DevStage == string(common.DevStatusUnknown) { // 阵列用 Unknown 表示聊天
-		return s.devService.OnChatResponse(ctx, &message, response)
+		err := s.devService.OnChatResponse(ctx, &message, response)
+		tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "Agent 响应为聊天，已完成.")
+		return err
 	}
 
 	project, err := s.repositories.ProjectRepo.GetByGUID(ctx, message.ProjectGuid)
 	if err != nil {
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "获取项目失败")
 		return fmt.Errorf("failed to get project information: %s", err.Error())
 	}
 
 	stage, err := s.repositories.ProjectStageRepo.GetByProjectGuidAndName(ctx, message.ProjectGuid, message.DevStage)
 	if err != nil {
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 0, "获取项目阶段失败")
 		return fmt.Errorf("failed to get stage information: %s", err.Error())
 	}
 
 	if message.Status == common.CommonStatusFailed {
 		s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusFailed, response.Message)
 		s.commonService.UpdateProjectToStatus(ctx, project, common.CommonStatusFailed)
+		tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "Agent 消息为失败，已同步错误信息")
 		return nil
 	}
 
@@ -196,28 +207,31 @@ func (s *asyncTaskService) handleAgentResponseTask(ctx context.Context, t *asynq
 		logger.Error("任务状态异常", logger.String("taskID", message.TaskID), logger.String("status", message.Status))
 		s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusFailed, response.Message)
 		s.commonService.UpdateProjectToStatus(ctx, project, common.CommonStatusFailed)
+		tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "Agent 消息状态异常，已同步错误信息")
 		return nil
 	}
 
 	stageName := common.DevStatus(message.DevStage)
 	stageItem := s.devService.GetStageItem(stageName)
 	if stageItem == nil {
+		tasks.UpdateResult(resultWriter, common.CommonStatusFailed, 100, "获取项目阶段失败: "+message.DevStage)
 		return fmt.Errorf("编排阶段不存在: %s", stageName)
 	}
 
 	err = nil
-	if stageItem.NeedConfirm {
-		s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, stageName)
+	if stageItem.NeedConfirm && utils.ContainsQuestion(response.Message) {
+		s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, stageName, response.Message)
 	} else {
 		if stageItem.RespHandler != nil {
 			err = stageItem.RespHandler(ctx, &message, response)
 		}
 		if err == nil {
 			s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusDone, "")
-			s.devService.ProceedToNextStage(ctx, project, stageName, false)
+			s.devService.ProceedToNextStage(ctx, project, stageName)
 		}
 	}
 
+	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "Agent 响应为聊天，已完成.")
 	return err
 }
 
@@ -301,6 +315,7 @@ func (s *asyncTaskService) handleProjectDeployTask(ctx context.Context, t *asynq
 		return fmt.Errorf("获取项目信息失败: %w", err)
 	}
 
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 10, "use agent to package project")
 	// 使用较长的超时时间，因为部署任务可能需要较长时间
 	taskID, err := s.agentService.PackageProject(ctx, project)
 	if err != nil {
@@ -308,6 +323,7 @@ func (s *asyncTaskService) handleProjectDeployTask(ctx context.Context, t *asynq
 		return err
 	}
 
+	tasks.UpdateResult(resultWriter, common.CommonStatusInProgress, 30, "agent task id"+taskID)
 	// 部署是独立的任务，这里直接同步等待完成
 	response, err := s.agentService.WaitForTaskCompletion(ctx, taskID)
 	if err != nil {
@@ -325,6 +341,7 @@ func (s *asyncTaskService) handleProjectDeployTask(ctx context.Context, t *asynq
 		MarkdownContent: response.Message,
 		IsExpanded:      true,
 	}
+	s.commonService.CreateAndNotifyMessage(ctx, project.GUID, projectMsg)
 
 	// 设置预览 URL
 	if project.PreviewUrl == "" {
@@ -344,9 +361,6 @@ func (s *asyncTaskService) handleProjectDeployTask(ctx context.Context, t *asynq
 			s.commonService.UpdateAndNotifyProjectInfo(ctx, project)
 		}
 	}
-
-	s.commonService.NotifyProjectStatusChange(ctx, project, projectMsg, nil)
-
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, MESSAGE_STAGE_DEPLOYED)
 	return nil
 }

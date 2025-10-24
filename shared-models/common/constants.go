@@ -100,7 +100,7 @@ type DevStatus string
 const (
 	DevStatusInitializing       = DevStatus("initializing")        // 等待开始
 	DevStatusSetupEnvironment   = DevStatus("setup_environment")   // 环境处理
-	DevStatusPendingAgents      = DevStatus("pending_agents")      // 等待Agents处理
+	DevStatusSetupAgents        = DevStatus("setup_agents")        // 准备项目 Agents 环境
 	DevStatusCheckRequirement   = DevStatus("check_requirement")   // 需求检查
 	DevStatusGeneratePRD        = DevStatus("generate_prd")        // 生成PRD
 	DevStatusDefineUXStandard   = DevStatus("define_ux_standard")  // UX标准定义中
@@ -126,8 +126,8 @@ func GetDevStageDescription(devStage DevStatus) string {
 		return "等待开始开发"
 	case DevStatusSetupEnvironment:
 		return "正在初始化开发环境"
-	case DevStatusPendingAgents:
-		return "等待Agents处理"
+	case DevStatusSetupAgents:
+		return "准备项目 Agents 环境"
 	case DevStatusCheckRequirement:
 		return "正在检查需求"
 	case DevStatusGeneratePRD:
@@ -168,7 +168,7 @@ func GetDevStageProgress(devStage DevStatus) int {
 		return 0
 	case DevStatusSetupEnvironment:
 		return 5
-	case DevStatusPendingAgents:
+	case DevStatusSetupAgents:
 		return 10
 	case DevStatusCheckRequirement:
 		return 15
@@ -306,9 +306,9 @@ const (
 )
 
 const (
-	CacheDbBackendAsynq = 0
-	CacheDbAgentAsynq   = 1
-	CacheDbDatabase     = 2
+	CacheDbBackendAsynq = 0 // 后端 asynq 所在的 redis db
+	CacheDbAgentAsynq   = 1 // Agent asynq 所在的 redis db
+	CacheDbDatabase     = 2 // 业务数据所在的 redis db
 )
 
 // 缓存时长

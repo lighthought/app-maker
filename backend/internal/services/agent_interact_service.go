@@ -27,8 +27,8 @@ type AgentInteractService interface {
 	// 等待任务完成
 	WaitForTaskCompletion(ctx context.Context, taskID string) (*tasks.TaskResult, error)
 
-	// 准备项目开发环境
-	PendingAgents(ctx context.Context, project *models.Project) (string, error)
+	// 准备项目 Agents 环境
+	SetupAgentsEnviroment(ctx context.Context, project *models.Project) (string, error)
 
 	// 检查需求
 	CheckRequirement(ctx context.Context, project *models.Project) (string, error)
@@ -172,7 +172,7 @@ func (s *agentInteractService) IsAgentHealthy(ctx context.Context) bool {
 }
 
 // pendingAgents 准备项目开发环境
-func (s *agentInteractService) PendingAgents(ctx context.Context,
+func (s *agentInteractService) SetupAgentsEnviroment(ctx context.Context,
 	project *models.Project) (string, error) {
 	// 设置 CLI 工具和模型配置，如果项目没有设置则使用用户的默认设置
 	cliTool := project.CliTool
