@@ -6,7 +6,7 @@ FROM golang:1.24-alpine AS deps
 WORKDIR /app
 
 # 安装必要的系统依赖
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache ca-certificates git tzdata
 
 # 复制 shared-models 目录
 COPY shared-models/ ../shared-models/
@@ -21,7 +21,7 @@ RUN go mod download
 FROM golang:1.24-alpine AS tools
 
 # 安装必要的系统依赖
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache ca-certificates git tzdata
 
 # 设置工作目录
 WORKDIR /app
@@ -34,7 +34,13 @@ COPY backend/go.mod backend/go.sum ./
 RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
 
 # 第三阶段：构建阶段
-FROM deps AS builder
+FROM tools AS builder
+
+# 复制 shared-models 目录
+COPY shared-models/ ../shared-models/
+
+# 复制 go mod 文件（确保依赖正确）
+COPY backend/go.mod backend/go.sum ./
 
 # 复制源代码
 COPY backend/ .
@@ -49,12 +55,10 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o main cmd/server/main.go
 
 # 第四阶段：最小化运行环境
-FROM scratch AS runtime
+FROM alpine:3.22.2 AS runtime
 
-# 从 alpine 复制必要的运行时文件
-COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=alpine:latest /etc/passwd /etc/passwd
-COPY --from=alpine:latest /etc/group /etc/group
+# 安装必要的运行时工具（包括 git）
+RUN apk add --no-cache bash ca-certificates curl git openssh-client tzdata wget
 
 # 创建必要的目录结构
 COPY --from=builder /app/main /app/main
@@ -73,9 +77,9 @@ WORKDIR /app
 RUN mkdir -p /app/logs /app/configs /app/data /app/data/tmp /app/data/projects /app/data/projects/cache /app/scripts /home/appuser/.ssh
 
 # 设置权限和所有者
-RUN chown -R appuser:appgroup /app && \
-    chown -R appuser:appgroup /home/appuser/.ssh && \
-    chmod 700 /home/appuser/.ssh
+RUN chown -R appuser:appgroup /app
+RUN chown -R appuser:appgroup /home/appuser/.ssh
+RUN chmod 700 /home/appuser/.ssh
 
 # 创建 known_hosts 文件并设置正确权限
 RUN touch /home/appuser/.ssh/known_hosts && \
@@ -88,7 +92,7 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo '    echo "Copying template.zip to data directory..."' >> /app/start.sh && \
     echo '    cp /app/template.zip /app/data/template.zip' >> /app/start.sh && \
     echo 'fi' >> /app/start.sh && \
-    echo './main' >> /app/start.sh && \
+    echo 'exec ./main' >> /app/start.sh && \
     chmod +x /app/start.sh && \
     chown appuser:appgroup /app/start.sh
 

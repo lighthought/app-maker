@@ -16,6 +16,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# 安装 pnpm（构建阶段也需要）
+RUN npm install -g pnpm@latest
+
 # 复制依赖
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
@@ -39,9 +42,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # 复制 nginx 配置文件
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# 创建非 root 用户
-RUN addgroup -g 1001 -S nginx && \
-    adduser -u 1001 -S nginx -G nginx
+# 创建非 root 用户（检查组是否已存在）
+RUN addgroup -g 1001 -S nginx 2>/dev/null || true && \
+    adduser -u 1001 -S nginx -G nginx 2>/dev/null || true
 
 # 设置权限
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
@@ -54,7 +57,9 @@ RUN mkdir -p /var/cache/nginx/client_temp && \
     mkdir -p /var/cache/nginx/proxy_temp && \
     mkdir -p /var/cache/nginx/fastcgi_temp && \
     mkdir -p /var/cache/nginx/uwsgi_temp && \
-    mkdir -p /var/cache/nginx/scgi_temp
+    mkdir -p /var/cache/nginx/scgi_temp && \
+    mkdir -p /run && \
+    chown -R nginx:nginx /run
 
 # 切换到非 root 用户
 USER nginx
