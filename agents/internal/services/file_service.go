@@ -38,7 +38,7 @@ func (s *fileService) GetProjectPath(projectGuid string) string {
 // 获取工作空间路径
 func (s *fileService) GetWorkspacePath() string {
 	if s.workspacePath == "" {
-		s.workspacePath = utils.GetEnvOrDefault("WORKSPACE_PATH", "F:/app-maker/app_data")
+		s.workspacePath = utils.GetEnvOrDefault(common.EnvKeyWorkspacePath, "F:/app-maker/app_data")
 	}
 	return s.workspacePath
 }
