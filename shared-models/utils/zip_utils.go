@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lighthought/app-maker/shared-models/common"
 	"github.com/lighthought/app-maker/shared-models/logger"
 )
 
@@ -93,7 +94,7 @@ func CompressDirectoryToDir(ctx context.Context, sourceDir, cacheDir, fileName s
 	logger.Info("目录压缩到缓存完成", logger.String("sourceDir", sourceDir), logger.String("cacheFilePath", cacheFilePath))
 
 	// 从 cacheFilePath 中去掉 baseDir 前缀
-	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
+	baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
 	resultPath := strings.Replace(cacheFilePath, baseDir, "", 1)
 	return resultPath, nil
 }

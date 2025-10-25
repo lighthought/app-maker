@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lighthought/app-maker/shared-models/common"
 	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -15,21 +16,32 @@ import (
 	"golang.org/x/text/transform"
 )
 
+const (
+	LOCAL_APP_DATA_HOME  = "/app/data"
+	LOCAL_WORKSPACE_PATH = "F:/app-maker/app_data"
+)
+
 // GetProjectPath 获取项目路径
 func GetProjectPath(userID, projectGuid string) string {
-	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
+	baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
 	return filepath.Join(baseDir, "projects", userID, projectGuid)
+}
+
+// GetUserProjectsFolder 获取用户项目目录
+func GetUserProjectsFolder(userID string) string {
+	baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
+	return filepath.Join(baseDir, "projects", userID)
 }
 
 // GetTemplatePath 获取模板路径
 func GetTemplatePath() string {
-	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
+	baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
 	return filepath.Join(baseDir, "template.zip")
 }
 
 // GetCachePath 获取缓存路径
 func GetCachePath() string {
-	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
+	baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
 	return filepath.Join(baseDir, "projects", "cache")
 }
 
@@ -261,7 +273,7 @@ func GetFileContent(filePath, encoding string) (string, error) {
 func GetSafeFilePath(filePath string) (string, error) {
 	// 1. 安全清理文件名，防止目录遍历攻击
 	safeFilename := strings.ReplaceAll(filePath, "..", "")
-	baseDir := GetEnvOrDefault("APP_DATA_HOME", "/app/data")
+	baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
 	// 2. 拼接完整的文件路径
 	fullPath := filepath.Join(baseDir, safeFilename)
 	logger.Info("获取安全路径",

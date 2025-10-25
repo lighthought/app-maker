@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/lighthought/app-maker/shared-models/common"
 	"github.com/lighthought/app-maker/shared-models/utils"
 
 	"github.com/spf13/viper"
@@ -65,7 +66,7 @@ func Load() (*Config, error) {
 
 	v.SetDefault("app.port", "8088")
 	v.SetDefault("app.environment", "development")
-	v.SetDefault("app.workspace_path", "F:/app-maker/app_data")
+	v.SetDefault("app.workspace_path", utils.GetEnvOrDefault(common.EnvKeyWorkspacePath, utils.LOCAL_WORKSPACE_PATH))
 	v.SetDefault("log.level", "debug")
 	v.SetDefault("log.file", "./logs/app-maker-agents.log")
 	v.SetDefault("command.timeout", "5m")

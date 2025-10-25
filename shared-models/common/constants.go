@@ -62,6 +62,12 @@ const (
 	EnvironmentProduction  = "production"  // 生产 Docker 环境
 )
 
+// 环境变量Key (
+const (
+	EnvKeyAppDataHome   = "APP_DATA_HOME"
+	EnvKeyWorkspacePath = "WORKSPACE_PATH"
+)
+
 const (
 	TokenHeaderPrefix  = "Bearer"
 	DefaultProjectName = "newproj"
