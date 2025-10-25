@@ -182,7 +182,7 @@ const formData = reactive({
   defaultModelProvider: 'zhipu',
   defaultModelApiUrl: 'https://open.bigmodel.cn/api/anthropic',
   defaultApiToken: '',
-  autoGoNext: false
+  autoGoNext: true
 })
 
 // 表单验证规则
@@ -211,7 +211,7 @@ watch(() => props.show, async (newVal) => {
       formData.defaultModelProvider = result.data.default_model_provider || 'zhipu'
       formData.defaultModelApiUrl = result.data.default_model_api_url || 'https://open.bigmodel.cn/api/anthropic'
       formData.defaultApiToken = ''
-      formData.autoGoNext = result.data.auto_go_next || false
+      formData.autoGoNext = result.data.auto_go_next || true
     } else {
       console.error('加载用户设置失败:', result.message)
     }

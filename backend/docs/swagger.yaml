@@ -341,7 +341,7 @@ definitions:
     properties:
       auto_go_next:
         description: 自动进入下一阶段配置
-        example: false
+        example: true
         type: boolean
       default_ai_model:
         example: glm-4.6
@@ -393,7 +393,7 @@ definitions:
     properties:
       auto_go_next:
         description: 自动进入下一阶段配置
-        example: false
+        example: true
         type: boolean
       default_ai_model:
         example: glm-4.6

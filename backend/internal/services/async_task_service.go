@@ -123,6 +123,12 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 		return err
 	}
 
+	if taskID == "" {
+		logger.Info("阶段任务执行成功，没有请求到 Agent，跳过阶段，直接执行下一阶段", logger.String("stageName", payload.StageName))
+		s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName)) // 跳过阶段，直接执行下一阶段
+		return nil
+	}
+
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, payload.StageName+" has request to agent")
 	logger.Info("阶段任务执行成功", logger.String("AgentTaskID", taskID))
 	return nil
@@ -163,6 +169,21 @@ func (s *asyncTaskService) handleAgentChatTask(ctx context.Context, task *asynq.
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "和 Agent 对话完成")
 	return nil
+}
+
+// 执行当前阶段的响应处理，然后跳到下一个阶段
+func (s *asyncTaskService) doStageResponseAndGoToNext(ctx context.Context, stageItem *models.DevStageItem,
+	message *agent.AgentTaskStatusMessage, response *tasks.TaskResult,
+	project *models.Project, stage *models.DevStage, stageName common.DevStatus) error {
+	var err error
+	if stageItem.RespHandler != nil {
+		err = stageItem.RespHandler(ctx, message, response)
+	}
+	if err == nil {
+		s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusDone, "")
+		s.devService.ProceedToNextStage(ctx, project, stageName)
+	}
+	return err
 }
 
 // 处理 agent 任务完成或失败响应
@@ -221,16 +242,10 @@ func (s *asyncTaskService) handleAgentResponseTask(ctx context.Context, t *asynq
 	}
 
 	err = nil
-	if stageItem.NeedConfirm && utils.ContainsQuestion(response.Message) {
-		s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, stageName, response.Message)
+	if project.AutoGoNext || !stageItem.NeedConfirm /*|| !utils.ContainsQuestion(response.Message)*/ {
+		err = s.doStageResponseAndGoToNext(ctx, stageItem, &message, response, project, stage, stageName)
 	} else {
-		if stageItem.RespHandler != nil {
-			err = stageItem.RespHandler(ctx, &message, response)
-		}
-		if err == nil {
-			s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusDone, "")
-			s.devService.ProceedToNextStage(ctx, project, stageName)
-		}
+		s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, stageName, response.Message)
 	}
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, "Agent 响应为聊天，已完成.")

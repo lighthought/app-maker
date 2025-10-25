@@ -410,6 +410,8 @@ func (s *agentInteractService) GenerateFrontendPages(ctx context.Context,
 		ProjectGuid: project.GUID,
 		AgentType:   common.AgentTypeDev,
 		Message:     message,
+		CliTool:     s.getCliTool(project),
+		DevStage:    string(common.DevStatusGeneratePages),
 	}
 
 	agentClient := s.getAgentClient(s.defaultTimeout)

@@ -38,7 +38,7 @@ type UpdateUserSettingsRequest struct {
 	DefaultModelProvider string `json:"default_model_provider" binding:"omitempty,oneof=ollama zhipu anthropic openai vllm" example:"zhipu"`
 	DefaultModelApiUrl   string `json:"default_model_api_url" binding:"omitempty,url" example:"https://open.bigmodel.cn/api/anthropic"`
 	DefaultApiToken      string `json:"default_api_token" binding:"omitempty" example:"sk-..."`
-	AutoGoNext           *bool  `json:"auto_go_next" binding:"omitempty" example:"false"` // 自动进入下一阶段配置
+	AutoGoNext           *bool  `json:"auto_go_next" binding:"omitempty" example:"true"` // 自动进入下一阶段配置
 }
 
 // CreateProjectRequest 创建项目请求

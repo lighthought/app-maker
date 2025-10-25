@@ -12,12 +12,14 @@ import (
 )
 
 type ProjectInfoUpdate struct {
-	ID          string `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('PROJ', 'public.projects_id_num_seq')"`
-	GUID        string `json:"guid" gorm:"size:50;not null"`
-	Name        string `json:"name" gorm:"size:100;not null"`
-	Status      string `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, done, failed
-	Description string `json:"description" gorm:"type:text"`
-	PreviewUrl  string `json:"preview_url" gorm:"size:500"`
+	ID                    string `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('PROJ', 'public.projects_id_num_seq')"`
+	GUID                  string `json:"guid" gorm:"size:50;not null"`
+	Name                  string `json:"name" gorm:"size:100;not null"`
+	Status                string `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, done, failed
+	Description           string `json:"description" gorm:"type:text"`
+	PreviewUrl            string `json:"preview_url" gorm:"size:500"`
+	WaitingForUserConfirm bool   `json:"waiting_for_user_confirm" gorm:"default:false"` // 是否等待用户确认
+	ConfirmStage          string `json:"confirm_stage" gorm:"size:50"`                  // 等待确认的阶段
 }
 
 func (p *ProjectInfoUpdate) Copy(other *ProjectInfoUpdate) {
@@ -27,6 +29,8 @@ func (p *ProjectInfoUpdate) Copy(other *ProjectInfoUpdate) {
 	p.Status = other.Status
 	p.Description = other.Description
 	p.PreviewUrl = other.PreviewUrl
+	p.WaitingForUserConfirm = other.WaitingForUserConfirm
+	p.ConfirmStage = other.ConfirmStage
 }
 
 // Project 项目模型
@@ -61,7 +65,7 @@ type Project struct {
 	ApiToken              string         `json:"api_token,omitempty" gorm:"size:500"`           // API Token，敏感信息
 	WaitingForUserConfirm bool           `json:"waiting_for_user_confirm" gorm:"default:false"` // 是否等待用户确认
 	ConfirmStage          string         `json:"confirm_stage" gorm:"size:50"`                  // 等待确认的阶段
-	AutoGoNext            bool           `json:"auto_go_next" gorm:"default:false"`             // 项目级自动进入下一阶段配置
+	AutoGoNext            bool           `json:"auto_go_next" gorm:"default:true"`              // 项目级自动进入下一阶段配置
 	User                  User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
 	CreatedAt             time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt             time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
@@ -87,12 +91,14 @@ func GetDefaultProject(userID, requirements string) *Project {
 
 func (p *Project) GetUpdateInfo() *ProjectInfoUpdate {
 	return &ProjectInfoUpdate{
-		ID:          p.ID,
-		GUID:        p.GUID,
-		Name:        p.Name,
-		Status:      p.Status,
-		Description: p.Description,
-		PreviewUrl:  p.PreviewUrl,
+		ID:                    p.ID,
+		GUID:                  p.GUID,
+		Name:                  p.Name,
+		Status:                p.Status,
+		Description:           p.Description,
+		PreviewUrl:            p.PreviewUrl,
+		WaitingForUserConfirm: p.WaitingForUserConfirm,
+		ConfirmStage:          p.ConfirmStage,
 	}
 }
 

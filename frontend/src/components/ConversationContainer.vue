@@ -555,6 +555,8 @@ watch(wsProjectInfo, (newInfo) => {
       status: newInfo.status,
       description: newInfo.description,
       preview_url: newInfo.preview_url,
+      waiting_for_user_confirm: newInfo.waiting_for_user_confirm,
+      confirm_stage: newInfo.confirm_stage,
     })
   }
 }, { deep: true })

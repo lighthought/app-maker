@@ -7,6 +7,8 @@ export interface ProjectInfoUpdate {
   status: string
   description: string
   preview_url?: string
+  waiting_for_user_confirm?: boolean
+  confirm_stage?: string
 }
 
 export interface Project {
@@ -20,6 +22,8 @@ export interface Project {
   backendPort: number
   frontendPort: number
   preview_url?: string
+  waiting_for_user_confirm?: boolean
+  confirm_stage?: string
   userId: string
   user?: UserInfo
   cli_tool?: string

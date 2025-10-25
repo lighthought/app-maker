@@ -166,6 +166,12 @@ const handleProjectInfoUpdate = (info: ProjectInfoUpdate) => {
   if (info.preview_url) {
     project.value.preview_url = info.preview_url
   }
+  if (info.waiting_for_user_confirm) {
+    project.value.waiting_for_user_confirm = info.waiting_for_user_confirm
+  }
+  if (info.confirm_stage) {
+    project.value.confirm_stage = info.confirm_stage
+  }
   
   console.log(t('project.projectInfoUpdated'), info)
 }
@@ -285,7 +291,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 11px 20px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

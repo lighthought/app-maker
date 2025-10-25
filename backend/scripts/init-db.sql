@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS users (
     default_model_provider VARCHAR(50) DEFAULT 'zhipu',
     default_model_api_url VARCHAR(500),
     default_api_token VARCHAR(500),
-    auto_go_next BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_go_next BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS projects (
     api_token VARCHAR(500),
     waiting_for_user_confirm BOOLEAN NOT NULL DEFAULT FALSE,
     confirm_stage VARCHAR(50) DEFAULT NULL,
-    auto_go_next BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_go_next BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP

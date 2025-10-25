@@ -78,5 +78,5 @@ type UserSettingsResponse struct {
 	DefaultModelProvider string `json:"default_model_provider" example:"zhipu"`
 	DefaultModelApiUrl   string `json:"default_model_api_url" example:"https://open.bigmodel.cn/api/anthropic"`
 	DefaultApiToken      string `json:"default_api_token,omitempty" example:"sk-***"` // 敏感信息，前端可能需要脱敏显示
-	AutoGoNext           bool   `json:"auto_go_next" example:"false"`                 // 自动进入下一阶段配置
+	AutoGoNext           bool   `json:"auto_go_next" example:"true"`                  // 自动进入下一阶段配置
 }

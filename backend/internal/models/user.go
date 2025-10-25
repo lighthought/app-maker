@@ -19,7 +19,7 @@ type User struct {
 	DefaultModelProvider string         `json:"default_model_provider" gorm:"size:50;default:'zhipu'"`
 	DefaultModelApiUrl   string         `json:"default_model_api_url" gorm:"size:500"`
 	DefaultApiToken      string         `json:"default_api_token,omitempty" gorm:"size:500"` // API Token，敏感信息
-	AutoGoNext           bool           `json:"auto_go_next" gorm:"default:false"`           // 自动进入下一阶段配置
+	AutoGoNext           bool           `json:"auto_go_next" gorm:"default:true"`            // 自动进入下一阶段配置
 	CreatedAt            time.Time      `json:"created_at"`
 	UpdatedAt            time.Time      `json:"updated_at"`
 	DeletedAt            gorm.DeletedAt `json:"-" gorm:"index"`

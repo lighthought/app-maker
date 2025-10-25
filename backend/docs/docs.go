@@ -3034,7 +3034,7 @@ const docTemplate = `{
                 "auto_go_next": {
                     "description": "自动进入下一阶段配置",
                     "type": "boolean",
-                    "example": false
+                    "example": true
                 },
                 "default_ai_model": {
                     "type": "string",
@@ -3104,7 +3104,7 @@ const docTemplate = `{
                 "auto_go_next": {
                     "description": "自动进入下一阶段配置",
                     "type": "boolean",
-                    "example": false
+                    "example": true
                 },
                 "default_ai_model": {
                     "type": "string",

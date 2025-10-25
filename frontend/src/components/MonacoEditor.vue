@@ -1034,6 +1034,24 @@ onUnmounted(() => {
   background: #a8a8a8;
 }
 
+.markdown-preview::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.markdown-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-preview::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.markdown-preview::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 /* Monaco Editor 内部滚动条样式覆盖 */
 :deep(.monaco-editor .monaco-scrollable-element > .scrollbar) {
   background: transparent !important;
