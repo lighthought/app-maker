@@ -75,7 +75,7 @@ func (s *projectDevService) InitStageItems() {
 		{Name: common.DevStatusDefineAPI, Desc: "定义 API", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.DefineAPIs, RespHandler: s.OnDefineAPIsResponse, SkipInDevMode: true},
 		{Name: common.DevStatusGeneratePages, Desc: "生成前端页面", NeedConfirm: true,
-			ReqHandler: s.agentInteractService.GenerateFrontendPages, RespHandler: s.OnGenerateFrontendPagesResponse, SkipInDevMode: true},
+			ReqHandler: s.agentInteractService.GenerateFrontendPages, RespHandler: s.OnGenerateFrontendPagesResponse},
 		{Name: common.DevStatusDevelopStory, Desc: "开发 Story", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.DevelopStories, RespHandler: s.OnDevelopStoriesResponse, SkipInDevMode: true},
 		{Name: common.DevStatusFixBug, Desc: "修复 Bug", NeedConfirm: false,
