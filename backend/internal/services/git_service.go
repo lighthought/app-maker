@@ -13,12 +13,20 @@ import (
 	"github.com/lighthought/app-maker/shared-models/utils"
 )
 
+// GitService Git操作服务
 type GitService interface {
+	// 配置SSH密钥和known_hosts
 	SetupSSH() error
+	// 获取SSH公钥内容
 	GetPublicKey() (string, error)
+	// 初始化Git仓库
 	InitializeGit(ctx context.Context, config *GitConfig) (string, error)
+	// 提交并推送代码
 	CommitAndPush(ctx context.Context, config *GitConfig) error
+	// 拉取远程仓库代码
 	Pull(ctx context.Context, config *GitConfig) error
+	// 克隆远程仓库代码
+	Clone(ctx context.Context, userPath, projectGuid, environment string) error
 }
 
 // GitService Git操作服务
@@ -336,6 +344,36 @@ func (s *gitService) isGitRepository(projectDir string) bool {
 	gitDir := filepath.Join(projectDir, ".git")
 	_, err := os.Stat(gitDir)
 	return err == nil
+}
+
+// Clone 克隆远程仓库代码
+func (s *gitService) Clone(ctx context.Context, userPath, projectGuid, environment string) error {
+	projectDir := filepath.Join(userPath, projectGuid)
+	logger.Info("start cloning remote repository code",
+		logger.String("GUID", projectGuid),
+		logger.String("projectPath", projectDir),
+	)
+
+	// 如果已经是git库了，就不需要克隆了
+	if s.isGitRepository(projectDir) {
+		logger.Info("project is already a Git repository, skip cloning",
+			logger.String("GUID", projectGuid),
+		)
+		return nil
+	}
+
+	// 确保用户目录存在，才能正确执行 clone 命令
+	if !utils.IsDirectoryExists(userPath) {
+		if err := utils.EnsureDirectoryExists(userPath); err != nil {
+			return fmt.Errorf("failed to ensure directory exists: %s", err.Error())
+		}
+	}
+
+	if err := s.runGitCommand(ctx, userPath, "clone", s.buildRemoteURL(projectGuid, environment)); err != nil {
+		return fmt.Errorf("failed to clone remote repository: %s", err.Error())
+	}
+
+	return nil
 }
 
 // Pull 拉取远程仓库的最新代码

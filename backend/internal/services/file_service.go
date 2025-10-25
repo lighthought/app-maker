@@ -34,13 +34,15 @@ type FileService interface {
 
 // projectFileService 项目文件服务实现
 type fileService struct {
-	gitService GitService
+	gitService  GitService
+	environment string
 }
 
 // NewProjectFileService 创建项目文件服务
-func NewFileService(gitService GitService) FileService {
+func NewFileService(gitService GitService, environment string) FileService {
 	return &fileService{
-		gitService: gitService,
+		gitService:  gitService,
+		environment: environment,
 	}
 }
 
@@ -84,6 +86,7 @@ func (s *fileService) refreshProjectFiles(ctx context.Context, userID, projectGu
 			GUID:          projectGuid,
 			ProjectPath:   projectRootPath,
 			CommitMessage: "Auto commit by App Maker",
+			Environment:   s.environment,
 		}
 		return s.gitService.Pull(ctx, gitConfig)
 	}
@@ -103,13 +106,17 @@ func (s *fileService) GetProjectFiles(ctx context.Context, userID, projectGuid, 
 
 	// 检查路径是否存在
 	if !utils.IsDirectoryExists(projectPath) {
-		logger.Info("sub directory path does not exist", logger.String("projectPath", projectPath))
-		return []models.FileItem{}, fmt.Errorf("sub directory path does not exist: %s", projectPath)
-	}
-
-	// 刷新，重新从 git 上拉取最新的文档和代码
-	if err := s.refreshProjectFiles(ctx, userID, projectGuid, projectRootPath, path); err != nil {
-		logger.Error("failed to refresh project files", logger.String("error", err.Error()))
+		// 克隆远程仓库代码
+		err := s.gitService.Clone(ctx, utils.GetUserProjectsFolder(userID), projectGuid, s.environment)
+		if err != nil {
+			logger.Error("failed to clone remote repository", logger.String("error", err.Error()))
+			return []models.FileItem{}, fmt.Errorf("failed to clone remote repository: %s", err.Error())
+		}
+	} else {
+		// 刷新，重新从 git 上拉取最新的文档和代码
+		if err := s.refreshProjectFiles(ctx, userID, projectGuid, projectRootPath, path); err != nil {
+			logger.Error("failed to refresh project files", logger.String("error", err.Error()))
+		}
 	}
 
 	// 加载预览文件配置

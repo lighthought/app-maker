@@ -110,7 +110,7 @@ func (c *Container) initServices(cfg *config.Config, db *gorm.DB) {
 
 	// 会被其他服务引用的服务
 	gitService := services.NewGitService()
-	fileServie := services.NewFileService(gitService)
+	fileServie := services.NewFileService(gitService, cfg.App.Environment)
 	asyncClientService := services.NewAsyncClientService(c.AsyncClient)
 	agentInteractService := services.NewAgentInteractService(c.Repositories, cfg.Agents.URL)
 
