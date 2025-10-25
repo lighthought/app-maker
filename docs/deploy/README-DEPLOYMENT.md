@@ -44,8 +44,8 @@ vim .env
 
 ```bash
 # 构建并启动开发环境
-make build-dev
-make run-dev
+make build-dev-docker
+make run-dev-docker
 
 # 或者直接使用 docker-compose
 docker-compose up -d
@@ -78,10 +78,10 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ```bash
 # 启动服务
-make run-dev
+make run-dev-docker
 
 # 停止服务
-make stop-dev
+make stop-dev-all
 
 # 查看日志
 make logs-dev
@@ -293,13 +293,13 @@ docker-compose logs -f
 ```bash
 # 完全重置
 make clean
-make build-dev
-make run-dev
+make build-dev-docker
+make run-dev-docker
 
 # 安全重置（保留其他项目）
 make clean-safe
-make build-dev
-make run-dev
+make build-dev-docker
+make run-dev-docker
 ```
 
 ## 性能优化
@@ -375,8 +375,8 @@ tar -xzf config-backup.tar.gz
 git pull
 
 # 重新构建
-make build-dev
-make run-dev
+make build-dev-docker
+make run-dev-docker
 
 # 或者生产环境
 make build-prod

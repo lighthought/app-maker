@@ -101,6 +101,8 @@
 - **操作系统**: Windows 10/11 (开发环境，8G+显存、16G+内存)
 - **Docker Desktop**: >= 28.4+
 - **Claude Code**: >= 2.0.11 (Agents)
+- **Qwen Code**: >= 0.0.14 (Agents)
+- **Gemini**: >= 0.8.2 (Agents)
 - **Go**: >= 1.24 (Backend & Agents)
 - **Node.js**:  >= 18.0.0 (Frontend)
 
@@ -118,8 +120,8 @@ ollama pull deepseek-r1:14b
 ollama serve
 
 # 2. 启动前后端、数据库、redis、gitlab容器
-make build-dev
-make run-dev
+make build-dev-docker
+make run-dev-docker
 
 # 3. gitlab 配置
 ## 3.1 gitlab 获取初始 root 密码
@@ -287,27 +289,25 @@ app-maker/
 #### 启动开发服务
 ```bash
 # 1. 启动本地 ollama
+ollama pull deepseek-r1:14b
 ollama serve
 
-# 2. 启动前后端、数据库、redis、gitlab容器
-make build-dev
-make run-dev
-
-# 3. 启动Agents服务
-cd agents
-go mod tidy
-go run cmd/server/main.go
+# 2. 数据库、redis、gitlab容器等基础服务
+make start-infrastructure-services
 ```
 
 #### 开发调试
 ```bash
 # 后端调试
 cd backend
-go run cmd/server/main.go -c configs/config.yaml
+go mod tidy
+go run cmd/server/main.go -c configs/config.local.yaml
+# 或直接使用 VSCode、Cursor执行 Debug Backend 调试
 
 # Agents服务调试
 cd agents
 go run cmd/server/main.go
+# 或直接使用 VSCode、Cursor执行 Debug Agent 调试
 
 # 前端热重载
 cd frontend

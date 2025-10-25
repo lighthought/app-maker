@@ -88,10 +88,11 @@ ollama serve
 4. **构建并启动服务**
 ```bash
 # 构建开发环境
-make build-dev
+make build-dev-docker
+
 
 # 启动前后端、数据库、redis、gitlab容器
-make run-dev
+make run-dev-docker
 ```
 
 5. **配置 GitLab**
@@ -142,13 +143,13 @@ go run cmd/server/main.go
 make help
 
 # 构建开发环境
-make build-dev
+make build-dev-docker
 
 # 启动开发环境
-make run-dev
+make run-dev-docker
 
 # 停止开发环境
-make stop-dev
+make stop-dev-all
 
 # 清理开发环境
 make clean-dev
@@ -226,12 +227,36 @@ git remote add upstream https://github.com/original-owner/app-maker.git
 git checkout -b feature/your-feature-name
 ```
 
-### 4. 开发
+### 4. 开发\调试
 
 - 编写代码
 - 添加测试
 - 更新文档
 - 确保代码通过所有检查
+
+```bash
+# 1. 启动本地 ollama
+ollama pull deepseek-r1:14b
+ollama serve
+
+# 2. 数据库、redis、gitlab容器等基础服务
+make start-infrastructure-services
+
+# 3.后端调试
+cd backend
+go mod tidy
+go run cmd/server/main.go -c configs/config.local.yaml
+# 或直接使用 VSCode、Cursor执行 Debug Backend 调试
+
+# 4. Agents服务调试
+cd agents
+go run cmd/server/main.go
+# 或直接使用 VSCode、Cursor执行 Debug Agent 调试
+
+# 5. 前端热重载
+cd frontend
+pnpm dev --host
+```
 
 ### 5. 提交代码
 

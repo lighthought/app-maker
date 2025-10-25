@@ -34,8 +34,8 @@
 
 ```bash
 # 构建并启动开发环境
-make build-dev
-make run-dev
+make build-dev-docker
+make run-dev-docker
 
 # 访问服务
 # API: http://localhost:8098
@@ -62,7 +62,7 @@ make deploy ENV=prod TAG=latest
 
 ```bash
 # 构建开发环境
-make build-dev
+make build-dev-docker
 
 # 构建生产环境
 make build-prod
@@ -253,7 +253,7 @@ docker info
 docker system prune -f
 
 # 重新构建
-make build-dev
+make build-dev-docker
 ```
 
 #### 2. 服务启动失败

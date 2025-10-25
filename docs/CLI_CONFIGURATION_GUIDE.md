@@ -257,6 +257,7 @@ ollama pull qwen2.5-coder:14b
 systemctl status ollama
 
 # 或手动启动
+ollama pull deepseek-r1:14b
 ollama serve
 
 # 测试连接
