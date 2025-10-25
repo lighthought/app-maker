@@ -50,7 +50,7 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 		" 和 UX 专家的设计文档 @" + req.UxSpecPath +
 		" 帮我把整体架构设计 Architect.md, 前端架构设计 frontend_arch.md, 后端架构设计 backend_arch.md。" +
 		" 都输出到 docs/arch/ 目录下。\n" +
-		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
+		"注意：\n1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n" +
 		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
 		"3. 当前的项目代码是由模板生成，所以当前可能存在一些不在 PRD 描述内的实现细节，不影响编译可以不考虑。\n" +
 		"4. 当前项目使用的模板技术架构是：\n" + req.TemplateArchDescription +

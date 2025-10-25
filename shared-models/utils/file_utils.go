@@ -45,6 +45,23 @@ func GetCachePath() string {
 	return filepath.Join(baseDir, "projects", "cache")
 }
 
+// GetActualProjectPath 获取实际可访问的项目路径
+func GetActualProjectPath(projectPath string) (string, error) {
+	// 如果是容器路径但运行在本地，需要转换
+	if strings.HasPrefix(projectPath, "/app/data") {
+		// 检查是否在容器中运行
+		if _, err := os.Stat("/.dockerenv"); os.IsNotExist(err) {
+			// 不在容器中，转换路径
+			baseDir := GetEnvOrDefault(common.EnvKeyAppDataHome, LOCAL_APP_DATA_HOME)
+			relativePath := strings.TrimPrefix(projectPath, "/app/data")
+			return filepath.Join(baseDir, relativePath), nil
+		}
+	}
+
+	// 直接返回原路径
+	return projectPath, nil
+}
+
 // isPathInFolders 检查路径是否在文件夹列表中
 func IsPathInFolders(path string, folders []string) bool {
 	for _, folder := range folders {
@@ -133,6 +150,10 @@ func WriteFile(filePath string, content []byte) error {
 
 // 解压zip文件到指定目录
 func ExtractZipFile(zipPath, projectPath string) bool {
+	actualProjectPath, err := GetActualProjectPath(projectPath)
+	if err != nil {
+		return false
+	}
 	// 打开模板zip文件
 	zipFile, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -153,7 +174,7 @@ func ExtractZipFile(zipPath, projectPath string) bool {
 	extractedCount := 0
 	for _, file := range zipFile.File {
 		// 创建文件路径
-		filePath := filepath.Join(projectPath, file.Name)
+		filePath := filepath.Join(actualProjectPath, file.Name)
 
 		// 如果是目录，创建目录
 		if file.FileInfo().IsDir() {
@@ -214,6 +235,7 @@ func ExtractZipFile(zipPath, projectPath string) bool {
 		logger.String("zipPath", zipPath),
 		logger.String("projectPath", projectPath),
 		logger.Int("extractedCount", extractedCount),
+		logger.String("actualProjectPath", actualProjectPath),
 	)
 
 	return true
@@ -293,7 +315,12 @@ func GetSafeFilePath(filePath string) (string, error) {
 func GetRelativeFiles(projectPath, subFolder string) ([]string, error) {
 	var fileNames []string
 
-	entries, err := os.ReadDir(filepath.Join(projectPath, subFolder))
+	actualProjectPath, err := GetActualProjectPath(projectPath)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := os.ReadDir(filepath.Join(actualProjectPath, subFolder))
 	if err != nil {
 		logger.Error("读取目录内容失败", logger.String("projectPath", projectPath), logger.String("subFolder", subFolder))
 		return nil, err

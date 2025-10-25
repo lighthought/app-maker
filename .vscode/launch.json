@@ -14,7 +14,7 @@
             "cwd": "${workspaceFolder}/backend",
             "env": {
                 "APP_ENVIRONMENT": "debugging",
-                "APP_DATA_HOME": "${workspaceFolder}/app/data"
+                "APP_DATA_HOME": "${workspaceFolder}/../app-data"
             },
             "args": [],
             "showLog": true,
