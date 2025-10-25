@@ -48,7 +48,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
   
   // 设置页面标题
@@ -78,11 +78,32 @@ router.beforeEach((to, from, next) => {
   }
   
   // 检查是否需要认证
-  if (to.meta.requiresAuth && !userStore.isAuthenticated) {
-    console.log('需要认证但未认证，跳转到登录页')
-    next('/auth')
+  if (to.meta.requiresAuth) {
+    if (!userStore.isAuthenticated || !userStore.token) {
+      console.log('需要认证但未认证，跳转到登录页')
+      next('/auth')
+      return
+    }
+    
+    // 验证 token 有效性
+    try {
+      const isValid = await userStore.validateTokenOnStartup()
+      if (isValid) {
+        console.log('token 验证成功，允许访问')
+        next()
+      } else {
+        console.log('token 验证失败，清除认证状态并跳转到登录页')
+        userStore.clearAuth()
+        next('/auth')
+      }
+    } catch (error: any) { 
+      console.error('token 验证异常:', error)
+      console.log('token 验证异常，清除认证状态并跳转到登录页')
+      userStore.clearAuth()
+      next('/auth')
+    }
   } else {
-    console.log('正常导航')
+    console.log('不需要认证，正常导航')
     next()
   }
 })

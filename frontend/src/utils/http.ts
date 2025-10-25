@@ -72,7 +72,7 @@ class HttpService {
             const userStore = useUserStore()
             userStore.clearAuth()
             window.location.href = '/auth'
-            return Promise.reject(error)
+            throw error
           }
           
           if (this.isRefreshing) {
@@ -94,11 +94,11 @@ class HttpService {
           try {
             // 检查是否有刷新令牌，如果没有则直接返回错误响应
             if (!userStore.refreshToken) {
-              // 没有刷新令牌，直接返回错误响应数据
-              if (error.response?.data) {
-                return Promise.resolve(error.response.data)
-              }
-              return Promise.reject(error)
+            // 没有刷新令牌，直接返回错误响应数据
+            if (error.response?.data) {
+              return Promise.resolve(error.response.data)
+            }
+            throw error
             }
             
             const refreshed = await userStore.refreshAuth()
@@ -112,16 +112,27 @@ class HttpService {
               // 重试原始请求
               return this.instance(originalRequest)
             } else {
-              // 刷新失败，清除认证状态并跳转到登录页
-              // refreshAuth 方法内部已经处理了清除和跳转，这里不需要重复处理
-              return Promise.reject(error)
+            // 刷新失败，清除认证状态并跳转到登录页
+            // refreshAuth 方法内部已经处理了清除和跳转，这里不需要重复处理
+            throw error
             }
           } catch (refreshError) {
             // 刷新失败，清除认证状态并跳转到登录页
             // refreshAuth 方法内部已经处理了清除和跳转，这里不需要重复处理
-            return Promise.reject(refreshError)
+            throw refreshError
           } finally {
             this.isRefreshing = false
+          }
+        }
+        
+        // 检查是否是token相关错误
+        if (error.response?.data?.code === 1) {
+          const message = error.response.data.message || ''
+          if (message.includes('invalid token') || message.includes('令牌刷新失败') || message.includes('invalid refresh token')) {
+            const userStore = useUserStore()
+            userStore.clearAuth()
+            window.location.href = '/auth'
+            throw error
           }
         }
         
@@ -131,7 +142,7 @@ class HttpService {
           return Promise.resolve(error.response.data)
         }
         
-        return Promise.reject(error)
+        throw error
       }
     )
   }

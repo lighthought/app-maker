@@ -39,16 +39,20 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 尝试调用一个需要认证的接口来验证 token
       await httpService.get('/users/profile')
+      return true
     } catch (error: any) {
-      console.warn('启动时 token 验证失败，尝试刷新:', error)
+      console.warn('启动时 token 验证失败:', error)
       
       // 如果验证失败，尝试刷新 token
-      const refreshed = await refreshAuth()
-      if (!refreshed) {
-        // 刷新也失败，清除认证状态
-        console.warn('token 刷新失败，清除认证状态')
-        clearAuth()
+      if (refreshToken.value) {
+        const refreshed = await refreshAuth()
+        if (refreshed) {
+          return true
+        }
       }
+      
+      // 刷新也失败，抛出错误让路由守卫处理
+      throw new Error('Token validation failed')
     }
   }
 
@@ -171,9 +175,6 @@ export const useUserStore = defineStore('user', () => {
     try {
       if (!refreshToken.value) {
         console.warn('没有刷新令牌，无法刷新认证')
-        // 清除认证状态并跳转到登录页
-        clearAuth()
-        window.location.href = '/auth'
         return false
       }
 
@@ -204,16 +205,10 @@ export const useUserStore = defineStore('user', () => {
         return true
       } else {
         console.error('刷新令牌失败:', response.message)
-        // 刷新失败，清除认证状态并跳转到登录页
-        clearAuth()
-        window.location.href = '/auth'
         return false
       }
     } catch (error) {
       console.error('刷新令牌失败:', error)
-      // 刷新失败，清除认证状态并跳转到登录页
-      clearAuth()
-      window.location.href = '/auth'
       return false
     }
   }
@@ -338,6 +333,7 @@ export const useUserStore = defineStore('user', () => {
     register,
     logout,
     refreshAuth,
+    validateTokenOnStartup,
     updateProfile,
     changePassword,
     getUserSettings,
