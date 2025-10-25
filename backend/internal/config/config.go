@@ -88,7 +88,7 @@ func Load() (*Config, error) {
 	case common.EnvironmentLocalDebug:
 		viper.SetConfigName("config.local")
 	case common.EnvironmentDevelopment:
-		viper.SetConfigName("config.dev")
+		viper.SetConfigName("config")
 	case common.EnvironmentProduction:
 		viper.SetConfigName("config.prod")
 	default:
