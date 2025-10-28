@@ -48,6 +48,10 @@ func (h *asyncTaskService) ProcessTask(ctx context.Context, task *asynq.Task) er
 	// 项目开发阶段
 	case common.TaskTypeProjectStage:
 		return h.handleProjectStageTask(ctx, task)
+
+	case common.TaskTypeProjectNextStage:
+		return h.handleProjectNextStageTask(ctx, task)
+
 	// 项目开发阶段状态消息任务
 	case common.TaskTypeAgentTaskResponse:
 		return h.handleAgentResponseTask(ctx, task)
@@ -97,7 +101,7 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 	}
 
 	// 获取或创建阶段记录
-	stage, isDone, err := s.commonService.CreateOrUpdateStage(ctx, project, resultWriter.TaskID(), payload.ProjectGuid, payload.StageName)
+	stage, isDone, err := s.commonService.CreateOrUpdateStage(ctx, project, resultWriter.TaskID(), payload.ProjectGuid, payload.StageName, stageItem.NeedConfirm)
 	if err != nil {
 		logger.Error("failed to create or update stage", logger.String("error", err.Error()))
 		return asynq.SkipRetry
@@ -131,6 +135,24 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 
 	tasks.UpdateResult(resultWriter, common.CommonStatusDone, 100, payload.StageName+" has request to agent")
 	logger.Info("阶段任务执行成功", logger.String("AgentTaskID", taskID))
+	return nil
+}
+
+// 处理自动进入下一个阶段的任务
+func (s *asyncTaskService) handleProjectNextStageTask(ctx context.Context, t *asynq.Task) error {
+	var payload tasks.ProjectStageTaskPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		logger.Error("failed to unmarshal project task payload", logger.String("error", err.Error()))
+		return asynq.SkipRetry
+	}
+
+	project, err := s.repositories.ProjectRepo.GetByGUID(ctx, payload.ProjectGuid)
+	if err != nil {
+		logger.Error("failed to get project information", logger.String("error", err.Error()))
+		return asynq.SkipRetry
+	}
+
+	s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName)) // 跳过阶段，直接执行下一阶段
 	return nil
 }
 
@@ -242,9 +264,9 @@ func (s *asyncTaskService) handleAgentResponseTask(ctx context.Context, t *asynq
 	}
 
 	err = nil
-	if project.AutoGoNext || !stageItem.NeedConfirm /*|| !utils.ContainsQuestion(response.Message)*/ {
+	if project.AutoGoNext || !stageItem.NeedConfirm || stage.UserConfirmed /*|| !utils.ContainsQuestion(response.Message)*/ {
 		err = s.doStageResponseAndGoToNext(ctx, stageItem, &message, response, project, stage, stageName)
-	} else {
+	} else { // 用户未确认，等待用户确认
 		s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, stageName, response.Message)
 	}
 

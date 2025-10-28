@@ -515,3 +515,38 @@ func (h *ProjectHandler) GetPreviewByToken(c *gin.Context) {
 		"message":      "项目预览暂未部署",
 	}))
 }
+
+// ConfirmProjectStage godoc
+// @Summary 确认项目阶段
+// @Description 确认指定项目的开发阶段
+// @Tags 项目管理
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param guid path string true "项目GUID"
+// @Param stage_name path string true "阶段名称"
+// @Success 200 {object} common.Response "确认成功"
+// @Failure 400 {object} common.ErrorResponse "请求参数错误"
+// @Failure 401 {object} common.ErrorResponse "未授权"
+// @Failure 403 {object} common.ErrorResponse "访问被拒绝"
+// @Failure 500 {object} common.ErrorResponse "服务器内部错误"
+// @Router /api/v1/projects/{guid}/confirm-stage/{stage_name} [post]
+func (h *ProjectHandler) ConfirmProjectStage(c *gin.Context) {
+	projectGuid := c.Param("guid")
+	if projectGuid == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "项目GUID不能为空"))
+		return
+	}
+
+	stageName := c.Param("stage_name")
+	if stageName == "" {
+		c.JSON(http.StatusBadRequest, utils.GetErrorResponse(common.VALIDATION_ERROR, "阶段名称不能为空"))
+		return
+	}
+
+	h.commonService.UpdateStageUserConfirmed(c.Request.Context(), projectGuid, stageName)
+
+	h.asyncClientService.EnqueueProjectNextStageTask(projectGuid, stageName)
+
+	c.JSON(http.StatusOK, utils.GetSuccessResponse("确认成功", nil))
+}

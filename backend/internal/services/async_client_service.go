@@ -14,6 +14,8 @@ type AsyncClientService interface {
 	EnqueueProjectInitTask(projectID, projectGuid, projectPath string) (string, error)
 	// 创建项目开发阶段任务
 	EnqueueProjectStageTask(needConfirm bool, projectGuid, stageName string) (string, error)
+	// 创建项目进入下一阶段任务
+	EnqueueProjectNextStageTask(projectGuid, stageName string) (string, error)
 	// 创建 WebSocket 消息广播任务
 	EnqueueWebSocketBroadcastTask(projectGUID, messageType, targetId string) (string, error)
 	// 与项目中的 Agent 进行对话
@@ -54,6 +56,15 @@ func (s *asyncClientService) EnqueueProjectStageTask(needConfirm bool, projectGu
 	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectStageTask(needConfirm, projectGuid, stageName))
 	if err != nil {
 		return "", fmt.Errorf("failed to create project stage task: %s", err.Error())
+	}
+	return taskInfo.ID, nil
+}
+
+// 创建项目进入下一阶段任务
+func (s *asyncClientService) EnqueueProjectNextStageTask(projectGuid, stageName string) (string, error) {
+	taskInfo, err := s.asyncClient.Enqueue(tasks.NewProjectNextStageTask(projectGuid, stageName))
+	if err != nil {
+		return "", fmt.Errorf("failed to create project next stage task: %s", err.Error())
 	}
 	return taskInfo.ID, nil
 }

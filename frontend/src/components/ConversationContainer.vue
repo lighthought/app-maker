@@ -64,10 +64,7 @@
             <div v-else class="simple-confirm">
               <n-space>
                 <n-button @click="handleSimpleConfirm" type="primary" size="small">
-                  确认并继续
-                </n-button>
-                <n-button @click="handleSimpleSkip" type="info" size="small">
-                  跳过确认
+                  确认
                 </n-button>
               </n-space>
             </div>
@@ -459,6 +456,8 @@ const handleSendMessage = async (content: string, agentType: string) => {
     // 清空输入框
     inputValue.value = ''
     
+    showConfirmInterface.value = false
+    confirmStage.value = ''
     // WebSocket 会推送新消息
     
   } catch (error) {
@@ -665,7 +664,7 @@ const getConfirmDescription = () => {
 
 const handleSimpleConfirm = async () => {
   try {
-    const success = await projectStore.confirmEpicsAndStories(props.projectGuid, 'confirm')
+    const success = await projectStore.confirmProjectStage(props.projectGuid, confirmStage.value)
    
     if (success) {
       showConfirmInterface.value = false
@@ -679,25 +678,6 @@ const handleSimpleConfirm = async () => {
   } catch (error: any) {
     console.error('确认失败:', error)
     message.error('确认失败: ' + (error.message || '未知错误'))
-  }
-}
-
-const handleSimpleSkip = async () => {
-  try {
-    const success = await projectStore.confirmEpicsAndStories(props.projectGuid, 'skip')
-    
-    if (success) {
-      showConfirmInterface.value = false
-      confirmStage.value = ''
-      // 重新加载项目信息
-      await loadDevStages()
-      await loadConversations()
-    } else {
-      //message.error(response.data.message || '跳过确认失败')
-    }
-  } catch (error: any) {
-    console.error('跳过确认失败:', error)
-    message.error('跳过确认失败: ' + (error.message || '未知错误'))
   }
 }
 

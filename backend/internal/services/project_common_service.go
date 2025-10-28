@@ -40,7 +40,7 @@ type ProjectCommonService interface {
 
 	// 创建或更新阶段
 	CreateOrUpdateStage(ctx context.Context, project *models.Project,
-		taskID, projectGuid, stageName string) (*models.DevStage, bool, error)
+		taskID, projectGuid, stageName string, needConfirm bool) (*models.DevStage, bool, error)
 
 	// 创建并通知项目阶段
 	CreateAndNotifyProjectStage(ctx context.Context, project *models.Project,
@@ -60,6 +60,9 @@ type ProjectCommonService interface {
 
 	// 更新阶段状态
 	UpdateStageStatus(ctx context.Context, stage *models.DevStage, status, failedReason string) error
+
+	// 更新阶段用户确认状态
+	UpdateStageUserConfirmed(ctx context.Context, projectGuid, stageName string) error
 
 	// 恢复项目和阶段
 	ResumeProjectAndStage(ctx context.Context, projectGuid string) (*models.Project, *models.DevStage, error)
@@ -122,13 +125,13 @@ func (s *projectCommonService) CreateAndNotifyMessage(ctx context.Context, proje
 
 // CreateOrUpdateStage 创建或更新阶段
 func (s *projectCommonService) CreateOrUpdateStage(ctx context.Context, project *models.Project,
-	taskID, projectGuid, stageName string) (*models.DevStage, bool, error) {
+	taskID, projectGuid, stageName string, needConfirm bool) (*models.DevStage, bool, error) {
 	// 查找已有的阶段信息
 	devProjectStage, err := s.repositories.ProjectStageRepo.GetByProjectGuidAndName(ctx, projectGuid, stageName)
 	if err != nil {
 		devProjectStage = models.NewDevStage(project, common.DevStatus(stageName), common.CommonStatusInProgress)
 		devProjectStage.TaskID = taskID
-
+		devProjectStage.NeedConfirm = needConfirm
 		if err := s.repositories.ProjectStageRepo.Create(ctx, devProjectStage); err != nil {
 			return nil, false, fmt.Errorf("创建阶段记录失败: %w", err)
 		}
@@ -267,6 +270,24 @@ func (s *projectCommonService) UpdateStageStatus(ctx context.Context, stage *mod
 
 	s.webSocketService.NotifyProjectStageUpdate(ctx, stage.ProjectGuid, stage)
 	logger.Info("更新阶段状态为完成成功", logger.String("stageID", stage.ID), logger.String("stageName", stage.Name))
+	return nil
+}
+
+// 更新阶段用户确认状态
+func (s *projectCommonService) UpdateStageUserConfirmed(ctx context.Context, projectGuid, stageName string) error {
+	stage, err := s.repositories.ProjectStageRepo.GetByProjectGuidAndName(ctx, projectGuid, stageName)
+	if err != nil {
+		return fmt.Errorf("获取阶段信息失败: %w", err)
+	}
+	stage.UserConfirmed = true
+	now := utils.GetTimeNow()
+	stage.SetStatus(common.CommonStatusDone)
+	stage.CompletedAt = &now
+	if err := s.repositories.ProjectStageRepo.Update(ctx, stage); err != nil {
+		return fmt.Errorf("更新阶段用户确认状态失败: %w", err)
+	}
+
+	s.webSocketService.NotifyProjectStageUpdate(ctx, stage.ProjectGuid, stage)
 	return nil
 }
 

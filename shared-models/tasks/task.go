@@ -156,6 +156,19 @@ func NewProjectStageTask(requireConfirm bool, projectGuid, stageName string) *as
 		asynq.Retention(taskRetentionHour))
 }
 
+// 创建项目进入下一阶段任务
+func NewProjectNextStageTask(projectGuid, stageName string) *asynq.Task {
+	payload := ProjectStageTaskPayload{
+		ProjectGuid: projectGuid,
+		StageName:   stageName,
+	}
+	return asynq.NewTask(common.TaskTypeProjectNextStage,
+		payload.ToBytes(),
+		asynq.Queue(taskQueueDefault),
+		asynq.MaxRetry(taskMaxRetry),
+		asynq.Retention(taskRetentionHour))
+}
+
 // 创建 Agent 任务状态消息任务
 func NewAgentTaskResponseTask(message *agent.AgentTaskStatusMessage) *asynq.Task {
 	return asynq.NewTask(common.TaskTypeAgentTaskResponse,

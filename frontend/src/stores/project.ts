@@ -335,6 +335,25 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
+  // 确认项目阶段
+  const confirmProjectStage = async (projectGuid: string, stageName: string) => {
+    try {
+      const response = await httpService.post<{
+        code: number
+        message: string
+      }>(`/projects/${projectGuid}/confirm-stage/${stageName}`)
+      if (response.code === 0) {
+        return true
+      } else {
+        console.error('确认项目阶段失败:', response.message)
+        throw new Error(response.message || '确认项目阶段失败')
+      }
+    } catch (error) {
+      console.error('确认项目阶段失败:', error)
+      return false
+    }
+  }
+
   // Epic/Story 相关方法
   const getMvpEpics = async (projectGuid: string) => {
     try {
@@ -539,6 +558,7 @@ export const useProjectStore = defineStore('project', () => {
     getProjectStages,
     downloadProject,
     deployProject,
+    confirmProjectStage,
     // Epic/Story 相关方法
     getMvpEpics,
     updateEpicOrder,

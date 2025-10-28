@@ -241,6 +241,7 @@ func initAsynqWorker(redisClientOpt *asynq.RedisClientOpt, concurrency int, proj
 	mux.Handle(common.TaskTypeProjectInit, projectService)
 
 	mux.Handle(common.TaskTypeProjectStage, asyncTaskService)
+	mux.Handle(common.TaskTypeProjectNextStage, asyncTaskService)
 	mux.Handle(common.TaskTypeAgentTaskResponse, asyncTaskService)
 	mux.Handle(common.TaskTypeAgentChat, asyncTaskService)
 	mux.Handle(common.TaskTypeProjectDownload, asyncTaskService)

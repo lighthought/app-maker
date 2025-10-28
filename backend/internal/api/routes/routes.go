@@ -120,15 +120,16 @@ func registerProjectApiRoutes(routers *gin.RouterGroup, authMiddleware gin.Handl
 	{
 		var epicHandler = container.EpicHandler
 		if projectHandler != nil {
-			projects.POST("/", projectHandler.CreateProject)                         // 创建项目
-			projects.GET("/", projectHandler.ListProjects)                           // 获取项目列表
-			projects.GET("/:guid", projectHandler.GetProject)                        // 获取项目详情
-			projects.PUT("/:guid", projectHandler.UpdateProject)                     // 更新项目
-			projects.DELETE("/:guid", projectHandler.DeleteProject)                  // 删除项目
-			projects.GET("/:guid/stages", projectHandler.GetProjectStages)           // 获取项目开发阶段
-			projects.GET("/download/:guid", projectHandler.DownloadProject)          // 下载项目文件
-			projects.POST("/:guid/deploy", projectHandler.DeployProject)             // 部署项目
-			projects.POST("/:guid/preview-link", projectHandler.GeneratePreviewLink) // 生成预览分享链接
+			projects.POST("/", projectHandler.CreateProject)                                      // 创建项目
+			projects.GET("/", projectHandler.ListProjects)                                        // 获取项目列表
+			projects.GET("/:guid", projectHandler.GetProject)                                     // 获取项目详情
+			projects.PUT("/:guid", projectHandler.UpdateProject)                                  // 更新项目
+			projects.DELETE("/:guid", projectHandler.DeleteProject)                               // 删除项目
+			projects.GET("/:guid/stages", projectHandler.GetProjectStages)                        // 获取项目开发阶段
+			projects.GET("/download/:guid", projectHandler.DownloadProject)                       // 下载项目文件
+			projects.POST("/:guid/deploy", projectHandler.DeployProject)                          // 部署项目
+			projects.POST("/:guid/preview-link", projectHandler.GeneratePreviewLink)              // 生成预览分享链接
+			projects.POST("/:guid/confirm-stage/:stage_name", projectHandler.ConfirmProjectStage) // 确认项目阶段
 
 			// Epic 相关路由
 			if epicHandler != nil {
@@ -166,6 +167,7 @@ func registerProjectApiRoutes(routers *gin.RouterGroup, authMiddleware gin.Handl
 			setGetEmptyEndpoint(projects, "/download/:guid", "Project download endpoint - TODO")
 			setPostEmptyEndpoint(projects, "/:guid/deploy", "Project deploy endpoint - TODO")
 			setPostEmptyEndpoint(projects, "/:guid/preview-link", "Project preview link endpoint - TODO")
+			setPostEmptyEndpoint(projects, "/:guid/confirm-stage/:stage_name", "Project confirm stage endpoint - TODO")
 		}
 	}
 }

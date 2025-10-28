@@ -301,6 +301,7 @@ const (
 
 	// 项目开发阶段任务类型
 	TaskTypeProjectStage      = "project:stage"       // 项目开发阶段任务
+	TaskTypeProjectNextStage  = "project:next_stage"  // 项目自动进入下一阶段任务
 	TaskTypeAgentTaskResponse = "agent_task:response" // Agent 任务响应消息任务 (agent->pub -> backend(sub) -> stage_service)
 )
 

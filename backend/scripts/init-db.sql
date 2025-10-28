@@ -168,6 +168,8 @@ CREATE TABLE IF NOT EXISTS dev_stages (
     description TEXT,
     failed_reason TEXT,
     task_id VARCHAR(50),
+    need_confirm BOOLEAN NOT NULL DEFAULT FALSE,
+    user_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

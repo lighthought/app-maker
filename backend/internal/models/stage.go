@@ -13,20 +13,22 @@ import (
 
 // DevStage 开发阶段模型
 type DevStage struct {
-	ID           string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq')"`
-	ProjectID    string         `json:"project_id" gorm:"type:varchar(50);not null"`
-	ProjectGuid  string         `json:"project_guid" gorm:"type:varchar(50);"`
-	Name         string         `json:"name" gorm:"size:100;not null"`
-	Status       string         `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, completed, failed
-	Progress     int            `json:"progress" gorm:"default:0"`                        // 0-100
-	Description  string         `json:"description" gorm:"type:text"`
-	FailedReason string         `json:"failed_reason" gorm:"type:text"`
-	TaskID       string         `json:"task_id" gorm:"type:varchar(50)"`
-	StartedAt    *time.Time     `json:"started_at"`
-	CompletedAt  *time.Time     `json:"completed_at"`
-	CreatedAt    time.Time      `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt    time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
-	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
+	ID            string         `json:"id" gorm:"primaryKey;type:varchar(50);default:public.generate_table_id('STAGE', 'public.dev_stages_id_num_seq')"`
+	ProjectID     string         `json:"project_id" gorm:"type:varchar(50);not null"`
+	ProjectGuid   string         `json:"project_guid" gorm:"type:varchar(50);"`
+	Name          string         `json:"name" gorm:"size:100;not null"`
+	Status        string         `json:"status" gorm:"size:20;not null;default:'pending'"` // pending, in_progress, completed, failed
+	Progress      int            `json:"progress" gorm:"default:0"`                        // 0-100
+	Description   string         `json:"description" gorm:"type:text"`
+	FailedReason  string         `json:"failed_reason" gorm:"type:text"`
+	TaskID        string         `json:"task_id" gorm:"type:varchar(50)"`
+	NeedConfirm   bool           `json:"need_confirm" gorm:"default:false"`
+	UserConfirmed bool           `json:"user_confirmed" gorm:"default:false"`
+	StartedAt     *time.Time     `json:"started_at"`
+	CompletedAt   *time.Time     `json:"completed_at"`
+	CreatedAt     time.Time      `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt     time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
+	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
 type DevStageInfo struct {
