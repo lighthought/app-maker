@@ -136,7 +136,17 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 		logger.String("requirements", req.Requirements),
 	)
 
+	user, err := s.repositories.UserRepo.GetByID(ctx, userID)
+	if err != nil {
+		logger.Error("获取用户信息失败",
+			logger.String("error", err.Error()),
+			logger.String("userID", userID),
+		)
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
 	newProject := models.GetDefaultProject(userID, req.Requirements)
+
 	if err := s.repositories.ProjectRepo.Create(ctx, newProject); err != nil {
 		logger.Error("保存项目到数据库失败",
 			logger.String("error", err.Error()),
@@ -175,7 +185,7 @@ func (s *projectService) CreateProject(ctx context.Context, req *models.CreatePr
 	}
 
 	newProject.CurrentTaskID = taskID
-
+	newProject.AutoGoNext = user.AutoGoNext
 	// 更新项目
 	logger.Info("保存项目到数据库")
 	if err := s.repositories.ProjectRepo.Update(ctx, newProject); err != nil {
@@ -242,7 +252,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 	}
 
 	// 更新 initializing 的 stage 为 done，表示 API 内部这个 async 调用成功，也获取到了合法的数据
-	stage, isDone, err := s.commonService.CreateOrUpdateStage(ctx, project, taskID, project.GUID, string(common.DevStatusInitializing))
+	stage, isDone, err := s.commonService.CreateOrUpdateStage(ctx, project, taskID, project.GUID, string(common.DevStatusInitializing), false)
 	if err != nil {
 		logger.Error("更新项目阶段失败",
 			logger.String("error", err.Error()),
@@ -253,7 +263,7 @@ func (s *projectService) updateProjectToEnvironmentStage(ctx context.Context, pr
 		s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusDone, "")
 	}
 
-	stageEnvironment, _, err := s.commonService.CreateOrUpdateStage(ctx, project, taskID, project.GUID, string(common.DevStatusSetupEnvironment))
+	stageEnvironment, _, err := s.commonService.CreateOrUpdateStage(ctx, project, taskID, project.GUID, string(common.DevStatusSetupEnvironment), false)
 	if err != nil {
 		logger.Error("创建或更新项目阶段失败",
 			logger.String("error", err.Error()),
