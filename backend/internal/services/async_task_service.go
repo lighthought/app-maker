@@ -127,8 +127,9 @@ func (s *asyncTaskService) handleProjectStageTask(ctx context.Context, t *asynq.
 		return err
 	}
 
-	if taskID == "" {
+	if taskID == "" { // 兼容已经处理过（有文件生成）的情况
 		logger.Info("阶段任务执行成功，没有请求到 Agent，跳过阶段，直接执行下一阶段", logger.String("stageName", payload.StageName))
+		s.commonService.UpdateStageStatus(ctx, stage, common.CommonStatusDone, "")         // 更新阶段状态为完成
 		s.devService.ProceedToNextStage(ctx, project, common.DevStatus(payload.StageName)) // 跳过阶段，直接执行下一阶段
 		return nil
 	}

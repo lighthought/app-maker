@@ -25,6 +25,9 @@ type ProjectDevService interface {
 	// 处理 Agent 对话响应
 	OnChatResponse(ctx context.Context, message *agent.AgentTaskStatusMessage, response *tasks.TaskResult) error
 
+	// 重新开始当前阶段（适配任务超时，且超过 Redis 缓存时间的场景）
+	RenewCurrentStageTask(ctx context.Context, stageID string) error
+
 	// 进入下一阶段的通用方法
 	ProceedToNextStage(ctx context.Context,
 		project *models.Project, currentStage common.DevStatus) error
@@ -71,13 +74,13 @@ func (s *projectDevService) InitStageItems() {
 		{Name: common.DevStatusPlanEpicAndStory, Desc: "规划 Epic 和 Story", NeedConfirm: true,
 			ReqHandler: s.agentInteractService.PlanEpicsAndStories, RespHandler: s.OnPlanEpicsAndStoriesResponse},
 		{Name: common.DevStatusDefineDataModel, Desc: "定义数据模型", NeedConfirm: true,
-			ReqHandler: s.agentInteractService.DefineDataModel, RespHandler: s.OnDefineDataModelResponse, SkipInDevMode: true},
+			ReqHandler: s.agentInteractService.DefineDataModel, RespHandler: s.OnDefineDataModelResponse /*SkipInDevMode: true*/},
 		{Name: common.DevStatusDefineAPI, Desc: "定义 API", NeedConfirm: true,
-			ReqHandler: s.agentInteractService.DefineAPIs, RespHandler: s.OnDefineAPIsResponse, SkipInDevMode: true},
+			ReqHandler: s.agentInteractService.DefineAPIs, RespHandler: s.OnDefineAPIsResponse /*SkipInDevMode: true*/},
 		{Name: common.DevStatusGeneratePages, Desc: "生成前端页面", NeedConfirm: true,
-			ReqHandler: s.agentInteractService.GenerateFrontendPages, RespHandler: s.OnGenerateFrontendPagesResponse},
+			ReqHandler: s.agentInteractService.GenerateFrontendPages, RespHandler: s.OnGenerateFrontendPagesResponse, SkipInDevMode: true},
 		{Name: common.DevStatusDevelopStory, Desc: "开发 Story", NeedConfirm: true,
-			ReqHandler: s.agentInteractService.DevelopStories, RespHandler: s.OnDevelopStoriesResponse, SkipInDevMode: true},
+			ReqHandler: s.agentInteractService.DevelopStories, RespHandler: s.OnDevelopStoriesResponse /*SkipInDevMode: true*/},
 		{Name: common.DevStatusFixBug, Desc: "修复 Bug", NeedConfirm: false,
 			ReqHandler: s.agentInteractService.FixBugs, RespHandler: s.OnFixBugsResponse, SkipInDevMode: true},
 		{Name: common.DevStatusRunTest, Desc: "运行测试", NeedConfirm: false,
@@ -90,17 +93,6 @@ func (s *projectDevService) InitStageItems() {
 // ProceedToNextStage 进入下一阶段的通用方法
 func (s *projectDevService) ProceedToNextStage(ctx context.Context,
 	project *models.Project, currentStage common.DevStatus) error {
-	// 优先使用项目级配置，其次用户级配置
-	// autoGoNext := project.AutoGoNext
-	// if !autoGoNext {
-	// 	autoGoNext = project.User.AutoGoNext
-	// }
-
-	// if requireConfirm && !autoGoNext {
-	// 	s.commonService.UpdateProjectWaitingForUserConfirm(ctx, project, currentStage)
-	// 	return nil
-	// }
-
 	// 自动进入下一阶段
 	nextStage := s.getNextStage(currentStage)
 	if nextStage == nil {
@@ -111,6 +103,19 @@ func (s *projectDevService) ProceedToNextStage(ctx context.Context,
 
 	// 创建下一阶段任务
 	s.asyncClientService.EnqueueProjectStageTask(nextStage.NeedConfirm, project.GUID, string(nextStage.Name))
+	return nil
+}
+
+// ProceedToNextStage 进入下一阶段的通用方法
+func (s *projectDevService) RenewCurrentStageTask(ctx context.Context, stageID string) error {
+	stage, err := s.repositories.ProjectStageRepo.GetByID(ctx, stageID)
+	if err != nil {
+		logger.Error("Failed to get stage by id", logger.String("stage_id", stageID))
+		return err
+	}
+	currentStage := s.GetStageItem(common.DevStatus(stage.Name))
+	// 创建当前阶段任务
+	s.asyncClientService.EnqueueProjectStageTask(currentStage.NeedConfirm, stage.ProjectGuid, stage.Name)
 	return nil
 }
 
