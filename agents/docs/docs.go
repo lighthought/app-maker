@@ -199,6 +199,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/agent/chat": {
+            "post": {
+                "description": "向指定 Agent 发送消息，使用现有会话继续对话",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chat"
+                ],
+                "summary": "与指定 Agent 对话",
+                "parameters": [
+                    {
+                        "description": "对话请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/agent.ChatReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/agent/dev/deploy": {
             "post": {
                 "description": "执行项目的打包部署流程",
@@ -523,7 +569,7 @@ const docTemplate = `{
         },
         "/api/v1/health": {
             "get": {
-                "description": "检查服务是否正常运行",
+                "description": "检查服务是否正常运行，包括依赖服务状态",
                 "consumes": [
                     "application/json"
                 ],
@@ -531,24 +577,20 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "健康检查"
+                    "检查健康"
                 ],
-                "summary": "健康检查",
+                "summary": "检查健康",
                 "responses": {
                     "200": {
                         "description": "成功响应",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/common.Response"
                         }
                     },
                     "500": {
                         "description": "服务器内部错误",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/common.ErrorResponse"
                         }
                     }
                 }
@@ -599,9 +641,117 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/tasks/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "获取任务状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Task"
+                ],
+                "summary": "获取任务状态",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "任务ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "任务不存在",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/version": {
+            "get": {
+                "description": "检查服务是否正常运行，包括依赖服务状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "检查版本"
+                ],
+                "summary": "检查版本",
+                "responses": {
+                    "200": {
+                        "description": "成功响应",
+                        "schema": {
+                            "$ref": "#/definitions/common.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/common.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "agent.ChatReq": {
+            "type": "object",
+            "required": [
+                "agent_type",
+                "message",
+                "project_guid"
+            ],
+            "properties": {
+                "agent_type": {
+                    "type": "string",
+                    "example": "dev"
+                },
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
+                "dev_stage": {
+                    "type": "string",
+                    "example": "initializing"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "确认，继续执行"
+                },
+                "project_guid": {
+                    "type": "string",
+                    "example": "1234567890"
+                }
+            }
+        },
         "agent.FixBugReq": {
             "type": "object",
             "required": [
@@ -612,6 +762,10 @@ const docTemplate = `{
                 "bug_description": {
                     "type": "string",
                     "example": "bug description"
+                },
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
                 },
                 "project_guid": {
                     "type": "string",
@@ -628,6 +782,10 @@ const docTemplate = `{
                 "stories_folder"
             ],
             "properties": {
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "db_folder": {
                     "type": "string",
                     "example": "docs/db"
@@ -655,6 +813,10 @@ const docTemplate = `{
                 "ux_spec_path"
             ],
             "properties": {
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "prd_path": {
                     "type": "string",
                     "example": "docs/PRD.md"
@@ -686,6 +848,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "docs/arch"
                 },
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "prd_path": {
                     "type": "string",
                     "example": "docs/PRD.md"
@@ -712,6 +878,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "docs/arch"
                 },
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "prd_path": {
                     "type": "string",
                     "example": "docs/PRD.md"
@@ -729,6 +899,10 @@ const docTemplate = `{
                 "requirements"
             ],
             "properties": {
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "project_guid": {
                     "type": "string",
                     "example": "1234567890"
@@ -746,6 +920,10 @@ const docTemplate = `{
                 "requirements"
             ],
             "properties": {
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "project_guid": {
                     "type": "string",
                     "example": "1234567890"
@@ -764,6 +942,10 @@ const docTemplate = `{
                 "requirements"
             ],
             "properties": {
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "prd_path": {
                     "type": "string",
                     "example": "docs/PRD.md"
@@ -787,7 +969,6 @@ const docTemplate = `{
                 "epic_file",
                 "prd_path",
                 "project_guid",
-                "story_file",
                 "ux_spec_path"
             ],
             "properties": {
@@ -799,13 +980,17 @@ const docTemplate = `{
                     "type": "string",
                     "example": "docs/arch"
                 },
+                "cli_tool": {
+                    "type": "string",
+                    "example": "claude-code"
+                },
                 "db_folder": {
                     "type": "string",
                     "example": "docs/db"
                 },
                 "epic_file": {
                     "type": "string",
-                    "example": "docs/epics.md"
+                    "example": "docs/epics/epic.md"
                 },
                 "prd_path": {
                     "type": "string",
@@ -831,23 +1016,34 @@ const docTemplate = `{
                 "bmad_cli_type",
                 "gitlab_repo_url",
                 "project_guid",
-                "project_id",
                 "setup_bmad_method"
             ],
             "properties": {
+                "ai_model": {
+                    "type": "string",
+                    "example": "glm-4.6"
+                },
+                "api_token": {
+                    "type": "string",
+                    "example": "sk-..."
+                },
                 "bmad_cli_type": {
                     "type": "string",
-                    "example": "claude"
+                    "example": "claude-code"
                 },
                 "gitlab_repo_url": {
                     "type": "string",
                     "example": "https://gitlab.lighthought.com/app-maker/project-guid.git"
                 },
-                "project_guid": {
+                "model_api_url": {
                     "type": "string",
-                    "example": "1234567890"
+                    "example": "https://open.bigmodel.cn/api/anthropic"
                 },
-                "project_id": {
+                "model_provider": {
+                    "type": "string",
+                    "example": "zhipu"
+                },
+                "project_guid": {
                     "type": "string",
                     "example": "1234567890"
                 },

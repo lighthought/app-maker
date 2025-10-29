@@ -1,8 +1,33 @@
 definitions:
+  agent.ChatReq:
+    properties:
+      agent_type:
+        example: dev
+        type: string
+      cli_tool:
+        example: claude-code
+        type: string
+      dev_stage:
+        example: initializing
+        type: string
+      message:
+        example: 确认，继续执行
+        type: string
+      project_guid:
+        example: "1234567890"
+        type: string
+    required:
+    - agent_type
+    - message
+    - project_guid
+    type: object
   agent.FixBugReq:
     properties:
       bug_description:
         example: bug description
+        type: string
+      cli_tool:
+        example: claude-code
         type: string
       project_guid:
         example: "1234567890"
@@ -13,6 +38,9 @@ definitions:
     type: object
   agent.GetAPIDefinitionReq:
     properties:
+      cli_tool:
+        example: claude-code
+        type: string
       db_folder:
         example: docs/db
         type: string
@@ -33,6 +61,9 @@ definitions:
     type: object
   agent.GetArchitectureReq:
     properties:
+      cli_tool:
+        example: claude-code
+        type: string
       prd_path:
         example: docs/PRD.md
         type: string
@@ -56,6 +87,9 @@ definitions:
       arch_folder:
         example: docs/arch
         type: string
+      cli_tool:
+        example: claude-code
+        type: string
       prd_path:
         example: docs/PRD.md
         type: string
@@ -76,6 +110,9 @@ definitions:
       arch_folder:
         example: docs/arch
         type: string
+      cli_tool:
+        example: claude-code
+        type: string
       prd_path:
         example: docs/PRD.md
         type: string
@@ -89,6 +126,9 @@ definitions:
     type: object
   agent.GetPRDReq:
     properties:
+      cli_tool:
+        example: claude-code
+        type: string
       project_guid:
         example: "1234567890"
         type: string
@@ -101,6 +141,9 @@ definitions:
     type: object
   agent.GetProjBriefReq:
     properties:
+      cli_tool:
+        example: claude-code
+        type: string
       project_guid:
         example: "1234567890"
         type: string
@@ -113,6 +156,9 @@ definitions:
     type: object
   agent.GetUXStandardReq:
     properties:
+      cli_tool:
+        example: claude-code
+        type: string
       prd_path:
         example: docs/PRD.md
         type: string
@@ -134,6 +180,9 @@ definitions:
         type: string
       arch_folder:
         example: docs/arch
+        type: string
+      cli_tool:
+        example: claude-code
         type: string
       db_folder:
         example: docs/db
@@ -160,21 +209,29 @@ definitions:
     - epic_file
     - prd_path
     - project_guid
-    - story_file
     - ux_spec_path
     type: object
   agent.SetupProjEnvReq:
     properties:
+      ai_model:
+        example: glm-4.6
+        type: string
+      api_token:
+        example: sk-...
+        type: string
       bmad_cli_type:
-        example: claude
+        example: claude-code
         type: string
       gitlab_repo_url:
         example: https://gitlab.lighthought.com/app-maker/project-guid.git
         type: string
-      project_guid:
-        example: "1234567890"
+      model_api_url:
+        example: https://open.bigmodel.cn/api/anthropic
         type: string
-      project_id:
+      model_provider:
+        example: zhipu
+        type: string
+      project_guid:
         example: "1234567890"
         type: string
       setup_bmad_method:
@@ -184,7 +241,6 @@ definitions:
     - bmad_cli_type
     - gitlab_repo_url
     - project_guid
-    - project_id
     - setup_bmad_method
     type: object
   common.ErrorResponse:
@@ -335,6 +391,36 @@ paths:
       summary: 获取数据库设计
       tags:
       - Architect
+  /api/v1/agent/chat:
+    post:
+      consumes:
+      - application/json
+      description: 向指定 Agent 发送消息，使用现有会话继续对话
+      parameters:
+      - description: 对话请求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/agent.ChatReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/common.Response'
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: 服务器错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 与指定 Agent 对话
+      tags:
+      - Chat
   /api/v1/agent/dev/deploy:
     post:
       consumes:
@@ -549,24 +635,21 @@ paths:
     get:
       consumes:
       - application/json
-      description: 检查服务是否正常运行
+      description: 检查服务是否正常运行，包括依赖服务状态
       produces:
       - application/json
       responses:
         "200":
           description: 成功响应
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/common.Response'
         "500":
           description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: 健康检查
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 检查健康
       tags:
-      - 健康检查
+      - 检查健康
   /api/v1/projects/setup:
     post:
       consumes:
@@ -597,4 +680,54 @@ paths:
       summary: 项目环境准备
       tags:
       - Project
+  /api/v1/tasks/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 获取任务状态
+      parameters:
+      - description: 任务ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/common.Response'
+        "404":
+          description: 任务不存在
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: 获取任务状态
+      tags:
+      - Task
+  /api/v1/version:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否正常运行，包括依赖服务状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功响应
+          schema:
+            $ref: '#/definitions/common.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/common.ErrorResponse'
+      summary: 检查版本
+      tags:
+      - 检查版本
 swagger: "2.0"
