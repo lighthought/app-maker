@@ -211,7 +211,7 @@ const handleRetry = async () => {
   try {
     retrying.value = true
     console.log('🔄 [DevStages] 重试任务ID:', currentStage.value.task_id)
-    const result = await taskStore.retryTask(currentStage.value.task_id)
+    const result = await taskStore.retryTask(currentStage.value.task_id, currentStage.value.id)
     
     if (result.success) {
       message.success(result.message || '重试任务成功')

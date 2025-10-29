@@ -155,7 +155,7 @@ func (c *Container) initHandlers() {
 	c.ChatHandler = handlers.NewChatHandler(c.MessageService, c.FileService, c.ProjectService, c.AsyncClientService)
 	c.FileHandler = handlers.NewFileHandler(c.FileService, c.ProjectService)
 	c.ProjectHandler = handlers.NewProjectHandler(c.ProjectService, c.AsyncClientService, c.ProjectCommonService, c.PreviewService)
-	c.TaskHandler = handlers.NewTaskHandler(c.AsyncInspector)
+	c.TaskHandler = handlers.NewTaskHandler(c.AsyncInspector, c.ProjectDevService)
 	c.UserHandler = handlers.NewUserHandler(c.UserService)
 	c.WebSocketHandler = handlers.NewWebSocketHandler(c.WebSocketService, c.ProjectService, c.JWTService)
 	c.EpicHandler = handlers.NewEpicHandler(c.EpicService)

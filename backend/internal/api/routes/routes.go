@@ -218,8 +218,8 @@ func registerTaskApiRoutes(routers *gin.RouterGroup, authMiddleware gin.HandlerF
 	tasks.Use(authMiddleware) // 应用认证中间件
 	{
 		if taskHandler != nil {
-			tasks.GET("/:id", taskHandler.GetTaskStatus)    // 获取任务状
-			tasks.POST("/:id/retry", taskHandler.RetryTask) // 重试任务
+			tasks.GET("/:id", taskHandler.GetTaskStatus) // 获取任务状
+			tasks.POST("/retry", taskHandler.RetryTask)  // 重试任务
 		} else {
 			setGetEmptyEndpoint(tasks, "/:id", "Task status endpoint - TODO")
 			setPostEmptyEndpoint(tasks, "/:id/retry", "Task retry endpoint - TODO")

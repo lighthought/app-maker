@@ -1,7 +1,7 @@
 import { httpService } from '@/utils/http'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { TaskResult } from '@/types/task'
+import { TaskResult, RetryTaskReq } from '@/types/task'
 
 export const useTaskStore = defineStore('task', () => {
 
@@ -28,13 +28,17 @@ export const useTaskStore = defineStore('task', () => {
         }
     }
 
-    const retryTask = async (taskId: string) => {
+    const retryTask = async (taskId: string, stageId: string) => {
         try {
+            const req = {
+                task_id: taskId,
+                stage_id: stageId
+            } as RetryTaskReq
             const response = await httpService.post<{
                 code: number
                 message: string
                 data: any
-            }>(`/tasks/${taskId}/retry`)
+            }>(`/tasks/retry`, req)
 
             if (response.code === 0) {
                 return { success: true, message: response.message }

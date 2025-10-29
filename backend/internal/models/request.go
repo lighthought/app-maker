@@ -65,18 +65,16 @@ type ProjectListRequest struct {
 	Search string   `json:"search" form:"search" example:"项目名称关键词"`
 }
 
-// JenkinsBuildRequest Jenkins 构建请求
-type JenkinsBuildRequest struct {
-	UserID      string `json:"user_id"`
-	ProjectID   string `json:"project_id"`
-	ProjectPath string `json:"project_path"`
-	BuildType   string `json:"build_type"` // dev 或 prod
-}
-
 // ChatWithAgentRequest 与 Agent 对话请求
 type ChatWithAgentRequest struct {
 	AgentType string `json:"agent_type" binding:"required"`
 	Content   string `json:"content" binding:"required"`
+}
+
+// RetryTaskRequest 任务重试请求
+type RetryTaskRequest struct {
+	TaskID  string `json:"task_id" binding:"required"`
+	StageID string `json:"stage_id"`
 }
 
 // UpdateEpicOrderRequest 更新 Epic 排序请求
