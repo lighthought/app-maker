@@ -288,6 +288,17 @@ func (s *projectCommonService) UpdateStageUserConfirmed(ctx context.Context, pro
 	}
 
 	s.webSocketService.NotifyProjectStageUpdate(ctx, stage.ProjectGuid, stage)
+
+	project, err := s.repositories.ProjectRepo.GetByGUID(ctx, projectGuid)
+	if err != nil {
+		return fmt.Errorf("获取项目信息失败: %w", err)
+	}
+
+	// 项目等待状态重置
+	project.WaitingForUserConfirm = false
+	project.ConfirmStage = ""
+	project.Status = common.CommonStatusInProgress
+	s.UpdateAndNotifyProjectInfo(ctx, project)
 	return nil
 }
 
