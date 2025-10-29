@@ -19,7 +19,7 @@ COPY . .
 
 # 安装 swag 工具并生成 API 文档
 RUN go install github.com/swaggo/swag/cmd/swag@latest && \
-    swag init -g cmd/server/main.go -o docs
+    swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
 
 # 构建应用
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go

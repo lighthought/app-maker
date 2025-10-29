@@ -6,7 +6,9 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(tasklist:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Read(//f/app-maker/app_data/**)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

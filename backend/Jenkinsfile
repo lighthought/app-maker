@@ -98,7 +98,7 @@ pipeline {
             steps {
                 script {
                     echo "生成API文档..."
-                    sh 'swag init -g cmd/server/main.go -o docs'
+                    sh 'swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal'
                 }
             }
         }
