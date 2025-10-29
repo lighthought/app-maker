@@ -6,12 +6,18 @@ import (
 
 // UserInfo 用户信息（用于响应）
 type UserInfo struct {
-	ID        string    `json:"id" example:"varchar(50)"`
-	Email     string    `json:"email" example:"user@example.com"`
-	Username  string    `json:"username" example:"username"`
-	Role      string    `json:"role" example:"user"`
-	Status    string    `json:"status" example:"active"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                   string    `json:"id" example:"varchar(50)"`
+	Email                string    `json:"email" example:"user@example.com"`
+	Username             string    `json:"username" example:"username"`
+	Role                 string    `json:"role" example:"user"`
+	Status               string    `json:"status" example:"active"`
+	DefaultCliTool       string    `json:"default_cli_tool" example:"claude-code"`
+	DefaultAiModel       string    `json:"default_ai_model" example:"glm-4.6"`
+	DefaultModelProvider string    `json:"default_model_provider" example:"zhipu"`
+	DefaultModelApiUrl   string    `json:"default_model_api_url" example:"https://open.bigmodel.cn/api/anthropic"`
+	DefaultApiToken      string    `json:"default_api_token,omitempty" example:"sk-1234567890"`
+	AutoGoNext           bool      `json:"auto_go_next" example:"true"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 
 // ProjectInfo 项目信息（用于响应）

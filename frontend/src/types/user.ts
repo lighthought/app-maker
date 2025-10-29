@@ -6,6 +6,12 @@ export interface User {
   avatar?: string
   role?: string
   status?: 'active' | 'inactive' | 'suspended'
+  default_cli_tool?: string
+  default_ai_model?: string
+  default_model_provider?: string
+  default_model_api_url?: string
+  default_api_token?: string
+  auto_go_next?: boolean
   createdAt: string
   updatedAt: string
 }
