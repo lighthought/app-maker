@@ -270,6 +270,12 @@ func (s *agentInteractService) GeneratePRD(ctx context.Context,
 // DefineUXStandards 定义UX标准
 func (s *agentInteractService) DefineUXStandards(ctx context.Context,
 	project *models.Project) (string, error) {
+	uxFiles, err := utils.GetRelativeFiles(project.ProjectPath, "docs/ux")
+	var countFile = len(uxFiles)
+	if err == nil && countFile > 0 {
+		logger.Info("DefineUXStandards got ux files", logger.Int("file_count", countFile))
+		return "", nil
+	}
 	req := &agent.GetUXStandardReq{
 		ProjectGuid:  project.GUID,
 		Requirements: project.Requirements,
@@ -289,6 +295,12 @@ func (s *agentInteractService) DefineUXStandards(ctx context.Context,
 // designArchitecture 设计系统架构
 func (s *agentInteractService) DesignArchitecture(ctx context.Context,
 	project *models.Project) (string, error) {
+	archFiles, err := utils.GetRelativeFiles(project.ProjectPath, "docs/arch")
+	var countFile = len(archFiles)
+	if err == nil && countFile > 0 {
+		logger.Info("DesignArchitecture got arch files", logger.Int("file_count", countFile))
+		return "", nil
+	}
 	req := &agent.GetArchitectureReq{
 		ProjectGuid: project.GUID,
 		PrdPath:     PATH_PRD,
@@ -313,6 +325,13 @@ func (s *agentInteractService) DesignArchitecture(ctx context.Context,
 // defineDataModel 定义数据模型
 func (s *agentInteractService) DefineDataModel(ctx context.Context,
 	project *models.Project) (string, error) {
+	dbFiles, err := utils.GetRelativeFiles(project.ProjectPath, "docs/db")
+	var countFile = len(dbFiles)
+	if err == nil && countFile > 0 {
+		logger.Info("DefineDataModel got db files", logger.Int("file_count", countFile))
+		return "", nil
+	}
+
 	req := &agent.GetDatabaseDesignReq{
 		ProjectGuid:   project.GUID,
 		PrdPath:       PATH_PRD,
@@ -333,6 +352,13 @@ func (s *agentInteractService) DefineDataModel(ctx context.Context,
 // defineAPIs 定义API接口
 func (s *agentInteractService) DefineAPIs(ctx context.Context,
 	project *models.Project) (string, error) {
+	apiFiles, err := utils.GetRelativeFiles(project.ProjectPath, "docs/api")
+	var countFile = len(apiFiles)
+	if err == nil && countFile > 0 {
+		logger.Info("DefineAPIs got api files", logger.Int("file_count", countFile))
+		return "", nil
+	}
+
 	req := &agent.GetAPIDefinitionReq{
 		ProjectGuid:   project.GUID,
 		PrdPath:       PATH_PRD,
@@ -353,6 +379,12 @@ func (s *agentInteractService) DefineAPIs(ctx context.Context,
 // planEpicsAndStories 划分Epic和Story
 func (s *agentInteractService) PlanEpicsAndStories(ctx context.Context,
 	project *models.Project) (string, error) {
+	storyFiles, err := utils.GetRelativeFiles(project.ProjectPath, "docs/stories")
+	var countFile = len(storyFiles)
+	if err == nil && countFile > 0 {
+		logger.Info("PlanEpicsAndStories got story files", logger.Int("file_count", countFile))
+		return "", nil
+	}
 	req := &agent.GetEpicsAndStoriesReq{
 		ProjectGuid: project.GUID,
 		PrdPath:     PATH_PRD,
