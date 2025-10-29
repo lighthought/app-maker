@@ -52,9 +52,10 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 		"我的需求是：" + req.Requirements +
 		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。" +
 		"2. 简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n" +
-		"3. 技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论，不需要你在 PRD 中体现。\n" +
-		"4. 不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
-		"5. 如果 docs/ 目录下已经有完善的 PRD.md 文件，直接返回概要信息，不用再尝试生成 PRD.md，原来的文档保持不变。"
+		"3. 当前项目的现有代码是基于模板生成的，仅用于展示项目结构和技术框架，可以不考虑。\n" +
+		"4. 技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论，不需要你在 PRD 中体现。\n" +
+		"5. 不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
+		"6. 如果 docs/ 目录下已经有完善的 PRD.md 文件，直接返回概要信息，不用再尝试生成 PRD.md，原来的文档保持不变。"
 
 	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePM, message,
 		req.CliTool, common.DevStatusGeneratePRD)
