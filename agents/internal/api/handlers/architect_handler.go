@@ -54,7 +54,8 @@ func (s *ArchitectHandler) GetArchitecture(c *gin.Context) {
 		"2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n" +
 		"3. 当前的项目代码是由模板生成，所以当前可能存在一些不在 PRD 描述内的实现细节，不影响编译可以不考虑。\n" +
 		"4. 当前项目使用的模板技术架构是：\n" + req.TemplateArchDescription +
-		"5. 如果 docs/arch/ 目录下已经有完善的架构设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+		"5. 如果 docs/arch/ 目录下已经有完善的架构设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。\n" +
+		"6. 特别注意：不要输出实际的代码片段，尽可能多的展示关键的结构设计图（Mermaid图表）。"
 
 	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypeArchitect, message,
 		req.CliTool, common.DevStatusDesignArchitecture)
