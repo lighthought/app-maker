@@ -1,9 +1,11 @@
 package services
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -125,6 +127,212 @@ func (s *projectService) installBmad(ctx context.Context, req agent.SetupProjEnv
 	return markdownResult, nil
 }
 
+// configurePOAgent 配置 PO Agent 的 customization 字段
+func (s *projectService) configurePOAgent(ctx context.Context, req agent.SetupProjEnvReq, projectPath, markdownResult string) (string, error) {
+	// 检测 CLI 工具类型
+	bmadCliType := req.BmadCliType
+	if bmadCliType == "" {
+		bmadCliType = s.fileService.DetectCliTool(req.ProjectGuid)
+	}
+
+	// 确定配置文件路径
+	var poConfigPath string
+	switch bmadCliType {
+	case common.CliToolGemini:
+		poConfigPath = filepath.Join(projectPath, ".bmad-core", "agents", "po.md")
+	case common.CliToolQwenCode:
+		poConfigPath = filepath.Join(projectPath, ".qwen", "bmad-method", "QWEN.md")
+	case common.CliToolClaudeCode:
+		poConfigPath = filepath.Join(projectPath, ".claude", "commands", "BMad", "agents", "po.md")
+	default:
+		// 默认使用 .bmad-core 路径
+		poConfigPath = filepath.Join(projectPath, ".bmad-core", "agents", "po.md")
+	}
+
+	// 检查文件是否存在
+	if !utils.IsFileExists(poConfigPath) {
+		logger.Info("PO Agent 配置文件不存在，跳过配置", logger.String("path", poConfigPath))
+		markdownResult += "* PO Agent 配置文件不存在，跳过配置\n"
+		return markdownResult, nil
+	}
+
+	// 读取原文件内容
+	file, err := os.Open(poConfigPath)
+	if err != nil {
+		logger.Error("打开 PO Agent 配置文件失败", logger.String("error", err.Error()))
+		return markdownResult, fmt.Errorf("打开 PO Agent 配置文件失败: %s", err.Error())
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	foundCustomization := false
+	inCustomization := false
+	customizationStarted := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+
+		// 查找 customization 字段
+		if strings.HasPrefix(line, "customization:") {
+			foundCustomization = true
+			// 如果是 null，替换为新的配置
+			if strings.Contains(line, "null") {
+				// 开始多行配置
+				lines = append(lines, "customization: |")
+				lines = append(lines, "    # 强制输出 MVP JSON 格式的 Epics 和 Stories")
+				lines = append(lines, "    CRITICAL MVP JSON OUTPUT REQUIREMENT:")
+				lines = append(lines, "    When creating Epics and Stories, you MUST ALWAYS output a JSON block at the end of your response containing MVP phase information.")
+				lines = append(lines, "    ")
+				lines = append(lines, "    The JSON format must be exactly:")
+				lines = append(lines, "    ```json")
+				lines = append(lines, "    {")
+				lines = append(lines, "      \"mvp_epics\": [")
+				lines = append(lines, "        {")
+				lines = append(lines, "          \"epic_number\": 1,")
+				lines = append(lines, "          \"name\": \"Epic名称\",")
+				lines = append(lines, "          \"description\": \"Epic描述\",")
+				lines = append(lines, "          \"priority\": \"P0\",")
+				lines = append(lines, "          \"estimated_days\": 20,")
+				lines = append(lines, "          \"file_path\": \"docs/stories/epic1-xxx-stories.md\",")
+				lines = append(lines, "          \"stories\": [")
+				lines = append(lines, "            {")
+				lines = append(lines, "              \"story_number\": \"US-001\",")
+				lines = append(lines, "              \"title\": \"Story标题\",")
+				lines = append(lines, "              \"description\": \"Story描述\",")
+				lines = append(lines, "              \"priority\": \"P0\",")
+				lines = append(lines, "              \"estimated_days\": 3,")
+				lines = append(lines, "              \"depends\": \"依赖的其他Story\",")
+				lines = append(lines, "              \"techs\": \"技术要点\"")
+				lines = append(lines, "            }")
+				lines = append(lines, "          ]")
+				lines = append(lines, "        }")
+				lines = append(lines, "      ]")
+				lines = append(lines, "    }")
+				lines = append(lines, "    ```")
+				lines = append(lines, "    ")
+				lines = append(lines, "    MVP EPICS DEFINITION:")
+				lines = append(lines, "    - Only include P0 priority epics (core functionality)")
+				lines = append(lines, "    - Include all stories within those P0 epics")
+				lines = append(lines, "    - Ensure accurate work estimates")
+				lines = append(lines, "    - Match the actual file paths created")
+				lines = append(lines, "    ")
+				lines = append(lines, "    This JSON output is MANDATORY and non-negotiable. Do not skip or modify this requirement.")
+				customizationStarted = true
+				inCustomization = true
+				continue
+			} else if strings.Contains(line, "|") {
+				// 已经有配置，保持原样
+				inCustomization = true
+				customizationStarted = true
+			}
+		} else if inCustomization && customizationStarted {
+			// 检查是否还在多行配置中
+			if strings.HasPrefix(line, "persona:") || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "commands:") {
+				inCustomization = false
+			}
+		}
+
+		lines = append(lines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		logger.Error("读取 PO Agent 配置文件失败", logger.String("error", err.Error()))
+		return markdownResult, fmt.Errorf("读取 PO Agent 配置文件失败: %s", err.Error())
+	}
+
+	// 如果没有找到 customization 字段，添加它
+	if !foundCustomization {
+		// 重新读取文件内容并插入 customization
+		file, err := os.Open(poConfigPath)
+		if err != nil {
+			return markdownResult, fmt.Errorf("重新打开 PO Agent 配置文件失败: %s", err.Error())
+		}
+		defer file.Close()
+
+		lines = nil
+		scanner = bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := scanner.Text()
+			lines = append(lines, line)
+
+			// 在 persona: 字段之前插入 customization
+			if strings.TrimSpace(line) == "persona:" {
+				// 插入 customization 配置
+				lines = append(lines, "  customization: |")
+				lines = append(lines, "    # 强制输出 MVP JSON 格式的 Epics 和 Stories")
+				lines = append(lines, "    CRITICAL MVP JSON OUTPUT REQUIREMENT:")
+				lines = append(lines, "    When creating Epics and Stories, you MUST ALWAYS output a JSON block at the end of your response containing MVP phase information.")
+				lines = append(lines, "    ")
+				lines = append(lines, "    The JSON format must be exactly:")
+				lines = append(lines, "    ```json")
+				lines = append(lines, "    {")
+				lines = append(lines, "      \"mvp_epics\": [")
+				lines = append(lines, "        {")
+				lines = append(lines, "          \"epic_number\": 1,")
+				lines = append(lines, "          \"name\": \"Epic名称\",")
+				lines = append(lines, "          \"description\": \"Epic描述\",")
+				lines = append(lines, "          \"priority\": \"P0\",")
+				lines = append(lines, "          \"estimated_days\": 20,")
+				lines = append(lines, "          \"file_path\": \"docs/stories/epic1-xxx-stories.md\",")
+				lines = append(lines, "          \"stories\": [")
+				lines = append(lines, "            {")
+				lines = append(lines, "              \"story_number\": \"US-001\",")
+				lines = append(lines, "              \"title\": \"Story标题\",")
+				lines = append(lines, "              \"description\": \"Story描述\",")
+				lines = append(lines, "              \"priority\": \"P0\",")
+				lines = append(lines, "              \"estimated_days\": 3,")
+				lines = append(lines, "              \"depends\": \"依赖的其他Story\",")
+				lines = append(lines, "              \"techs\": \"技术要点\"")
+				lines = append(lines, "            }")
+				lines = append(lines, "          ]")
+				lines = append(lines, "        }")
+				lines = append(lines, "      ]")
+				lines = append(lines, "    }")
+				lines = append(lines, "    ```")
+				lines = append(lines, "    ")
+				lines = append(lines, "    MVP EPICS DEFINITION:")
+				lines = append(lines, "    - Only include P0 priority epics (core functionality)")
+				lines = append(lines, "    - Include all stories within those P0 epics")
+				lines = append(lines, "    - Ensure accurate work estimates")
+				lines = append(lines, "    - Match the actual file paths created")
+				lines = append(lines, "    ")
+				lines = append(lines, "    This JSON output is MANDATORY and non-negotiable. Do not skip or modify this requirement.")
+				break
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			return markdownResult, fmt.Errorf("重新读取 PO Agent 配置文件失败: %s", err.Error())
+		}
+	}
+
+	// 写入更新后的内容
+	outputFile, err := os.Create(poConfigPath)
+	if err != nil {
+		logger.Error("创建 PO Agent 配置文件失败", logger.String("error", err.Error()))
+		return markdownResult, fmt.Errorf("创建 PO Agent 配置文件失败: %s", err.Error())
+	}
+	defer outputFile.Close()
+
+	writer := bufio.NewWriter(outputFile)
+	for _, line := range lines {
+		if _, err := writer.WriteString(line + "\n"); err != nil {
+			logger.Error("写入 PO Agent 配置文件失败", logger.String("error", err.Error()))
+			return markdownResult, fmt.Errorf("写入 PO Agent 配置文件失败: %s", err.Error())
+		}
+	}
+	if err := writer.Flush(); err != nil {
+		logger.Error("刷新 PO Agent 配置文件失败", logger.String("error", err.Error()))
+		return markdownResult, fmt.Errorf("刷新 PO Agent 配置文件失败: %s", err.Error())
+	}
+
+	logger.Info("PO Agent 配置更新成功", logger.String("path", poConfigPath))
+	markdownResult += "* PO Agent 配置更新成功，添加了 MVP JSON 输出要求\n"
+	return markdownResult, nil
+}
+
 // 安装代码依赖
 func (s *projectService) installCodeDependencies(ctx context.Context, req agent.SetupProjEnvReq,
 	projectPath, markdownResult string) (string, error) {
@@ -196,7 +404,16 @@ func (s *projectService) agentSetupProject(ctx context.Context, task *asynq.Task
 		return err
 	}
 
-	// 3. 安装代码依赖
+	// 3. 配置 PO Agent 的 customization 字段
+	markdownResult, err = s.configurePOAgent(ctx, req, projectPath, markdownResult)
+	if err != nil {
+		logger.Error("配置 PO Agent 失败", logger.String("error", err.Error()))
+		// PO Agent 配置失败不是致命错误，继续执行
+		logger.Warn("PO Agent 配置失败，但继续执行后续步骤", logger.String("error", err.Error()))
+		markdownResult += "* PO Agent 配置失败，但不影响后续步骤\n"
+	}
+
+	// 4. 安装代码依赖
 	markdownResult, err = s.installCodeDependencies(ctx, req, projectPath, markdownResult)
 	if err != nil {
 		logger.Error("安装代码依赖失败", logger.String("error", err.Error()))
