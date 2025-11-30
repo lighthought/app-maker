@@ -259,7 +259,7 @@
         <!-- AI Agent 工具信息 -->
         <n-card v-if="agentStatus && agentStatus.tools && agentStatus.tools.length > 0" class="agent-tools-card">
           <template #header>
-            <h3>AI Agent 工具</h3>
+            <h3>Agent Tools</h3>
           </template>
           
           <div class="tools-list">
@@ -613,7 +613,7 @@ const getAgentStatusInfo = () => {
   
   return {
     status: statusInfo.status,
-    message: agentStatus.value.status === 'running' ? 'AI Agent 在线' : `AI Agent ${agentStatus.value.status}`,
+    message: agentStatus.value.status === 'running' ?  t('dashboard.agentOnline') : `AI Agent ${agentStatus.value.status}`,
     version: agentStatus.value.version,
     color: statusInfo.color
   }
