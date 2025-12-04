@@ -42,18 +42,6 @@ agents/
 │   │   └── config.go                 # 配置管理
 │   ├── container/
 │   │   └── container.go              # 依赖注入容器
-│   └── services/
-│       ├── agent_task_service.go     # Agent任务服务
-│       ├── project_service.go        # 项目管理服务
-│       ├── command_service.go        # 命令行执行服务
-│       └── git_service.go           # Git操作服务
-├── docs/
-│   ├── docs.go               # Swagger文档配置
-│   └── swagger.yaml          # Swagger配置
-├── go.mod                    # Go模块依赖
-├── go.sum                    # 依赖校验和
-└── README.md                 # 项目说明
-```
 
 ## 🤖 支持的Agent类型
 

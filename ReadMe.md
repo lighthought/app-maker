@@ -166,7 +166,6 @@ app-maker/
 │   │   ├── router/         # 路由配置
 │   │   ├── utils/          # 工具函数
 │   │   └── types/          # TypeScript类型定义
-│   ├── architect/          # 架构设计文档
 │   └── package.json
 ├── backend/                 # Go后端服务
 │   ├── internal/
@@ -176,7 +175,6 @@ app-maker/
 │   │   ├── repositories/   # 数据访问层
 │   │   ├── config/         # 配置管理
 │   │   └── container/      # 依赖注入容器
-│   ├── architect/          # 架构设计文档
 │   └── go.mod
 ├── agents/                  # Go Agents服务
 │   ├── internal/
@@ -184,7 +182,6 @@ app-maker/
 │   │   ├── services/       # Agent核心服务
 │   │   ├── config/         # 配置管理
 │   │   └── container/      # 依赖注入容器
-│   ├── design/             # 设计文档
 │   └── go.mod
 ├── shared-models/          # Go共享模型模块
 │   ├── agent/              # Agent相关类型
@@ -338,25 +335,27 @@ golangci-lint run
 ## 📚 文档
 
 ### 配置指南
-- [CLI 工具与 AI 模型配置指南](docs/CLI_CONFIGURATION_GUIDE.md) - 详细介绍如何配置不同的 CLI 工具和 AI 模型
+- [CLI 工具与 AI 模型配置指南](docs/guides/CLI_Configuration.md) - 详细介绍如何配置不同的 CLI 工具和 AI 模型
 
 ### 架构文档
-- [整体架构设计](docs/architect/Overall_Architecture.md)
-- [后端架构设计](docs/architect/Backend_Architecture.md)
-- [前端架构设计](docs/architect/Frontend_Architecture.md)
-- [API设计](docs/architect/API_Design.md)
-- [数据模型设计](docs/architect/Data_Model_Design.md)
+- [Antigravity Spec (AI Agent Guide)](docs/antigravity_spec.md) - **AI Agent 开发必读**
+- [整体架构设计](docs/Overall_Architecture.md)
+- [后端架构设计](docs/backend/Architecture.md)
+- [前端架构设计](docs/frontend/Architecture.md)
+- [Agents架构设计](docs/agents/Architecture.md)
+- [API设计](docs/backend/API_Design.md)
+- [数据模型设计](docs/backend/Data_Model_Design.md)
 
 ### 设计文档
-- [UX设计系统](docs/design/UX_Design_System.md)
-- [页面设计规范](docs/design/Page_Design_Specifications.md)
+- [UX设计系统](docs/frontend/UX_Design_System.md)
+- [页面设计规范](docs/frontend/Page_Design_Specifications.md)
 
 ### PRD和Stories
-- [产品需求文档](docs/PRD/PRD_多Agent自动实现APP和网站项目.md)
-- [Epic和Story文档](docs/stories/)
+- [产品需求文档](docs/product/PRD/PRD_多Agent自动实现APP和网站项目.md)
+- [Epic和Story文档](docs/product/stories/)
 
 ### 部署文档
-- [部署指南](docs/deploy/README-DEPLOYMENT.md)
+- [部署指南](docs/guides/Deployment.md)
 
 ---
 

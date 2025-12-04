@@ -72,13 +72,6 @@ backend/
 │   │   └── user_service.go          # 用户管理服务
 │   └── worker/
 │       └── project.go               # 后台工作任务
-├── pkg/                       # 可导出的包
-│   └── cache/                 # 缓存管理
-│       ├── factory.go         # 缓存工厂
-│       ├── interface.go       # 缓存接口定义
-│       ├── keys.go            # 缓存键管理
-│       ├── monitor.go         # 缓存监控
-│       └── redis.go          # Redis缓存实现
 ├── configs/                   # 配置文件
 │   ├── config.yaml           # 开发环境配置
 │   └── config.prod.yaml     # 生产环境配置
