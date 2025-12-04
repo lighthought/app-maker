@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/lighthought/app-maker/agents/internal/api/handlers"
 	"github.com/lighthought/app-maker/agents/internal/config"
@@ -14,10 +15,13 @@ import (
 	"github.com/lighthought/app-maker/shared-models/logger"
 
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 )
 
 type Container struct {
 	// External Services
+	Config         *config.Config
+	RedisClient    *redis.Client
 	AsyncClient    *asynq.Client
 	AsyncInspector *asynq.Inspector
 	AsyncServer    *asynq.Server
@@ -31,6 +35,7 @@ type Container struct {
 	RedisService     services.RedisService
 	AgentTaskService services.AgentTaskService
 	ProjectService   services.ProjectService
+	PromptService    services.PromptService
 
 	// API Handlers
 	ProjectHandler   *handlers.ProjectHandler
@@ -52,6 +57,13 @@ func NewContainer(cfg *config.Config) *Container {
 		DB:       cfg.Redis.DB,
 	}
 
+	// 初始化 Redis 客户端
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
 	// 创建独立的 Redis 客户端用于缓存
 	cacheInstance, _ := cache.NewCache(cache.Config{
 		Host:     cfg.Redis.Host,
@@ -71,21 +83,24 @@ func NewContainer(cfg *config.Config) *Container {
 	fileSvc := services.NewFileService(commandSvc, cfg.App.WorkspacePath)
 	agentTaskService := services.NewAgentTaskService(commandSvc, fileSvc, gitService, redisService, asyncClient)
 	projectSvc := services.NewProjectService(commandSvc, agentTaskService, redisService, fileSvc)
+	promptService := services.NewPromptService(filepath.Join("configs", "prompts.json"))
 
 	asynqServer := initAsynqWorker(&asyncOpt, cfg.Asynq.Concurrency, agentTaskService, projectSvc)
 
 	projectHandler := handlers.NewProjectHandler(agentTaskService, projectSvc)
 	chatHandler := handlers.NewChatHandler(agentTaskService)
-	analyseHandler := handlers.NewAnalyseHandler(agentTaskService)
-	pmHandler := handlers.NewPmHandler(agentTaskService)
-	poHandler := handlers.NewPoHandler(agentTaskService)
-	devHandler := handlers.NewDevHandler(agentTaskService, commandSvc)
-	architectHandler := handlers.NewArchitectHandler(agentTaskService)
-	uxHandler := handlers.NewUxHandler(agentTaskService)
+	analyseHandler := handlers.NewAnalyseHandler(agentTaskService, promptService)
+	pmHandler := handlers.NewPmHandler(agentTaskService, promptService)
+	poHandler := handlers.NewPoHandler(agentTaskService, promptService)
+	devHandler := handlers.NewDevHandler(agentTaskService, commandSvc, promptService)
+	architectHandler := handlers.NewArchitectHandler(agentTaskService, promptService)
+	uxHandler := handlers.NewUxHandler(agentTaskService, promptService)
 	taskHandler := handlers.NewTaskHandler(asyncInspector)
 	healthHandler := handlers.NewHealthHandler(cacheInstance)
 
 	return &Container{
+		Config:           cfg,
+		RedisClient:      rdb,
 		AsyncClient:      asyncClient,
 		AsyncInspector:   asyncInspector,
 		AgentTaskService: agentTaskService,
@@ -94,6 +109,8 @@ func NewContainer(cfg *config.Config) *Container {
 		GitService:       gitService,
 		RedisService:     redisService,
 		CacheInstance:    cacheInstance,
+		ProjectService:   projectSvc,
+		PromptService:    promptService,
 		ProjectHandler:   projectHandler,
 		ChatHandler:      chatHandler,
 		AnalyseHandler:   analyseHandler,

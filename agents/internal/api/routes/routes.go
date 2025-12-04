@@ -61,10 +61,11 @@ func registerAgentApiRoutes(routers *gin.RouterGroup, container *container.Conta
 		{
 			devHandler := container.DevHandler
 			if devHandler != nil {
-				dev.POST("/fixbug", devHandler.FixBug)            // 修复bug
-				dev.POST("/implstory", devHandler.ImplementStory) // 实现故事
-				dev.POST("/runtest", devHandler.RunTest)          // 运行测试
-				dev.POST("/deploy", devHandler.Deploy)            // 部署
+				dev.POST("/fixbug", devHandler.FixBug)              // 修复bug
+				dev.POST("/implstory", devHandler.ImplementStory)   // 实现故事
+				dev.POST("/runtest", devHandler.RunTest)            // 运行测试
+				dev.POST("/deploy", devHandler.Deploy)              // 部署
+				dev.POST("/frontend", devHandler.ImplementFrontend) // 实现前端
 			} else {
 				setPostEmptyEndpoint(dev, "/fixbug", "Dev fix bug endpoint - TODO")
 				setPostEmptyEndpoint(dev, "/implstory", "Dev implement story endpoint - TODO")

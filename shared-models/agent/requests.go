@@ -139,3 +139,9 @@ func (a *ChatReq) ToBytes() []byte {
 	}
 	return bytes
 }
+
+// 实现前端请求
+type ImplementFrontendReq struct {
+	ProjectGuid string `json:"project_guid" binding:"required" example:"1234567890"`
+	CliTool     string `json:"cli_tool" example:"claude-code"`
+}

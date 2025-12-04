@@ -15,11 +15,22 @@ import (
 // PmHandler 负责产品经理 Agent 的接口
 type PmHandler struct {
 	agentTaskService services.AgentTaskService
+	promptService    services.PromptService
 }
 
 // NewPmHandler 创建新的 PM Handler
-func NewPmHandler(agentTaskService services.AgentTaskService) *PmHandler {
-	return &PmHandler{agentTaskService: agentTaskService}
+func NewPmHandler(agentTaskService services.AgentTaskService, promptService services.PromptService) *PmHandler {
+	return &PmHandler{
+		agentTaskService: agentTaskService,
+		promptService:    promptService,
+	}
+}
+
+func (h *PmHandler) getAgentPrompt(cliTool string) string {
+	if cliTool == common.CliToolGemini {
+		return "@.bmad-core/agents/pm.md"
+	}
+	return "@bmad/pm.mdc"
 }
 
 // GetPRD godoc
@@ -40,22 +51,18 @@ func (s *PmHandler) GetPRD(c *gin.Context) {
 		return
 	}
 
-	// 根据 CLI 类型选择不同的 prompt
-	var agentPrompt string
-	if req.CliTool == common.CliToolGemini {
-		agentPrompt = "@.bmad-core/agents/pm.md"
-	} else {
-		agentPrompt = "@bmad/pm.mdc"
+	agentPrompt := s.getAgentPrompt(req.CliTool)
+
+	data := map[string]interface{}{
+		"AgentPrompt":  agentPrompt,
+		"Requirements": req.Requirements,
 	}
 
-	message := agentPrompt + " 我希望你根据 @docs/analyse目录下的项目简介和市场研究，以及我的需求帮我输出 PRD.md 文档到 docs 目录下，用 UTF-8 格式编码。\n" +
-		"我的需求是：" + req.Requirements +
-		"注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。" +
-		"2. 简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n" +
-		"3. 当前项目的现有代码是基于模板生成的，仅用于展示项目结构和技术框架，可以不考虑。\n" +
-		"4. 技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论，不需要你在 PRD 中体现。\n" +
-		"5. 不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n" +
-		"6. 如果 docs/ 目录下已经有完善的 PRD.md 文件，直接返回概要信息，不用再尝试生成 PRD.md，原来的文档保持不变。"
+	message, err := s.promptService.GetPrompt("pm", "get_prd", data)
+	if err != nil {
+		c.JSON(http.StatusOK, utils.GetErrorResponse(common.ERROR_CODE, "生成Prompt失败: "+err.Error()))
+		return
+	}
 
 	taskInfo, err := s.agentTaskService.EnqueueWithCli(req.ProjectGuid, common.AgentTypePM, message,
 		req.CliTool, common.DevStatusGeneratePRD)

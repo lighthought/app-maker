@@ -227,3 +227,8 @@ func (c *AgentClient) Deploy(ctx context.Context, req *agent.DeployReq) (string,
 func (c *AgentClient) ChatWithAgent(ctx context.Context, req *agent.ChatReq) (string, error) {
 	return c.innerPost(ctx, "/api/v1/agent/chat", req)
 }
+
+// ImplementFrontend 实现前端
+func (c *AgentClient) ImplementFrontend(ctx context.Context, req *agent.ImplementFrontendReq) (string, error) {
+	return c.innerPost(ctx, "/api/v1/agent/dev/frontend", req)
+}

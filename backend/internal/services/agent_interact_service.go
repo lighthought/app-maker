@@ -422,32 +422,14 @@ func (s *agentInteractService) GenerateFrontendPages(ctx context.Context,
 
 	logger.Info("开始生成前端页面", logger.String("pagePromptPath", pagePromptRelPath))
 
-	// 根据 CLI 类型选择不同的 prompt
-	var agentPrompt string
-	cliTool := s.getCliTool(project)
-	if cliTool == common.CliToolGemini {
-		agentPrompt = "@.bmad-core/agents/dev.md"
-	} else {
-		agentPrompt = "@bmad/dev.mdc"
-	}
-
 	// 调用 Dev Agent 生成前端页面
-	message := agentPrompt + " 请基于 @docs/ux/page-prompt.md 中的页面设计提示词," +
-		"在前端项目 frontend/src/pages/ 目录下生成关键页面组件。" +
-		"使用 Vue 3 + TypeScript + Naive UI,遵循现有项目的代码风格和架构。" +
-		"只生成 page-prompt.md 中明确定义的页面，不要生成其他页面。" +
-		"注意：始终用中文回答我。"
-
-	req := &agent.ChatReq{
+	req := &agent.ImplementFrontendReq{
 		ProjectGuid: project.GUID,
-		AgentType:   common.AgentTypeDev,
-		Message:     message,
 		CliTool:     s.getCliTool(project),
-		DevStage:    string(common.DevStatusGeneratePages),
 	}
 
 	agentClient := s.getAgentClient(s.defaultTimeout)
-	taskID, err := agentClient.ChatWithAgent(ctx, req)
+	taskID, err := agentClient.ImplementFrontend(ctx, req)
 	if err != nil {
 		logger.Error("生成前端页面失败", logger.String("error", err.Error()))
 		return "", err

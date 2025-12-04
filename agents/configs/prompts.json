@@ -1,0 +1,47 @@
+{
+    "dev": {
+        "implement_story": {
+            "template": "{{.AgentPrompt}} 请你基于PRD文档 @{{.PrdPath}} 和架构师的设计 @{{.ArchFolder}} ，以及 UX 标准 @{{.UxSpecPath}} {{if .StoryFile}}按照里程碑的顺序，实现 @{{.EpicFile}} 中的下一个用户故事 @{{.StoryFile}}。{{else}}按照里程碑的顺序，实现 @{{.EpicFile}} 中的下一个用户故事。{{end}}\n请你始终记得项目的前后端框架及约束：\n1. 后端 Handler -> service -> repository 分层，引用和依赖关系都在 container 依赖注入容器中维护；\n2. 后端的服务和repository 一般都有接口，供上一层调用。接口的定义和实现放在同一个文件中，不用为了定义服务接口或 repository 接口而单独新建文件。\n3. 后端部分每个文件夹的具体作用可以参考 @backend/ReadMe.md。前端部分参考 @frontend/ReadMe.md。\n注意：\n1. 数据库的设计在 @{{.DbFolder}} 目录下。API 的定义在 @{{.ApiFolder}} 目录下。数据和接口如果在实现过程中需要调整，记得更新数据库设计和 API 定义文档\n2. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程；\n3. 每次实现完，检查是否达成验收标准，更新对应 epic 的文档，勾上对应用户故事的验收标准。再更新 @{{.EpicFile}} 中的 ReadMe.md 文件中的对应用户故事的完成状态。\n4. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。\n5. 实现过程中如果遇到问题，请自行尝试解决，解决不了再作为遗留问题输出到最后的总结中。\n6. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n7. 每次实现完，记得修复编译问题，至少要保障项目能够 make build-dev 编译通过。"
+        },
+        "fix_bug": {
+            "template": "{{.AgentPrompt}} 我当前遇到了 {{.BugDescription}}，请你帮我修复下。请你始终记得项目的前后端框架及约束：\n1. 后端 Handler -> service -> repository 分层，引用和依赖关系都在 container 依赖注入容器中维护；\n2. 后端的服务和repository 一般都有接口，供上一层调用。接口的定义和实现放在同一个文件中，不用为了定义服务接口或 repository 接口而单独新建文件。\n3. 后端部分每个文件夹的具体作用可以参考 @backend/ReadMe.md。前端部分参考 @frontend/ReadMe.md。\n\n注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 每次修改之前，先理解当前项目中已有的公共组件、框架约束，不要新增不必要的框架和技术流程。docs 目录下的架构、API、数据库和UX文档可以帮助你理解\n3. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
+        },
+        "run_test": {
+            "template": "{{.AgentPrompt}} 请你使用项目现有的测试脚本，完成项目的自动测试过程。包括前端的 lint 和后端的测试过程。\n如果有 make test 命令，直接执行即可\n注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 不要每次生成多余的总结文档，你可以总结做了什么事，但是不要新增不必要的说明文件。"
+        },
+        "implement_frontend": {
+            "template": "{{.AgentPrompt}} 请基于 @docs/ux/page-prompt.md 中的页面设计提示词,在前端项目 frontend/src/pages/ 目录下生成关键页面组件。使用 Vue 3 + TypeScript + Naive UI,遵循现有项目的代码风格和架构。只生成 page-prompt.md 中明确定义的页面，不要生成其他页面。注意：始终用中文回答我。"
+        }
+    },
+    "analyst": {
+        "project_brief": {
+            "template": "{{.AgentPrompt}} 请你为我基于需求（不要考虑任何现有项目代码和文档）生成项目简介，再执行市场研究。输出对应的文档到 docs/analyse/ 目录下。\n我的需求是：\n{{.Requirements}}\n\n注意：1.始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 如果 docs/analyse/ 目录下已经有完善的项目简介和市场研究文档，直接返回概要信息，不用再尝试各种研究和调查过程，原来的文档保持不变。\n3. 不需要你关心技术方向，这个我后续会和架构师深入讨论。\n4. 不要问我任何问题，请基于我的需求判断我想要开发的应用或网站类型。\n5. 市场研究文档的内容包括：竞争对手分析、目标市场规模、用户需求分析、商业模式可行性。\n特别注意：当前项目的现有代码基于模板生成，仅用于展示项目结构和技术框架，不要在生成项目简介和市场研究的时候进行考虑。"
+        }
+    },
+    "pm": {
+        "get_prd": {
+            "template": "{{.AgentPrompt}} 我希望你根据 @docs/analyse目录下的项目简介和市场研究，以及我的需求帮我输出 PRD.md 文档到 docs 目录下，用 UTF-8 格式编码。\n我的需求是：{{.Requirements}}注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。2. 简化部署和运维、商业模式、成功指标、风险评估中的市场和运营风险。\n3. 当前项目的现有代码是基于模板生成的，仅用于展示项目结构和技术框架，可以不考虑。\n4. 技术选型我后续再和架构师深入讨论，主题颜色我后续再和 ux 专家讨论，不需要你在 PRD 中体现。\n5. 不需要你做额外的调查，也不要问我要不要创建文件，直接输出PRD到 docs/PRD.md 文件中。\n6. 如果 docs/ 目录下已经有完善的 PRD.md 文件，直接返回概要信息，不用再尝试生成 PRD.md，原来的文档保持不变。"
+        }
+    },
+    "ux": {
+        "get_ux_standard": {
+            "template": "{{.AgentPrompt}} 帮我基于PRD文档 @{{.PrdPath}} 和参考页面设计(如果需求有提及的话)，输出前端的 UX Spec 到 docs/ux/ux-spec.md。关键web页面的文生网站提示词到 docs/ux/page-prompt.md。\n我的需求是：\n{{.Requirements}}\n\n注意：\n1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。例如: 'page-prompt.md' 而不是'页面提示词.md'。\n3. 如果 docs/ux/ 目录下已经有完善的 UX Spec 和页面提示词，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+        }
+    },
+    "architect": {
+        "get_architecture": {
+            "template": "{{.AgentPrompt}} 请你基于最新的PRD文档 @{{.PrdPath}} 和 UX 专家的设计文档 @{{.UxSpecPath}} 帮我把整体架构设计 Architect.md, 前端架构设计 frontend_arch.md, 后端架构设计 backend_arch.md。 都输出到 docs/arch/ 目录下。\n注意：\n1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n3. 当前的项目代码是由模板生成，所以当前可能存在一些不在 PRD 描述内的实现细节，不影响编译可以不考虑。\n4. 当前项目使用的模板技术架构是：\n{{.TemplateArchDescription}}5. 如果 docs/arch/ 目录下已经有完善的架构设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。\n6. 特别注意：不要输出实际的代码片段，尽可能多的展示关键的结构设计图（Mermaid图表）。"
+        },
+        "get_database_design": {
+            "template": "{{.AgentPrompt}} 请你基于最新的PRD文档 @{{.PrdPath}} 和 @{{.ArchFolder}} 目录下的架构设计，以及 @{{.StoriesFolder}} 目录下的用户故事，输出数据模型设计(可以用 sql 脚本代替)。输出到 docs/db/ 目录下。\n注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n3. 如果 docs/db/ 目录下已经有完善的数据模型设计，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+        },
+        "get_api_definition": {
+            "template": "{{.AgentPrompt}} 请你基于最新的PRD文档 @{{.PrdPath}} 和 @{{.DbFolder}} 目录下的数据模型，以及 @{{.StoriesFolder}} 目录下的用户故事，生成 API 接口定义。输出到 docs/api/ 下多个文件（按控制器分类）。\n注意：1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 重要: 所有生成的文件名必须使用英文命名，不要使用中文文件名。\n3. 如果 docs/api/ 目录下已经有完善的 API 接口定义，直接返回概要信息，不用再尝试生成，原来的文档保持不变。"
+        }
+    },
+    "po": {
+        "get_epics_and_stories": {
+            "template": "{{.AgentPrompt}} 我希望你基于PRD文档 @{{.PrdPath}} 和 @{{.ArchFolder}} 目录下的架构设计。首先创建分片的 Epics（史诗）和 Stories（用户故事），输出到 docs/stories/ 目录下。\n注意：\n1. 始终用中文回答我，文件内容也使用中文（专有名词、代码片段和一些简单的英文除外）。\n2. 文件名必须使用英文命名，格式为: 'epic{N}-{english-name}-stories.md' 和 'epics.md'，不要使用中文文件名。例如 'epic1-project-creation-stories.md' 而不是 'epic1-项目创建-stories.md'。\n3. 每个用户故事中要包含验收标准。不要考虑安全、合规。\n4. 每个用户故事都要有自己的编号(如 US-001)，方便后续记录、跟踪。\n5. 每个用户故事，要有完成情况勾选框，方便后续实现过程中更新进度。\n6. 如果 docs/stories/ 目录下已经有完善的 Epics 和 Stories，直接返回概要信息，不用再尝试生成，原来的文档保持不变。\n7. 在回答的最后，以 JSON 格式输出 MVP 阶段的 Epics 信息（通常是 P0 优先级的 Epics），格式如下：\n```json\n{\n  \"mvp_epics\": [\n    {\n      \"epic_number\": 1,\n      \"name\": \"Epic名称\",\n      \"description\": \"Epic描述\",\n      \"priority\": \"P0\",\n      \"estimated_days\": 20,\n      \"file_path\": \"docs/stories/epic1-xxx-stories.md\",\n      \"stories\": [\n        {\n          \"story_number\": \"US-001\",\n          \"title\": \"Story标题\",\n          \"description\": \"Story描述\",\n          \"priority\": \"P0\",\n          \"estimated_days\": 3,\n          \"depends\": \"依赖的其他Story\",\n          \"techs\": \"技术要点\"\n        }\n      ]\n    }\n  ]\n}\n```\n"
+        }
+    }
+}
